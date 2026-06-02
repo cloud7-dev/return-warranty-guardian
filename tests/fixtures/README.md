@@ -6,6 +6,7 @@ Do not commit private receipts, real card statements, real order IDs, names, pho
 
 Current fixture groups:
 
+- `intake/`: sample intake manifests that document anonymization and review status before a fixture is accepted.
 - `csv/`: card statement, marketplace order, Shopify-style order, and Stripe-style receipt exports for import preset coverage.
 - `receipts/`: email-style receipt HTML for local text extraction and receipt parser coverage.
 - `pdf/`: PDF source snippets with simple text operators plus scanned/compressed fallback diagnostics.

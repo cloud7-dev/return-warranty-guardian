@@ -38,6 +38,7 @@ Check:
 - Product boundary wording.
 - V2 implementation checklist status.
 - Notification strategy.
+- Sample intake manifest status.
 - Privacy threat model.
 - Architecture data model when storage fields change.
 - V2 checklist when a backlog item moves from "remaining" to "implemented".
@@ -61,6 +62,7 @@ Release notes should include:
 - Claim submission template changes.
 - Notification, calendar alarm, or policy template changes.
 - Fixture corpus additions and privacy-safe sample notes.
+- Sample intake or sanitized smoke record additions.
 - Fixture anonymizer or reminder snooze changes.
 - Migration or compatibility notes.
 - Test evidence.

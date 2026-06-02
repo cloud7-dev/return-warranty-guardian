@@ -4,6 +4,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 on:
+  schedule:
+    - cron: "17 3 * * 1"
   workflow_dispatch:
     inputs:
       provider:
@@ -37,10 +39,15 @@ jobs:
           node-version: "22"
 
       - name: Public endpoint smoke
+        if: ${{ github.event_name == 'workflow_dispatch' || vars.RWG_NOTIFY_PUBLIC_ENDPOINT != '' }}
         env:
           RWG_NOTIFY_PUBLIC_SMOKE: "1"
-          RWG_NOTIFY_PUBLIC_PROVIDER: ${{ inputs.provider }}
-          RWG_NOTIFY_PUBLIC_ENDPOINT: ${{ inputs.endpoint }}
-          RWG_NOTIFY_PUBLIC_TOPIC: ${{ inputs.topic }}
+          RWG_NOTIFY_PUBLIC_PROVIDER: ${{ inputs.provider || vars.RWG_NOTIFY_PUBLIC_PROVIDER || 'ntfy' }}
+          RWG_NOTIFY_PUBLIC_ENDPOINT: ${{ inputs.endpoint || vars.RWG_NOTIFY_PUBLIC_ENDPOINT }}
+          RWG_NOTIFY_PUBLIC_TOPIC: ${{ inputs.topic || vars.RWG_NOTIFY_PUBLIC_TOPIC || 'returns' }}
           GOTIFY_TOKEN: ${{ secrets.GOTIFY_TOKEN }}
         run: npm run notify:smoke
+
+      - name: Skip notice
+        if: ${{ github.event_name == 'schedule' && vars.RWG_NOTIFY_PUBLIC_ENDPOINT == '' }}
+        run: echo "Skipping scheduled public endpoint smoke because RWG_NOTIFY_PUBLIC_ENDPOINT is not configured."

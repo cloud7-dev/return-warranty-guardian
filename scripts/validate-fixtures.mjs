@@ -50,6 +50,23 @@ async function validateCsvFixtures() {
   }
 }
 
+async function validateSampleIntakeManifest() {
+  const manifestPath = path.join(root, "intake/sample-intake.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  if (manifest.schema !== "return-warranty-guardian.sample-intake.v1") {
+    throw new Error("Sample intake manifest has unsupported schema.");
+  }
+  for (const entry of manifest.entries || []) {
+    if (!entry.anonymized) throw new Error(`${entry.id} must be marked anonymized.`);
+    if (!entry.fixturePath) throw new Error(`${entry.id} is missing fixturePath.`);
+    if (!["csv", "ocr-text", "pdf-text", "policy"].includes(entry.type)) throw new Error(`${entry.id} has unsupported type.`);
+    if (!entry.review?.piiChecked || !entry.review?.parserChecked) throw new Error(`${entry.id} must include piiChecked and parserChecked review flags.`);
+    const fixturePath = path.join(root, entry.fixturePath);
+    const text = await readFile(fixturePath, "utf8");
+    assertNoPrivateData(fixturePath, text);
+  }
+}
+
 async function validatePdfFixtures() {
   const pdfDir = path.join(root, "pdf");
   const files = (await listFiles(pdfDir)).filter((file) => file.endsWith(".txt"));
@@ -179,6 +196,7 @@ async function main() {
     assertNoPrivateData(file, await readFile(file, "utf8"));
   }
   await validateCsvFixtures();
+  await validateSampleIntakeManifest();
   await validatePdfFixtures();
   await validateOcrResultFixtures();
   await validatePolicyFixtures();

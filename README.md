@@ -85,6 +85,7 @@ npm run fixture:anonymize -- path/to/private-sample.csv
 ```
 
 Review the generated file before committing it. Do not commit private receipts or real card statements.
+Accepted sample intake entries are tracked in `tests/fixtures/intake/sample-intake.json`; see `docs/sample-intake.md`.
 
 To verify the synthetic fixture corpus:
 

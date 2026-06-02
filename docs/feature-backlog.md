@@ -37,6 +37,7 @@ This list separates high-leverage additions from features that could distract th
 1. **Synthetic receipt fixture corpus**
    - Initial synthetic CSV, HTML receipt, PDF text-operator, and policy-template fixtures exist under `tests/fixtures`.
    - A local anonymizer script helps turn private samples into reviewable fixture drafts before contribution.
+   - Sample intake manifests now record anonymization and parser-review status before accepting community-shaped CSV/OCR fixtures.
    - Good for GitHub stars because it makes the project hackable.
 
 2. **Merchant policy templates**
@@ -55,7 +56,7 @@ This list separates high-leverage additions from features that could distract th
    - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, selected-row import, import report export, review checklist generation, large-import review filters, preset bundle export/import with compatibility validation, SHA-256 fingerprint-ready signing payloads, ECDSA P-256 detached signature verification, trust metadata, fixture validation, Korean card statements, Korean shopping orders, Amazon-style order history, Shopify-style order exports, and Stripe-style receipt exports.
    - Synthetic fixture corpus covers the current built-in presets.
    - Local fixture anonymization exists for draft samples.
-   - Remaining work: anonymized real card-statement/retailer fixture expansion, large-file row filtering, signed preset trust chains, and community preset review.
+   - Remaining work: broader anonymized real card-statement/retailer fixture expansion, signed maintainer key registry operations, and community preset review at scale.
 
 6. **Optional OCR**
    - Text, CSV, HTML/email, simple PDF text-operator extraction, scanned/compressed PDF fallback diagnostics/notices, local OCR text result fixtures, and supported browser-local image OCR now run locally in the browser. Image OCR now has an adapter boundary for a future bundled worker, browser TextDetector, or manual fallback.
@@ -64,8 +65,8 @@ This list separates high-leverage additions from features that could distract th
 
 7. **Local notification upgrade**
    - Per-purchase lead days, repeated `.ics` `VALARM`, open-app browser notifications, calendar import guidance, 3-hour/tomorrow/7-day in-app snooze, local self-hosted settings, self-hosted notification payload exports, dry-run reports, a runner CLI, and guarded opt-in send mode are implemented.
-   - Provider-specific endpoint fixtures, scheduler recipes, platform fallback guidance, an operating guide, local loopback smoke tests, opt-in public endpoint smoke mode, manual GitHub Actions smoke workflow, and sanitized smoke result records now cover ntfy and Gotify send paths plus Apprise dry-run plans.
-   - Remaining work: recurring real public/self-hosted endpoint smoke runs maintained outside the default CI environment.
+   - Provider-specific endpoint fixtures, scheduler recipes, platform fallback guidance, an operating guide, local loopback smoke tests, opt-in public endpoint smoke mode, scheduled/manual GitHub Actions smoke workflow, and sanitized smoke result records now cover ntfy and Gotify send paths plus Apprise dry-run plans.
+   - Remaining work: maintaining real public/self-hosted endpoint smoke configuration and records outside the default CI environment.
 
 8. **Claim packet HTML/PDF**
    - Printable HTML claim packet exists with attachment links, image previews, PDF save guidance, attachment manifests, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.

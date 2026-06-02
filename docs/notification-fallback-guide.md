@@ -35,7 +35,7 @@ npm run notify:smoke
 
 For Gotify, set `RWG_NOTIFY_PUBLIC_PROVIDER=gotify`, `RWG_NOTIFY_PUBLIC_ENDPOINT`, and `GOTIFY_TOKEN`. Do not store tokens in app data, fixtures, or preset bundles.
 
-Repository maintainers can trigger the manual GitHub Actions workflow `Notification Smoke` for a real endpoint they control. This workflow is intentionally `workflow_dispatch` only.
+Repository maintainers can trigger the GitHub Actions workflow `Notification Smoke` manually for a real endpoint they control. It also has a weekly schedule that skips when no endpoint repository variable is configured, and it is intentionally excluded from default CI.
 
 After a real endpoint run, convert the raw smoke output into a sanitized record before sharing or committing evidence:
 

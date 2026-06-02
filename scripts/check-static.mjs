@@ -36,6 +36,7 @@ const requiredFiles = [
   ".github/workflows/pages.yml",
   "docs/product-boundaries.md",
   "docs/notification-fallback-guide.md",
+  "docs/sample-intake.md",
   "docs/release-checklist.md",
   "docs/v2-implementation-checklist.ko.md",
   "LICENSE",

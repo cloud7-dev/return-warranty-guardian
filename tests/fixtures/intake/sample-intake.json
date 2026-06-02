@@ -1,0 +1,32 @@
+{
+  "schema": "return-warranty-guardian.sample-intake.v1",
+  "privacyNote": "Use this manifest for synthetic or anonymized community sample intake. Do not include raw private receipts, images, card statements, names, addresses, phone numbers, emails, or real order IDs.",
+  "entries": [
+    {
+      "id": "fixture-shopify-order-2026-06",
+      "type": "csv",
+      "fixturePath": "csv/shopify-order-export.csv",
+      "sourceKind": "community-anonymized-shape",
+      "anonymized": true,
+      "review": {
+        "piiChecked": true,
+        "parserChecked": true,
+        "reviewedAt": "2026-06-02",
+        "reviewer": "fixture-reviewer"
+      }
+    },
+    {
+      "id": "fixture-local-ocr-text-2026-06",
+      "type": "ocr-text",
+      "fixturePath": "ocr/scanned-receipt.local-ocr.txt",
+      "sourceKind": "local-ocr-text",
+      "anonymized": true,
+      "review": {
+        "piiChecked": true,
+        "parserChecked": true,
+        "reviewedAt": "2026-06-02",
+        "reviewer": "fixture-reviewer"
+      }
+    }
+  ]
+}
