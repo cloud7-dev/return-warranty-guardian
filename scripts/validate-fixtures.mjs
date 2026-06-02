@@ -104,6 +104,7 @@ async function validateNotificationFixtures() {
   const files = (await listFiles(notificationDir)).filter((file) => file.endsWith(".json"));
   const providers = new Set();
   for (const file of files) {
+    if (file.includes(`${path.sep}smoke-records${path.sep}`)) continue;
     const payload = JSON.parse(await readFile(file, "utf8"));
     const expectedProvider = payload.expectedRunner?.provider || payload.settings?.provider;
     const plan = buildRunnerPlan(payload, {
@@ -119,6 +120,30 @@ async function validateNotificationFixtures() {
   }
   for (const provider of ["ntfy", "gotify", "apprise"]) {
     if (!providers.has(provider)) throw new Error(`Missing notification fixture for ${provider}.`);
+  }
+}
+
+async function validateNotificationSmokeRecords() {
+  const recordDir = path.join(root, "notifications/smoke-records");
+  const files = (await listFiles(recordDir)).filter((file) => file.endsWith(".json"));
+  if (!files.length) throw new Error("Expected at least one notification smoke record fixture.");
+  for (const file of files) {
+    const text = await readFile(file, "utf8");
+    assertNoPrivateData(file, text);
+    if (/https?:\/\//i.test(text)) throw new Error(`${file} must not store raw endpoint URLs.`);
+    if (/token|bearer|authorization/i.test(text.replace(/"privacyNote"\s*:\s*"[^"]+"/g, ""))) {
+      throw new Error(`${file} must not store token or authorization data.`);
+    }
+    const record = JSON.parse(text);
+    if (record.schema !== "return-warranty-guardian.notification-smoke-record.v1") {
+      throw new Error(`${file} has unsupported smoke record schema.`);
+    }
+    if (!/^[a-f0-9]{64}$/.test(record.publicSmoke?.endpointHostHash || "")) {
+      throw new Error(`${file} must store a SHA-256 endpoint host hash.`);
+    }
+    if (!record.loopback?.purchaseDataSentOnlyDuringExplicitSend) {
+      throw new Error(`${file} must confirm purchase data is only sent during explicit send.`);
+    }
   }
 }
 
@@ -158,6 +183,7 @@ async function main() {
   await validateOcrResultFixtures();
   await validatePolicyFixtures();
   await validateNotificationFixtures();
+  await validateNotificationSmokeRecords();
   await validatePresetReviewFixtures();
   console.log("Fixture validation passed.");
 }

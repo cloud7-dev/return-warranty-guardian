@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { sanitizeFixtureFilename, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
+import { notificationSmokeRecord } from "../scripts/record-notification-smoke-result.mjs";
 import {
   analyzeCsvImport,
   csvImportReport,
@@ -481,6 +482,20 @@ const { stdout: runnerStdout } = await execFileAsync(process.execPath, [
 const cliPlan = JSON.parse(runnerStdout);
 assert.equal(cliPlan.plannedCount, 1);
 assert.equal(cliPlan.appSendsNetworkRequests, false);
+const smokeRecord = notificationSmokeRecord(
+  {
+    requestCount: 2,
+    ntfy: { status: 204 },
+    gotify: { status: 204 },
+    publicSmoke: { skipped: false, provider: "ntfy", endpointHost: "ntfy.example.test", result: { ok: true, status: 200 } },
+    purchaseDataSentOnlyDuringExplicitSend: true,
+  },
+  now,
+);
+assert.equal(smokeRecord.schema, "return-warranty-guardian.notification-smoke-record.v1");
+assert.equal(smokeRecord.publicSmoke.provider, "ntfy");
+assert.match(smokeRecord.publicSmoke.endpointHostHash, /^[a-f0-9]{64}$/);
+assert.equal(JSON.stringify(smokeRecord).includes("ntfy.example.test"), false);
 for (const provider of ["ntfy", "gotify", "apprise"]) {
   const providerPayload = JSON.parse(await fixture(`notifications/${provider}-payload.json`));
   const providerPlan = buildRunnerPlan(providerPayload, { provider, limit: 1, checkEndpoint: true });

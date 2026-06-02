@@ -12,7 +12,8 @@
     "fixture:anonymize": "node scripts/anonymize-fixture.mjs",
     "fixture:validate": "node scripts/validate-fixtures.mjs",
     "notify:dry-run": "node scripts/self-hosted-notification-runner.mjs",
-    "notify:smoke": "node scripts/smoke-notifications.mjs"
+    "notify:smoke": "node scripts/smoke-notifications.mjs",
+    "notify:record": "node scripts/record-notification-smoke-result.mjs"
   },
   "keywords": [
     "local-first",

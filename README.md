@@ -111,6 +111,12 @@ To run the local loopback endpoint smoke test for ntfy/Gotify send mode:
 npm run notify:smoke
 ```
 
+To convert a smoke output JSON into a sanitized record without raw endpoint URLs or tokens:
+
+```bash
+npm run notify:record -- smoke-output.json
+```
+
 ## Privacy Model
 
 Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use JSON export for backups.

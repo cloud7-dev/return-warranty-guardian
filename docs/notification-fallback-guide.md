@@ -37,6 +37,12 @@ For Gotify, set `RWG_NOTIFY_PUBLIC_PROVIDER=gotify`, `RWG_NOTIFY_PUBLIC_ENDPOINT
 
 Repository maintainers can trigger the manual GitHub Actions workflow `Notification Smoke` for a real endpoint they control. This workflow is intentionally `workflow_dispatch` only.
 
+After a real endpoint run, convert the raw smoke output into a sanitized record before sharing or committing evidence:
+
+```bash
+npm run notify:record -- smoke-output.json
+```
+
 ## OCR Fallback
 
 Image OCR is local only. The app tries a bundled local worker if one exists, then browser `TextDetector`, then manual paste/attachment fallback. Scanned PDFs without text operators stay as local claim evidence unless the user supplies local OCR text.

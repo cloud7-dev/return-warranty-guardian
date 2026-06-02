@@ -40,6 +40,14 @@ To smoke-test a real endpoint you control, set `RWG_NOTIFY_PUBLIC_SMOKE=1` plus 
 
 Maintainers can also run the manual GitHub Actions workflow `Notification Smoke` with provider, endpoint, and topic inputs. Gotify runs require the repository secret `GOTIFY_TOKEN`.
 
+To keep an auditable result without leaking endpoint URLs or tokens, save the smoke JSON output and convert it to a sanitized record:
+
+```bash
+npm run notify:record -- smoke-output.json
+```
+
+Sanitized records keep status codes, provider names, loopback counts, and a SHA-256 hash of the endpoint host only.
+
 ## Actual send guard
 
 Actual sending is off by default. It requires all of the following:

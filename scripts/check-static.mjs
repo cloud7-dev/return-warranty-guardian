@@ -20,6 +20,7 @@ const requiredFiles = [
   "scripts/validate-fixtures.mjs",
   "scripts/self-hosted-notification-runner.mjs",
   "scripts/smoke-notifications.mjs",
+  "scripts/record-notification-smoke-result.mjs",
   "assets/icon.svg",
   "README.md",
   "CONTRIBUTING.md",
