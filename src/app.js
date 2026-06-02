@@ -17,6 +17,7 @@ import { loadPurchases, savePurchases } from "./storage.js";
 
 const app = document.querySelector("#app");
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const CSV_PRESETS_STORAGE_KEY = "rwg:csv-import-presets";
 
 const state = {
   purchases: [],
@@ -27,6 +28,7 @@ const state = {
   parsedReceipt: null,
   ocrStatus: "",
   importPreview: null,
+  userCsvPresets: [],
 };
 
 const today = () => new Date();
@@ -172,6 +174,26 @@ function makeId() {
   return `purchase-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function loadUserCsvPresets() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CSV_PRESETS_STORAGE_KEY) || "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((preset) => preset?.id && preset?.label && preset?.mapping)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveUserCsvPresets(presets) {
+  state.userCsvPresets = presets;
+  localStorage.setItem(CSV_PRESETS_STORAGE_KEY, JSON.stringify(presets));
+}
+
+function csvPresetOptions() {
+  return [...CSV_IMPORT_PRESETS, ...state.userCsvPresets];
+}
+
 async function normalizePurchase(formData) {
   return {
     id: makeId(),
@@ -301,12 +323,16 @@ function renderImportPreview() {
               <label>
                 ${t("importPreset")}
                 <select id="csv-preset">
-                  ${CSV_IMPORT_PRESETS.map(
+                  ${csvPresetOptions().map(
                     (preset) =>
                       `<option value="${preset.id}" ${preview.presetId === preset.id ? "selected" : ""}>${h(preset.label)}</option>`,
                   ).join("")}
                 </select>
               </label>
+              <div class="preset-actions">
+                <button class="ghost-action" id="save-csv-preset" type="button">${t("saveCsvPreset")}</button>
+                ${state.userCsvPresets.some((preset) => preset.id === preview.presetId) ? `<button class="ghost-action danger" id="delete-csv-preset" type="button">${t("deleteCsvPreset")}</button>` : ""}
+              </div>
               <div class="mapping-grid">
                 ${CSV_IMPORT_FIELDS.map(
                   (field) => `
@@ -776,7 +802,8 @@ function reanalyzeImportPreview({ presetId, mapping } = {}) {
   if (!state.importPreview?.sourceText) return;
   const headers = state.importPreview.headers || [];
   const nextPresetId = presetId || state.importPreview.presetId || "auto";
-  const nextMapping = mapping || (presetId ? csvMappingForPreset(headers, nextPresetId) : state.importPreview.mapping);
+  const savedPreset = state.userCsvPresets.find((preset) => preset.id === nextPresetId);
+  const nextMapping = mapping || savedPreset?.mapping || (presetId ? csvMappingForPreset(headers, nextPresetId) : state.importPreview.mapping);
   state.importPreview = {
     ...analyzeCsvImport(state.importPreview.sourceText, state.purchases, today(), {
       presetId: nextPresetId,
@@ -1004,6 +1031,32 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.id === "save-csv-preset") {
+    if (!state.importPreview?.mapping) return;
+    const label = prompt(t("csvPresetName"), state.importPreview.fileName?.replace(/\.[^.]+$/, "") || "Custom CSV");
+    if (!label) return;
+    const id = `user-${Date.now()}`;
+    saveUserCsvPresets([
+      ...state.userCsvPresets,
+      {
+        id,
+        label: String(label).trim(),
+        mapping: state.importPreview.mapping,
+      },
+    ]);
+    reanalyzeImportPreview({ presetId: id, mapping: state.importPreview.mapping });
+    render();
+    return;
+  }
+
+  if (button.id === "delete-csv-preset") {
+    if (!state.importPreview?.presetId) return;
+    saveUserCsvPresets(state.userCsvPresets.filter((preset) => preset.id !== state.importPreview.presetId));
+    reanalyzeImportPreview({ presetId: "auto" });
+    render();
+    return;
+  }
+
   if (button.id === "export-import-report") {
     if (!state.importPreview) return;
     const safeName = (state.importPreview.fileName || "csv-import").replace(/[^a-z0-9._-]+/gi, "-").replace(/^-|-$/g, "");
@@ -1061,6 +1114,7 @@ app.addEventListener("click", async (event) => {
 });
 
 async function boot() {
+  state.userCsvPresets = loadUserCsvPresets();
   state.purchases = await loadPurchases();
   if (!state.purchases.length) {
     state.purchases = samplePurchases;

@@ -385,6 +385,17 @@ svg {
   gap: 10px;
 }
 
+.preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ghost-action.danger {
+  color: var(--red);
+  border-color: #ffc9bf;
+}
+
 .import-row {
   display: grid;
   gap: 4px;

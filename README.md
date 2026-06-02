@@ -28,7 +28,7 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Tracks return, refund, and warranty deadlines from one local dashboard.
 - Stores purchases in browser storage with JSON export/import.
 - Stores local receipt, PDF, manual, and warranty-card attachments in the browser record.
-- Previews CSV purchase rows before import, supports presets and manual column mapping, skips duplicates, and reports invalid rows locally.
+- Previews CSV purchase rows before import, supports built-in and saved user presets, manual column mapping, duplicate skipping, and invalid row reporting locally.
 - Exports a local CSV import report for audit/debugging before the import is confirmed.
 - Extracts local text, CSV, HTML/email receipts, simple PDF text, and supported browser-local image OCR into the receipt parser without upload.
 - Parses pasted receipt or invoice text into candidate line items.

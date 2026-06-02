@@ -145,6 +145,10 @@ const importPreviewVisible = await page.locator("text=가져오기 미리보기"
 const importMappingVisible = await page.locator("text=CSV 프리셋").count();
 const importDuplicateVisible = await page.locator("text=중복 1개").count();
 const importInvalidVisible = await page.locator("text=오류 1개").count();
+page.once("dialog", (dialog) => dialog.accept("QA Statement Preset"));
+await page.evaluate(() => document.querySelector("#save-csv-preset")?.click());
+await page.waitForFunction(() => [...document.querySelectorAll("#csv-preset option")].some((option) => option.textContent.includes("QA Statement Preset")));
+const savedPresetVisible = await page.locator('#csv-preset option:has-text("QA Statement Preset")').count();
 const importReportDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
 await page.click("#export-import-report");
 const importReportDownload = await importReportDownloadPromise;
@@ -240,6 +244,7 @@ const result = {
   importMappingVisible,
   importDuplicateVisible,
   importInvalidVisible,
+  savedPresetVisible,
   importReportPath,
   importReportContainsCounts: importReportText.includes("csv-import-report.v1") && importReportText.includes('"duplicateCount": 1'),
   rowsAfterCsvImport,
@@ -277,6 +282,7 @@ const failures = [
   importMappingVisible < 1 && "Expected CSV mapping controls to appear",
   importDuplicateVisible < 1 && "Expected CSV duplicate count to appear",
   importInvalidVisible < 1 && "Expected CSV invalid row count to appear",
+  savedPresetVisible < 1 && "Expected saved CSV preset to appear",
   !result.importReportContainsCounts && "Expected CSV import report JSON export",
   rowsAfterCsvImport < 7 && "Expected CSV import to add a purchase",
   filteredRows !== 1 && "Expected Coffee Maker search to return one row",

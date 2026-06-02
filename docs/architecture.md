@@ -67,6 +67,6 @@ There is no API server and no account system. All purchase data remains in brows
 
 Deadlines are derived, not stored. This keeps deadline math transparent and reproducible.
 
-CSV imports are staged in an in-memory preview before they are saved. The app imports valid new rows, supports auto-detected, preset, and manual field mapping, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file.
+CSV imports are staged in an in-memory preview before they are saved. The app imports valid new rows, supports auto-detected, built-in preset, saved user preset, and manual field mapping, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file. User CSV presets are stored in browser `localStorage`.
 
 Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and simple PDF text paths are file reads; image OCR uses browser-local `TextDetector` only when the current browser supports it.

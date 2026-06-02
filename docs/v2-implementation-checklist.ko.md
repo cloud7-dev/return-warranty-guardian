@@ -18,7 +18,7 @@
   - 수리 또는 서비스 이력 메모
 - 증빙팩에 문서명, 서비스 이력, 홈/서비스 맥락 포함
 - 로컬 영수증/PDF/매뉴얼 첨부 파일 저장 및 상세 화면 다운로드
-- CSV 구매내역 미리보기, preset/수동 컬럼 매핑, 중복 감지, 오류 행 제외 후 가져오기
+- CSV 구매내역 미리보기, built-in/user preset/수동 컬럼 매핑, 중복 감지, 오류 행 제외 후 가져오기
 - CSV import report JSON 내보내기
 - 로컬 텍스트/CSV/HTML 이메일 영수증/기본 PDF 텍스트/지원 브라우저의 이미지 OCR 추출 후 영수증 파서 연결
 - 출력용 클레임 HTML 생성, 로컬 첨부 링크/이미지 미리보기 포함, 브라우저 인쇄 대화상자를 통한 PDF 저장 흐름
@@ -34,9 +34,10 @@
    - 남은 구현: 미리보기, 더 강한 용량 경고, OPFS 또는 IndexedDB Blob 저장, export bundle 포함
 
 2. **CSV import**
-   - 현재 구현: CSV 파일을 import preview에서 확인하고, 자동 감지/preset/수동 컬럼 매핑으로 정상/중복/오류 행을 분리한 뒤 정상 행만 추가
+   - 현재 구현: CSV 파일을 import preview에서 확인하고, 자동 감지/built-in preset/user preset/수동 컬럼 매핑으로 정상/중복/오류 행을 분리한 뒤 정상 행만 추가
    - 현재 구현: import report JSON으로 매핑/정상/중복/오류 결과 내보내기
-   - 남은 구현: 실제 판매처/카드사별 preset 확대, 사용자 preset 저장
+   - 현재 구현: 현재 매핑을 사용자 preset으로 localStorage에 저장/삭제
+   - 남은 구현: 실제 판매처/카드사별 preset 확대
 
 ### v0.3: 입력 자동화와 정책 보조
 
@@ -75,4 +76,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, CSV import preview/수동 매핑/중복 감지/report export, 로컬 HTML 영수증 및 지원 브라우저 이미지 OCR, 클레임 HTML/PDF 첨부 미리보기, claim bundle JSON/ZIP까지 구현되었습니다. 다만 브라우저 독립형 OCR 엔진, 실제 판매처/카드사별 preset 확대, 사용자 preset 저장, 암호화 백업, polished PWA는 아직 남아 있으므로 V2 완료가 아니라 V2 핵심 흐름을 계속 닫아가는 단계입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, CSV import preview/수동 매핑/user preset/중복 감지/report export, 로컬 HTML 영수증 및 지원 브라우저 이미지 OCR, 클레임 HTML/PDF 첨부 미리보기, claim bundle JSON/ZIP까지 구현되었습니다. 다만 브라우저 독립형 OCR 엔진, 실제 판매처/카드사별 preset 확대, 암호화 백업, polished PWA는 아직 남아 있으므로 V2 완료가 아니라 V2 핵심 흐름을 계속 닫아가는 단계입니다.

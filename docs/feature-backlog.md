@@ -47,8 +47,8 @@ This list separates high-leverage additions from features that could distract th
    - Keeps local-first story while reducing data-loss risk.
 
 5. **Importers**
-   - CSV import now covers preview, duplicate detection, row-level error reporting, preset mapping, user-editable field mapping, and import report export.
-   - Remaining work: real card-statement/retailer preset expansion and user-saved presets.
+   - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, and import report export.
+   - Remaining work: real card-statement/retailer preset expansion.
 
 6. **Optional OCR**
    - Text, CSV, HTML/email, simple PDF text extraction, and supported browser-local image OCR now run locally in the browser.
