@@ -97,12 +97,37 @@ async function extractLocalText(file, ocrSidecarText = "") {
   throw new Error("Unsupported local file type.");
 }
 
-async function localOcrSidecarText() {
+function isPdfFile(file) {
+  return file?.type === "application/pdf" || /\.pdf$/i.test(file?.name || "");
+}
+
+function isOcrSidecarFile(file) {
+  return /\.ocr\.txt$/i.test(file?.name || "");
+}
+
+function primaryLocalExtractionFile(files = []) {
+  return files.find((file) => !isOcrSidecarFile(file)) || files[0];
+}
+
+function ocrSidecarCandidateNames(primaryFile) {
+  const name = String(primaryFile?.name || "");
+  const withoutPdf = name.replace(/\.pdf$/i, "");
+  return new Set([`${name}.ocr.txt`, `${withoutPdf}.ocr.txt`].map((candidate) => candidate.toLowerCase()));
+}
+
+async function pairedOcrSidecarText(primaryFile, selectedFiles = []) {
+  if (!isPdfFile(primaryFile)) return "";
+  const candidates = ocrSidecarCandidateNames(primaryFile);
+  const sidecarFile = selectedFiles.find((file) => file !== primaryFile && candidates.has(String(file.name || "").toLowerCase()));
+  return sidecarFile ? sidecarFile.text() : "";
+}
+
+async function localOcrSidecarText(primaryFile, selectedFiles = []) {
   const typedText = document.querySelector("#ocr-sidecar-text")?.value || "";
   const [sidecarFile] = document.querySelector("#ocr-sidecar-file")?.files || [];
-  if (!sidecarFile) return typedText;
-  const fileText = await sidecarFile.text();
-  return [typedText.trim(), fileText.trim()].filter(Boolean).join("\n");
+  const explicitFileText = sidecarFile ? await sidecarFile.text() : "";
+  const pairedFileText = await pairedOcrSidecarText(primaryFile, selectedFiles);
+  return [typedText.trim(), explicitFileText.trim(), pairedFileText.trim()].filter(Boolean).join("\n");
 }
 
 async function attachmentsFromForm(formData, purchaseId) {
@@ -789,7 +814,7 @@ Total 166.99</textarea>
       <div class="parser-actions">
         <label class="tool-button file-button">
           ${icons.import} ${t("localOcr")}
-          <input id="ocr-file" type="file" accept="text/plain,text/csv,text/html,application/pdf,.txt,.csv,.html,.htm,.pdf,image/*" />
+          <input id="ocr-file" type="file" multiple accept="text/plain,text/csv,text/html,application/pdf,.txt,.csv,.html,.htm,.pdf,.ocr.txt,image/*" />
         </label>
         <button class="ghost-action" id="extract-local-ocr" type="button">${t("extractText")}</button>
         <button class="secondary-action" id="parse-receipt" type="button">${icons.receipt} ${t("parseReceipt")}</button>
@@ -1424,10 +1449,11 @@ app.addEventListener("click", async (event) => {
   }
 
   if (button.id === "extract-local-ocr") {
-    const [file] = document.querySelector("#ocr-file")?.files || [];
+    const files = [...(document.querySelector("#ocr-file")?.files || [])];
+    const file = primaryLocalExtractionFile(files);
     if (!file) return;
     try {
-      const sidecarText = await localOcrSidecarText();
+      const sidecarText = await localOcrSidecarText(file, files);
       const text = await extractLocalText(file, sidecarText);
       const receiptText = document.querySelector("#receipt-text");
       receiptText.value = text.trim() || receiptText.value;

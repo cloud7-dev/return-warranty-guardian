@@ -65,14 +65,14 @@
 
 3. **로컬 OCR과 영수증/정책 추출**
    - 현재 구현: 텍스트/CSV/HTML 이메일 영수증/기본 PDF text operator를 브라우저에서 읽고, 브라우저가 로컬 `TextDetector`를 제공할 때 이미지 OCR 결과를 영수증 파서로 연결
-   - 현재 구현: 압축/스캔 PDF처럼 text operator가 없는 파일은 cloud OCR 대신 로컬 fallback 안내를 표시하고, 사용자가 로컬 OCR 도구에서 얻은 sidecar 텍스트를 붙여넣거나 `.txt` 파일로 첨부하면 영수증 파서로 연결
+   - 현재 구현: 압축/스캔 PDF처럼 text operator가 없는 파일은 cloud OCR 대신 로컬 fallback 안내를 표시하고, 사용자가 로컬 OCR 도구에서 얻은 sidecar 텍스트를 붙여넣거나 `.txt` 파일로 첨부하거나 PDF와 같은 이름의 `.ocr.txt`를 함께 선택하면 영수증 파서로 연결
    - 현재 구현: 브라우저가 이미지 OCR을 지원하지 않을 때 cloud OCR 대신 붙여넣기 fallback을 안내
    - 현재 구현: 사용자가 확인해서 적용하는 정책 템플릿으로 반품/환불/보증 기본값, 증빙 요구사항, source/version/last reviewed, 국가/관할권 면책 메모를 채움
    - 현재 구현: HTML 이메일 영수증, PDF text operator, 압축/스캔 PDF fallback 진단, local OCR text result, 정책 템플릿 source URL/license metadata fixture corpus로 회귀 테스트
    - 현재 구현: local OCR engine plan adapter: bundled SVG fixture worker, browser TextDetector, manual fallback을 no-cloud 기준으로 판정
    - 현재 구현: OCR engine manifest로 지원 MIME type, license, no-network/no-storage, fixture coverage를 검증
    - 현재 구현: synthetic SVG OCR fixture로 bundled worker 이미지 경로와 영수증 파서 연결을 회귀 테스트
-   - 현재 구현: scanned PDF fixture와 local OCR text sidecar manifest를 연결해 no-cloud 스캔 PDF 파서 회귀 테스트, 브라우저 QA에서 스캔 PDF fallback, sidecar 붙여넣기, sidecar 파일 첨부 파싱 흐름 검증
+   - 현재 구현: scanned PDF fixture와 local OCR text sidecar manifest를 연결해 no-cloud 스캔 PDF 파서 회귀 테스트, 브라우저 QA에서 스캔 PDF fallback, sidecar 붙여넣기, sidecar 파일 첨부, PDF + matching `.ocr.txt` 자동 페어링 파싱 흐름 검증
    - 남은 구현: 실제 범용 번들형 이미지 OCR 엔진 탑재, 실제 스캔 PDF OCR 자동화, 실제 판매처 정책 fixture 확대, 실제 출처 URL/라이선스 검토
 
 4. **서버 없는 알림 경험 고도화**

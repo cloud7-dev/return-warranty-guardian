@@ -234,6 +234,25 @@ await page.waitForSelector("text=Fixture OCR File Market");
 const scannedPdfSidecarFileVisible = await page.locator("text=Countertop Filter").count();
 stages.push("scanned-pdf-sidecar-file-ocr");
 
+const autoPairPdfPath = `${root}/outputs/qa-auto-pair-receipt.pdf`;
+const autoPairSidecarPath = `${root}/outputs/qa-auto-pair-receipt.ocr.txt`;
+await writeFile(autoPairPdfPath, "%PDF-1.4\n/Filter /DCTDecode\n/Subtype /Image\nstream\n...");
+await writeFile(
+  autoPairSidecarPath,
+  scannedSidecarText
+    .replace("Fixture OCR Market", "Fixture OCR Auto Pair Market")
+    .replace("Countertop Filter 58.25", "Auto Pair Filter 58.25"),
+);
+await page.fill("#receipt-text", "");
+await page.fill("#ocr-sidecar-text", "");
+await page.setInputFiles("#ocr-sidecar-file", []);
+await page.setInputFiles("#ocr-file", [autoPairPdfPath, autoPairSidecarPath]);
+await page.click("#extract-local-ocr");
+await page.waitForSelector("text=Fixture OCR Auto Pair Market");
+await page.waitForSelector("text=Auto Pair Filter");
+const scannedPdfAutoPairVisible = await page.locator("text=Auto Pair Filter").count();
+stages.push("scanned-pdf-auto-pair-ocr");
+
 const koreanCsvPresetPath = `${root}/outputs/qa-korean-card.csv`;
 await writeFile(
   koreanCsvPresetPath,
@@ -430,6 +449,7 @@ const result = {
   scannedPdfFallbackVisible,
   scannedPdfSidecarVisible,
   scannedPdfSidecarFileVisible,
+  scannedPdfAutoPairVisible,
   koreanPresetPreviewVisible,
   importPreviewVisible,
   importMappingVisible,
@@ -507,6 +527,7 @@ const failures = [
   scannedPdfFallbackVisible < 1 && "Expected scanned PDF fallback notice",
   scannedPdfSidecarVisible < 1 && "Expected scanned PDF local OCR sidecar preview",
   scannedPdfSidecarFileVisible < 1 && "Expected scanned PDF local OCR sidecar file preview",
+  scannedPdfAutoPairVisible < 1 && "Expected scanned PDF and matching OCR sidecar auto-pair preview",
   koreanPresetPreviewVisible < 1 && "Expected Korean card CSV preset preview",
   importPreviewVisible < 1 && "Expected CSV import preview to appear",
   importMappingVisible < 1 && "Expected CSV mapping controls to appear",
