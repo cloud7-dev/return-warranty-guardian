@@ -19,6 +19,7 @@ const requiredFiles = [
   "scripts/anonymize-fixture.mjs",
   "scripts/validate-fixtures.mjs",
   "scripts/self-hosted-notification-runner.mjs",
+  "scripts/smoke-notifications.mjs",
   "assets/icon.svg",
   "README.md",
   "CONTRIBUTING.md",

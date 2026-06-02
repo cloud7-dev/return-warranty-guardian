@@ -26,6 +26,16 @@ npm run fixture:validate
 
 The validator checks provider coverage, `example.test` endpoints, planned reminder counts, and that dry-run endpoint checks do not send purchase data.
 
+## Loopback smoke test
+
+The repo includes a local endpoint smoke test for explicit send mode:
+
+```bash
+npm run notify:smoke
+```
+
+The script starts a loopback HTTP server, rewrites the ntfy/Gotify fixture payloads to that local endpoint, runs the real runner with `--send --yes`, and verifies the received POST body/headers. It does not contact public notification services. Apprise remains command-preview-only because the runner intentionally does not own an Apprise installation.
+
 ## Actual send guard
 
 Actual sending is off by default. It requires all of the following:

@@ -15,8 +15,10 @@ import {
   csvHeaders,
   csvMappingForPreset,
   csvPresetBundle,
+  csvPresetBundleFingerprint,
   purchasesFromCsv,
   validateCsvPresetBundle,
+  verifyCsvPresetBundleFingerprint,
 } from "../src/importers.js";
 import { localOcrEnginePlan, pdfExtractionDiagnostics, pdfExtractionStatus, textFromHtmlSource, textFromImageSource, textFromPdfSource } from "../src/local-extraction.js";
 import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
@@ -173,8 +175,18 @@ assert.equal(presetBundle.schema, "return-warranty-guardian.csv-preset-bundle.v1
 assert.equal(presetBundle.version, 1);
 assert.equal(presetBundle.trustModel, "community-reviewed-local-mapping");
 assert.equal(presetBundle.signatureStatus, "unsigned-local-draft");
+assert.equal(presetBundle.signatureAlgorithm, "sha256-fingerprint-detached-signature-ready");
 assert.equal(presetBundle.presets[0].mapping.price, "amount");
 assert.equal(presetBundle.presets[0].source, "community-fixture");
+const presetFingerprint = await csvPresetBundleFingerprint(presetBundle);
+assert.match(presetFingerprint, /^[a-f0-9]{64}$/);
+const unsignedFingerprintCheck = await verifyCsvPresetBundleFingerprint(presetBundle);
+assert.equal(unsignedFingerprintCheck.ok, false);
+assert.equal(unsignedFingerprintCheck.status, "unsigned-local-draft");
+const fingerprintedPresetBundle = { ...presetBundle, fingerprint: presetFingerprint };
+const fingerprintCheck = await verifyCsvPresetBundleFingerprint(fingerprintedPresetBundle);
+assert.equal(fingerprintCheck.ok, true);
+assert.equal(fingerprintCheck.status, "fingerprint-matched");
 const presetValidation = validateCsvPresetBundle({
   ...presetBundle,
   presets: [{ id: "user-test", label: "User Test", mapping: { price: "amount", unexpected: "x" } }],

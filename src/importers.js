@@ -405,6 +405,9 @@ export function csvPresetBundle(presets, now = new Date()) {
       privacyNote: "Preset bundles contain column mappings only. Do not include real receipts, card numbers, order IDs, or purchase rows.",
       trustModel: "community-reviewed-local-mapping",
       signatureStatus: "unsigned-local-draft",
+      signatureAlgorithm: "sha256-fingerprint-detached-signature-ready",
+      fingerprint: "",
+      signatures: [],
       supportedFields: CSV_IMPORT_FIELDS.map((field) => field.key),
       presets: (presets || []).map((preset) => ({
         id: preset.id,
@@ -420,6 +423,53 @@ export function csvPresetBundle(presets, now = new Date()) {
   );
 }
 
+function canonicalize(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+export function csvPresetBundleSigningPayload(bundle) {
+  const unsigned = { ...(bundle || {}) };
+  delete unsigned.fingerprint;
+  delete unsigned.signatures;
+  return canonicalize(unsigned);
+}
+
+async function sha256Hex(text, cryptoProvider = globalThis.crypto) {
+  if (!cryptoProvider?.subtle) throw new Error("WebCrypto subtle digest is required for preset bundle fingerprints.");
+  const digest = await cryptoProvider.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function csvPresetBundleFingerprint(bundle, cryptoProvider = globalThis.crypto) {
+  return sha256Hex(csvPresetBundleSigningPayload(bundle), cryptoProvider);
+}
+
+export async function verifyCsvPresetBundleFingerprint(bundle, cryptoProvider = globalThis.crypto) {
+  const expected = String(bundle?.fingerprint || "");
+  if (!expected) {
+    return {
+      ok: false,
+      status: "unsigned-local-draft",
+      fingerprint: await csvPresetBundleFingerprint(bundle, cryptoProvider),
+      issues: ["missing fingerprint"],
+    };
+  }
+  const actual = await csvPresetBundleFingerprint(bundle, cryptoProvider);
+  return {
+    ok: actual === expected,
+    status: actual === expected ? "fingerprint-matched" : "fingerprint-mismatch",
+    fingerprint: actual,
+    issues: actual === expected ? [] : ["fingerprint mismatch"],
+  };
+}
+
 export function validateCsvPresetBundle(bundle) {
   const issues = [];
   const warnings = [];
@@ -431,6 +481,15 @@ export function validateCsvPresetBundle(bundle) {
   }
   if (!bundle?.trustModel) warnings.push("preset bundle has no trust model metadata");
   if (!bundle?.signatureStatus) warnings.push("preset bundle has no signature status metadata");
+  if (bundle?.signatureStatus && bundle.signatureStatus !== "unsigned-local-draft" && !bundle?.fingerprint) {
+    issues.push("signed preset bundle is missing fingerprint");
+  }
+  if (bundle?.fingerprint && !/^[a-f0-9]{64}$/.test(String(bundle.fingerprint))) {
+    issues.push("preset bundle fingerprint must be a SHA-256 hex digest");
+  }
+  if (bundle?.signatures && !Array.isArray(bundle.signatures)) {
+    issues.push("preset bundle signatures must be an array");
+  }
   const allowedFields = new Set(CSV_IMPORT_FIELDS.map((field) => field.key));
   const presets = Array.isArray(bundle?.presets) ? bundle.presets : [];
   const normalizedPresets = [];
