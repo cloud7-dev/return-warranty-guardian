@@ -22,3 +22,11 @@ npm run fixture:anonymize -- path/to/private-sample.csv
 ```
 
 Then inspect the output manually before moving it into a fixture folder.
+
+To summarize accepted fixture coverage:
+
+```bash
+npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json
+```
+
+The current committed corpus is synthetic-only unless the coverage report shows accepted `anonymized-community` or `public-open-license` entries.

@@ -12,6 +12,7 @@
     "fixture:anonymize": "node scripts/anonymize-fixture.mjs",
     "fixture:review": "node scripts/review-sample-intake.mjs",
     "fixture:review-batch": "node scripts/review-sample-batch.mjs",
+    "fixture:coverage": "node scripts/sample-intake-coverage-report.mjs",
     "fixture:validate": "node scripts/validate-fixtures.mjs",
     "notify:dry-run": "node scripts/self-hosted-notification-runner.mjs",
     "notify:readiness": "node scripts/notification-smoke-readiness.mjs",

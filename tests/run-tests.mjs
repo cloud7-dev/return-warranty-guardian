@@ -17,6 +17,7 @@ import { auditNotificationSmokeRecords } from "../scripts/audit-notification-smo
 import { notificationSmokeOpsReportMarkdown } from "../scripts/notification-smoke-ops-report.mjs";
 import { notificationSmokeReadiness } from "../scripts/notification-smoke-readiness.mjs";
 import { notificationSmokeRecord } from "../scripts/record-notification-smoke-result.mjs";
+import { sampleIntakeCoverageMarkdown, sampleIntakeCoverageReport } from "../scripts/sample-intake-coverage-report.mjs";
 import { validateNotificationSmokeRecord } from "../scripts/validate-notification-smoke-record.mjs";
 import {
   analyzeCsvImport,
@@ -730,5 +731,28 @@ assert.equal(batchReview.schema, "return-warranty-guardian.sample-intake-batch-r
 assert.equal(batchReview.ok, true);
 assert.equal(batchReview.acceptedCount, 1);
 assert.equal(batchReview.acceptedEntries[0].id, "reviewed-community-sample");
+const sampleManifest = JSON.parse(await fixture("intake/sample-intake.json"));
+const sampleCoverage = sampleIntakeCoverageReport(sampleManifest, now);
+assert.equal(sampleCoverage.schema, "return-warranty-guardian.sample-intake-coverage-report.v1");
+assert.equal(sampleCoverage.ok, true);
+assert.equal(sampleCoverage.communityReady, false);
+assert.equal(sampleCoverage.countsByType.csv, 5);
+const sampleCoverageMarkdown = sampleIntakeCoverageMarkdown(sampleCoverage);
+assert.match(sampleCoverageMarkdown, /Sample Intake Coverage Report/);
+assert.match(sampleCoverageMarkdown, /Community sample status: MISSING/);
+const { stdout: sampleCoverageStdout } = await execFileAsync(process.execPath, [
+  "scripts/sample-intake-coverage-report.mjs",
+  "tests/fixtures/intake/sample-intake.json",
+]);
+assert.match(sampleCoverageStdout, /Coverage status: PASS/);
+assert.match(sampleCoverageStdout, /Community sample status: MISSING/);
+await assert.rejects(
+  execFileAsync(process.execPath, [
+    "scripts/sample-intake-coverage-report.mjs",
+    "--strict-community",
+    "tests/fixtures/intake/sample-intake.json",
+  ]),
+  /Command failed/,
+);
 
 console.log("All logic tests passed.");

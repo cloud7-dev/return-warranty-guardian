@@ -36,6 +36,14 @@ npm run fixture:validate
 
 The single-entry and batch reviewers check metadata, provenance, PII patterns, and parser importability before a fixture is merged into the corpus. The batch reviewer also prints `acceptedEntries`, which can be copied into the manifest after manual review. The full validator checks the intake manifest, coverage targets, parser importability, OCR text result expectations, policy metadata, notification payloads, and smoke records.
 
+To produce a maintainer-facing coverage report:
+
+```bash
+npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json
+```
+
+The report summarizes accepted entries by type, source kind, and provenance origin. It also makes the current community-sample gap explicit. Use `--strict-community` when a release gate should fail unless at least one `anonymized-community` or `public-open-license` sample has been accepted.
+
 ## Coverage Targets
 
 `tests/fixtures/intake/sample-intake.json` defines fixture coverage targets for the importer and local OCR regression set. Keep these targets strict enough that a new card statement, marketplace order, merchant order, payment receipt, local OCR text sample, or bundled OCR image fixture cannot be added without review metadata and parser validation.
@@ -54,6 +62,8 @@ Required intake entries must include:
 - `review.reviewer`: a non-sensitive reviewer handle, not an email address.
 
 CSV preset bundle fixtures also use `tests/fixtures/presets/key-governance.json` to document active, retired, and revoked signing keys. A signed preset bundle must use an active review key and an allowed algorithm.
+
+Current fixture coverage is synthetic-only until reviewed community or public-open-license samples are accepted. That is intentional for privacy, but it means the app should not claim real-world parser breadth from the current corpus alone.
 
 ## OCR Samples
 

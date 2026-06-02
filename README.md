@@ -95,6 +95,12 @@ npm run fixture:validate
 
 Preset bundles include a SHA-256 fingerprint-ready signing payload and ECDSA P-256 detached signature verification helpers so community mappings can move from local drafts toward reviewed signatures without embedding purchase rows.
 
+To summarize fixture intake coverage and see whether reviewed community/public samples have been accepted:
+
+```bash
+npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json
+```
+
 To inspect a self-hosted notification payload without sending anything:
 
 ```bash

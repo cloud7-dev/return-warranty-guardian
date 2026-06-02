@@ -56,6 +56,7 @@
    - 현재 구현: private sample을 테스트 fixture 후보로 바꾸기 위한 로컬 익명화 스크립트, anonymization report, intake entry draft 생성, 단일/복수 incoming sample 후보를 manifest 병합 전 검증하는 `npm run fixture:review` / `npm run fixture:review-batch` CLI
    - 현재 구현: sample intake manifest로 익명화 여부, parser 검토 여부, fixture path, source shape coverage target, provenance, 재사용 허가, 원본 샘플 미보관, 비민감 contributor handle을 검증
    - 현재 구현: `npm run fixture:validate`로 개인정보 패턴, CSV fixture importability, 정책 source/license metadata 검증
+   - 현재 구현: `npm run fixture:coverage`로 fixture type/source/provenance별 현황과 synthetic-only 상태, 실제 커뮤니티/public-open-license 샘플 부재 여부를 Markdown으로 표시
    - 현재 구현: import review checklist로 필수 매핑/중복/오류/증빙 누락을 확인하고, 정상 행을 포함/제외 선택한 뒤 확정 import
    - 현재 구현: CSV preset bundle JSON 내보내기/가져오기와 schema/version/field 호환성 검증
    - 현재 구현: preset bundle trust model/source/reviewedAt/fixtureCoverage metadata, SHA-256 fingerprint-ready signing payload, ECDSA P-256 detached signature 검증 helper, review manifest, trusted public key registry fixture, key rotation/revocation governance fixture, signed preset bundle fixture, 대량 row query/proof review filter helper
