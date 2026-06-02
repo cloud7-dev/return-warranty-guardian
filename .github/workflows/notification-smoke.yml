@@ -1,0 +1,43 @@
+name: Notification Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Notification provider: ntfy or gotify"
+        required: true
+        default: "ntfy"
+        type: choice
+        options:
+          - ntfy
+          - gotify
+      endpoint:
+        description: "Self-hosted endpoint base URL"
+        required: true
+        type: string
+      topic:
+        description: "ntfy topic; ignored for Gotify"
+        required: false
+        default: "returns"
+        type: string
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Public endpoint smoke
+        env:
+          RWG_NOTIFY_PUBLIC_SMOKE: "1"
+          RWG_NOTIFY_PUBLIC_PROVIDER: ${{ inputs.provider }}
+          RWG_NOTIFY_PUBLIC_ENDPOINT: ${{ inputs.endpoint }}
+          RWG_NOTIFY_PUBLIC_TOPIC: ${{ inputs.topic }}
+          GOTIFY_TOKEN: ${{ secrets.GOTIFY_TOKEN }}
+        run: npm run notify:smoke

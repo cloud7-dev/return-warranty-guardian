@@ -31,6 +31,7 @@ const requiredFiles = [
   ".github/ISSUE_TEMPLATE/receipt_parser_issue.md",
   ".github/ISSUE_TEMPLATE/localization_issue.md",
   ".github/workflows/ci.yml",
+  ".github/workflows/notification-smoke.yml",
   ".github/workflows/pages.yml",
   "docs/product-boundaries.md",
   "docs/notification-fallback-guide.md",

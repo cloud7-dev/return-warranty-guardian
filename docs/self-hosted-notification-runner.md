@@ -38,6 +38,8 @@ The script starts a loopback HTTP server, rewrites the ntfy/Gotify fixture paylo
 
 To smoke-test a real endpoint you control, set `RWG_NOTIFY_PUBLIC_SMOKE=1` plus provider-specific endpoint variables. This is deliberately excluded by default so CI and local tests do not contact public services.
 
+Maintainers can also run the manual GitHub Actions workflow `Notification Smoke` with provider, endpoint, and topic inputs. Gotify runs require the repository secret `GOTIFY_TOKEN`.
+
 ## Actual send guard
 
 Actual sending is off by default. It requires all of the following:

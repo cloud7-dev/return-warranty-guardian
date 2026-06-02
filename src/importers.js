@@ -438,6 +438,7 @@ export function csvPresetBundleSigningPayload(bundle) {
   const unsigned = { ...(bundle || {}) };
   delete unsigned.fingerprint;
   delete unsigned.signatures;
+  delete unsigned.signatureStatus;
   return canonicalize(unsigned);
 }
 
@@ -449,6 +450,54 @@ async function sha256Hex(text, cryptoProvider = globalThis.crypto) {
 
 export async function csvPresetBundleFingerprint(bundle, cryptoProvider = globalThis.crypto) {
   return sha256Hex(csvPresetBundleSigningPayload(bundle), cryptoProvider);
+}
+
+function base64UrlToBytes(value) {
+  const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+  if (typeof atob === "function") {
+    return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+  }
+  return Uint8Array.from(Buffer.from(padded, "base64"));
+}
+
+export async function verifyCsvPresetBundleDetachedSignatures(bundle, trustedKeys = [], cryptoProvider = globalThis.crypto) {
+  if (!cryptoProvider?.subtle) throw new Error("WebCrypto subtle verify is required for preset bundle signatures.");
+  const signatures = Array.isArray(bundle?.signatures) ? bundle.signatures : [];
+  const trustedById = new Map((trustedKeys || []).map((key) => [key.keyId, key]));
+  const payload = new TextEncoder().encode(csvPresetBundleSigningPayload(bundle));
+  const results = [];
+  for (const signature of signatures) {
+    const trusted = trustedById.get(signature.keyId);
+    if (!trusted) {
+      results.push({ keyId: signature.keyId || "", ok: false, status: "unknown-key" });
+      continue;
+    }
+    if (signature.algorithm !== "ECDSA-P256-SHA256") {
+      results.push({ keyId: signature.keyId || "", ok: false, status: "unsupported-algorithm" });
+      continue;
+    }
+    const key = await cryptoProvider.subtle.importKey(
+      "jwk",
+      trusted.publicKeyJwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["verify"],
+    );
+    const ok = await cryptoProvider.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      key,
+      base64UrlToBytes(signature.signature),
+      payload,
+    );
+    results.push({ keyId: signature.keyId || "", ok, status: ok ? "verified" : "invalid-signature" });
+  }
+  return {
+    schema: "return-warranty-guardian.csv-preset-signature-verification.v1",
+    ok: results.length > 0 && results.every((result) => result.ok),
+    verifiedCount: results.filter((result) => result.ok).length,
+    results,
+  };
 }
 
 export async function verifyCsvPresetBundleFingerprint(bundle, cryptoProvider = globalThis.crypto) {
@@ -525,6 +574,13 @@ export function validateCsvPresetBundle(bundle) {
   }
   if (bundle?.signatures && !Array.isArray(bundle.signatures)) {
     issues.push("preset bundle signatures must be an array");
+  }
+  if (Array.isArray(bundle?.signatures)) {
+    bundle.signatures.forEach((signature, index) => {
+      if (!signature?.keyId || !signature?.algorithm || !signature?.signature) {
+        issues.push(`signature ${index + 1} is missing keyId, algorithm, or signature`);
+      }
+    });
   }
   const allowedFields = new Set(CSV_IMPORT_FIELDS.map((field) => field.key));
   const presets = Array.isArray(bundle?.presets) ? bundle.presets : [];

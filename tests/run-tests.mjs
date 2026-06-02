@@ -16,9 +16,11 @@ import {
   csvMappingForPreset,
   csvPresetBundle,
   csvPresetBundleFingerprint,
+  csvPresetBundleSigningPayload,
   csvPresetBundleReviewSummary,
   purchasesFromCsv,
   validateCsvPresetBundle,
+  verifyCsvPresetBundleDetachedSignatures,
   verifyCsvPresetBundleFingerprint,
 } from "../src/importers.js";
 import { localOcrEnginePlan, pdfExtractionDiagnostics, pdfExtractionStatus, textFromHtmlSource, textFromImageSource, textFromPdfSource } from "../src/local-extraction.js";
@@ -188,6 +190,29 @@ const fingerprintedPresetBundle = { ...presetBundle, fingerprint: presetFingerpr
 const fingerprintCheck = await verifyCsvPresetBundleFingerprint(fingerprintedPresetBundle);
 assert.equal(fingerprintCheck.ok, true);
 assert.equal(fingerprintCheck.status, "fingerprint-matched");
+const signingKeyPair = await crypto.subtle.generateKey(
+  { name: "ECDSA", namedCurve: "P-256" },
+  true,
+  ["sign", "verify"],
+);
+const publicKeyJwk = await crypto.subtle.exportKey("jwk", signingKeyPair.publicKey);
+const detachedSignatureBytes = await crypto.subtle.sign(
+  { name: "ECDSA", hash: "SHA-256" },
+  signingKeyPair.privateKey,
+  new TextEncoder().encode(csvPresetBundleSigningPayload(fingerprintedPresetBundle)),
+);
+const detachedSignature = Buffer.from(new Uint8Array(detachedSignatureBytes)).toString("base64url");
+const signedPresetBundle = {
+  ...fingerprintedPresetBundle,
+  signatureStatus: "detached-signature",
+  signatures: [{ keyId: "fixture-key", algorithm: "ECDSA-P256-SHA256", signature: detachedSignature }],
+};
+const signatureCheck = await verifyCsvPresetBundleDetachedSignatures(signedPresetBundle, [
+  { keyId: "fixture-key", publicKeyJwk },
+]);
+assert.equal(signatureCheck.schema, "return-warranty-guardian.csv-preset-signature-verification.v1");
+assert.equal(signatureCheck.ok, true);
+assert.equal(signatureCheck.verifiedCount, 1);
 const reviewManifest = JSON.parse(await fixture("presets/review-manifest.json"));
 const reviewSummary = await csvPresetBundleReviewSummary(fingerprintedPresetBundle, {
   ...reviewManifest,

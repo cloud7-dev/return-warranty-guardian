@@ -92,7 +92,7 @@ To verify the synthetic fixture corpus:
 npm run fixture:validate
 ```
 
-Preset bundles include a SHA-256 fingerprint-ready signing payload so community mappings can move from local drafts toward reviewed detached signatures without embedding purchase rows.
+Preset bundles include a SHA-256 fingerprint-ready signing payload and ECDSA P-256 detached signature verification helpers so community mappings can move from local drafts toward reviewed signatures without embedding purchase rows.
 
 To inspect a self-hosted notification payload without sending anything:
 
