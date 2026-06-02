@@ -14,6 +14,18 @@ const requiredFiles = [
   "src/sample-data.js",
   "assets/icon.svg",
   "README.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "CODE_OF_CONDUCT.md",
+  ".github/PULL_REQUEST_TEMPLATE.md",
+  ".github/ISSUE_TEMPLATE/bug_report.md",
+  ".github/ISSUE_TEMPLATE/feature_request.md",
+  ".github/ISSUE_TEMPLATE/receipt_parser_issue.md",
+  ".github/ISSUE_TEMPLATE/localization_issue.md",
+  ".github/workflows/ci.yml",
+  "docs/product-boundaries.md",
+  "docs/release-checklist.md",
+  "docs/v2-implementation-checklist.ko.md",
   "LICENSE",
 ];
 

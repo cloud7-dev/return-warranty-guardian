@@ -1,13 +1,23 @@
 # Return & Warranty Guardian
 
-Return & Warranty Guardian is a local-first purchase memory for receipts, return windows, refund deadlines, and warranties. It runs in your browser, stores your purchase data on your device, and helps you see what needs action before money is lost. No account, no server upload, no cloud vault required: just a private deadline desk for the things you buy.
+Return & Warranty Guardian helps people avoid losing money because a return window, refund period, warranty date, or receipt location slipped past them. It is a local-first purchase memory that runs in your browser, keeps purchase records on your device, and makes deadlines, proof, and claim evidence exportable. No account, no server upload, no cloud vault required.
 
 > Never miss a return window or warranty again.
 > 기본 언어는 한국어이며, 영어, 일본어, 중국어, 독일어, 프랑스어, 이탈리아어, 힌디어 UI로 전환할 수 있습니다.
 
-## What It Does
+## Why It Exists
 
 ![Return & Warranty Guardian desktop dashboard](docs/assets/desktop.png)
+
+Buying things creates a scattered trail: receipts in email, model numbers on boxes, warranty cards in drawers, service notes in messages, and return policies that expire quietly. This app turns that trail into a private local deadline desk.
+
+Core values:
+
+- **Local-first:** records stay in browser storage unless you export them.
+- **Privacy-friendly:** no backend, no account, no upload path.
+- **Exportable:** JSON backup, CSV review, `.ics` calendar reminders, and Markdown evidence packs.
+
+## What It Does
 
 - Tracks return, refund, and warranty deadlines from one local dashboard.
 - Stores purchases in browser storage with JSON export/import.
@@ -19,6 +29,10 @@ Return & Warranty Guardian is a local-first purchase memory for receipts, return
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
 - Switches the interface between Korean, English, Japanese, Chinese, German, French, Italian, and Hindi.
 - Works as a static web app with a PWA manifest and service worker.
+
+## Product Boundary
+
+Return & Warranty Guardian focuses on receipts, returns, refunds, warranties, and claim evidence. Emergency or family binder workflows are intentionally separate so the first screen stays deadline-first. See [docs/product-boundaries.md](docs/product-boundaries.md).
 
 ## Quick Start
 
@@ -39,9 +53,10 @@ No install step is required. The app has no runtime dependencies.
 ```bash
 npm test
 npm run build
+npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, evidence pack export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy.
+`npm test` covers the deadline engine, receipt text parser, evidence pack export, CSV export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks and refreshes local QA screenshots.
 
 ## Privacy Model
 
@@ -76,6 +91,10 @@ Recommended GitHub topics:
 See [docs/feature-backlog.md](docs/feature-backlog.md).
 
 V2 open pain has been reflected into the product direction, but not all V2 features are implemented yet. See [docs/v2-implementation-checklist.ko.md](docs/v2-implementation-checklist.ko.md) for the implementation status.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [docs/release-checklist.md](docs/release-checklist.md).
 
 ## License
 
