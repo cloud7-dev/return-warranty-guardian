@@ -1,12 +1,85 @@
 {
   "schema": "return-warranty-guardian.sample-intake.v1",
   "privacyNote": "Use this manifest for synthetic or anonymized community sample intake. Do not include raw private receipts, images, card statements, names, addresses, phone numbers, emails, or real order IDs.",
+  "coverageTargets": {
+    "minByType": {
+      "csv": 5,
+      "ocr-text": 1
+    },
+    "requiredSourceKinds": [
+      "card-statement-shape",
+      "marketplace-order-shape",
+      "merchant-order-shape",
+      "payment-receipt-shape",
+      "local-ocr-text"
+    ],
+    "requiredFixturePaths": [
+      "csv/korean-card-statement.csv",
+      "csv/korean-shopping-order.csv",
+      "csv/amazon-style-order.csv",
+      "csv/shopify-order-export.csv",
+      "csv/stripe-receipt-export.csv",
+      "ocr/scanned-receipt.local-ocr.txt"
+    ]
+  },
   "entries": [
+    {
+      "id": "fixture-korean-card-statement-2026-06",
+      "type": "csv",
+      "fixturePath": "csv/korean-card-statement.csv",
+      "sourceKind": "card-statement-shape",
+      "anonymized": true,
+      "review": {
+        "piiChecked": true,
+        "parserChecked": true,
+        "reviewedAt": "2026-06-02",
+        "reviewer": "fixture-reviewer"
+      }
+    },
+    {
+      "id": "fixture-korean-shopping-order-2026-06",
+      "type": "csv",
+      "fixturePath": "csv/korean-shopping-order.csv",
+      "sourceKind": "marketplace-order-shape",
+      "anonymized": true,
+      "review": {
+        "piiChecked": true,
+        "parserChecked": true,
+        "reviewedAt": "2026-06-02",
+        "reviewer": "fixture-reviewer"
+      }
+    },
+    {
+      "id": "fixture-amazon-style-order-2026-06",
+      "type": "csv",
+      "fixturePath": "csv/amazon-style-order.csv",
+      "sourceKind": "marketplace-order-shape",
+      "anonymized": true,
+      "review": {
+        "piiChecked": true,
+        "parserChecked": true,
+        "reviewedAt": "2026-06-02",
+        "reviewer": "fixture-reviewer"
+      }
+    },
     {
       "id": "fixture-shopify-order-2026-06",
       "type": "csv",
       "fixturePath": "csv/shopify-order-export.csv",
-      "sourceKind": "community-anonymized-shape",
+      "sourceKind": "merchant-order-shape",
+      "anonymized": true,
+      "review": {
+        "piiChecked": true,
+        "parserChecked": true,
+        "reviewedAt": "2026-06-02",
+        "reviewer": "fixture-reviewer"
+      }
+    },
+    {
+      "id": "fixture-stripe-receipt-2026-06",
+      "type": "csv",
+      "fixturePath": "csv/stripe-receipt-export.csv",
+      "sourceKind": "payment-receipt-shape",
       "anonymized": true,
       "review": {
         "piiChecked": true,

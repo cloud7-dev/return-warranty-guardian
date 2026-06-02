@@ -65,14 +65,66 @@ async function validateSampleIntakeManifest() {
   if (manifest.schema !== "return-warranty-guardian.sample-intake.v1") {
     throw new Error("Sample intake manifest has unsupported schema.");
   }
-  for (const entry of manifest.entries || []) {
+  const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
+  const ids = new Set();
+  const fixturePaths = new Set();
+  const sourceKinds = new Set();
+  const countsByType = new Map();
+  for (const entry of entries) {
+    if (!entry.id) throw new Error("Sample intake entry is missing id.");
+    if (ids.has(entry.id)) throw new Error(`Duplicate sample intake id: ${entry.id}`);
+    ids.add(entry.id);
     if (!entry.anonymized) throw new Error(`${entry.id} must be marked anonymized.`);
     if (!entry.fixturePath) throw new Error(`${entry.id} is missing fixturePath.`);
+    if (path.isAbsolute(entry.fixturePath) || entry.fixturePath.split(/[\\/]/).includes("..")) {
+      throw new Error(`${entry.id} must use a relative fixturePath inside tests/fixtures.`);
+    }
     if (!["csv", "ocr-text", "pdf-text", "policy"].includes(entry.type)) throw new Error(`${entry.id} has unsupported type.`);
+    if (!entry.sourceKind) throw new Error(`${entry.id} is missing sourceKind.`);
     if (!entry.review?.piiChecked || !entry.review?.parserChecked) throw new Error(`${entry.id} must include piiChecked and parserChecked review flags.`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(entry.review?.reviewedAt || "")) throw new Error(`${entry.id} must include reviewedAt as YYYY-MM-DD.`);
+    if (!entry.review?.reviewer) throw new Error(`${entry.id} must include reviewer.`);
+    fixturePaths.add(entry.fixturePath);
+    sourceKinds.add(entry.sourceKind);
+    countsByType.set(entry.type, (countsByType.get(entry.type) || 0) + 1);
     const fixturePath = path.join(root, entry.fixturePath);
     const text = await readFile(fixturePath, "utf8");
     assertNoPrivateData(fixturePath, text);
+    if (entry.type === "csv") {
+      const headers = (text.split(/\r?\n/)[0] || "")
+        .split(",")
+        .map((value) => value.replaceAll('"', "").trim().toLowerCase().replace(/[\s-]+/g, "_"));
+      const preset =
+        [...CSV_IMPORT_PRESETS]
+          .filter((item) => item.id !== "auto")
+          .sort((a, b) => b.id.length - a.id.length)
+          .find((item) => entry.fixturePath.includes(item.id)) || CSV_IMPORT_PRESETS.find((item) => item.id !== "auto");
+      const mapping = csvMappingForPreset(headers, preset?.id || "auto");
+      const preview = analyzeCsvImport(text, [], new Date("2026-06-02T10:00:00Z"), { presetId: preset?.id || "auto", mapping });
+      if (!preview.valid.length) throw new Error(`${entry.id} CSV intake fixture did not produce an importable row.`);
+    }
+    if (entry.type === "ocr-text") {
+      const parsed = parseReceiptText(text);
+      if (!parsed.merchant || !parsed.purchaseDate || !parsed.items.length) {
+        throw new Error(`${entry.id} OCR intake fixture must parse merchant, purchase date, and at least one item.`);
+      }
+    }
+    if (entry.type === "pdf-text") {
+      const diagnostics = pdfExtractionDiagnostics(text);
+      if (!diagnostics.noCloudOcrUsed) throw new Error(`${entry.id} PDF intake fixture must not depend on cloud OCR.`);
+    }
+  }
+  const targets = manifest.coverageTargets || {};
+  for (const [type, minimum] of Object.entries(targets.minByType || {})) {
+    if ((countsByType.get(type) || 0) < Number(minimum)) {
+      throw new Error(`Sample intake coverage needs at least ${minimum} ${type} fixture(s).`);
+    }
+  }
+  for (const sourceKind of targets.requiredSourceKinds || []) {
+    if (!sourceKinds.has(sourceKind)) throw new Error(`Sample intake coverage is missing sourceKind ${sourceKind}.`);
+  }
+  for (const fixturePath of targets.requiredFixturePaths || []) {
+    if (!fixturePaths.has(fixturePath)) throw new Error(`Sample intake coverage is missing fixturePath ${fixturePath}.`);
   }
 }
 

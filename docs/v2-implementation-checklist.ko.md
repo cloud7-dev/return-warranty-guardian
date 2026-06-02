@@ -53,7 +53,7 @@
    - 현재 구현: 한국 카드명세서, 한국 쇼핑몰 주문내역, Amazon-style 주문내역 프리셋과 한국어/영어 주요 헤더 alias
    - 현재 구현: 개인정보 없는 synthetic CSV fixture corpus로 한국 카드 명세서, 한국 쇼핑 주문, Amazon-style order, Shopify-style order, Stripe-style receipt 프리셋 회귀 테스트
    - 현재 구현: private sample을 테스트 fixture 후보로 바꾸기 위한 로컬 익명화 스크립트
-   - 현재 구현: sample intake manifest로 익명화 여부, parser 검토 여부, fixture path를 검증
+   - 현재 구현: sample intake manifest로 익명화 여부, parser 검토 여부, fixture path, source shape coverage target을 검증
    - 현재 구현: `npm run fixture:validate`로 개인정보 패턴, CSV fixture importability, 정책 source/license metadata 검증
    - 현재 구현: import review checklist로 필수 매핑/중복/오류/증빙 누락을 확인하고, 정상 행을 포함/제외 선택한 뒤 확정 import
    - 현재 구현: CSV preset bundle JSON 내보내기/가져오기와 schema/version/field 호환성 검증

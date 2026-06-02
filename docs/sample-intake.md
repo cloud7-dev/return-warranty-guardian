@@ -19,7 +19,19 @@ npm run fixture:anonymize -- path/to/private-sample.csv
 npm run fixture:validate
 ```
 
-The validator checks the intake manifest, PII patterns, parser importability, OCR text result expectations, policy metadata, notification payloads, and smoke records.
+The validator checks the intake manifest, PII patterns, coverage targets, parser importability, OCR text result expectations, policy metadata, notification payloads, and smoke records.
+
+## Coverage Targets
+
+`tests/fixtures/intake/sample-intake.json` defines fixture coverage targets for the importer and local OCR regression set. Keep these targets strict enough that a new card statement, marketplace order, merchant order, payment receipt, or local OCR text sample cannot be added without review metadata and parser validation.
+
+Required intake entries must include:
+
+- `sourceKind`: the anonymized sample shape being covered.
+- `review.piiChecked`: confirms raw private data was removed before commit.
+- `review.parserChecked`: confirms the CSV importer or receipt parser was run.
+- `review.reviewedAt`: review date in `YYYY-MM-DD` format.
+- `review.reviewer`: a non-sensitive reviewer handle, not an email address.
 
 ## OCR Samples
 
