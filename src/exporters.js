@@ -399,6 +399,27 @@ function selfHostedProviderDrafts(settings = {}) {
   };
 }
 
+function selfHostedDryRun(settings = {}, providers = selfHostedProviderDrafts(settings)) {
+  const warnings = [];
+  const provider = settings.provider || "ntfy";
+  if (!settings.enabled) warnings.push("Self-hosted delivery is not enabled in local settings.");
+  if (!settings.endpoint) warnings.push("Endpoint is empty. Add a self-hosted endpoint before using the draft.");
+  if (provider === "ntfy" && !settings.topic) warnings.push("ntfy topic is empty. Add a topic before using the draft.");
+  if (provider === "gotify") warnings.push("Gotify tokens are not stored by this app. Add a token manually in your self-hosted runner.");
+  if (!providers[provider]) warnings.push(`Provider ${provider} is not supported.`);
+  return {
+    mode: "local-dry-run",
+    provider,
+    endpointConfigured: Boolean(settings.endpoint),
+    topicConfigured: Boolean(settings.topic),
+    tokenStored: false,
+    appSendsNetworkRequests: false,
+    requiresExternalRunner: true,
+    commandPreview: providers[provider]?.curl || "",
+    warnings,
+  };
+}
+
 export function selfHostedNotificationPayload(purchases, now = new Date(), settings = {}) {
   const reminders = purchases
     .filter((purchase) => purchase.status !== "resolved")
@@ -431,7 +452,29 @@ export function selfHostedNotificationPayload(purchases, now = new Date(), setti
         tokenStored: false,
       },
       providers: selfHostedProviderDrafts(settings),
+      dryRun: selfHostedDryRun(settings, selfHostedProviderDrafts(settings)),
       reminders,
+    },
+    null,
+    2,
+  );
+}
+
+export function selfHostedDryRunReport(purchases, now = new Date(), settings = {}) {
+  const payload = JSON.parse(selfHostedNotificationPayload(purchases, now, settings));
+  return JSON.stringify(
+    {
+      schema: "return-warranty-guardian.self-hosted-dry-run.v1",
+      generatedAt: now.toISOString(),
+      privacyNote: "This is a local dry-run report. The app does not store tokens and does not send notification requests.",
+      dryRun: payload.dryRun,
+      reminderCount: payload.reminders.length,
+      sampleReminder: payload.reminders[0] || null,
+      externalRunnerPlan: {
+        mode: "user-managed",
+        suggestedCadence: "Run daily or hourly from a user-controlled scheduler if background delivery is needed.",
+        secretHandling: "Keep provider tokens outside this app, for example in an environment variable or password manager.",
+      },
     },
     null,
     2,

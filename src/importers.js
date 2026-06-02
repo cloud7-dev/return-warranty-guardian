@@ -341,8 +341,10 @@ export function csvPresetBundle(presets, now = new Date()) {
   return JSON.stringify(
     {
       schema: "return-warranty-guardian.csv-preset-bundle.v1",
+      version: 1,
       generatedAt: now.toISOString(),
       privacyNote: "Preset bundles contain column mappings only. Do not include real receipts, card numbers, order IDs, or purchase rows.",
+      supportedFields: CSV_IMPORT_FIELDS.map((field) => field.key),
       presets: (presets || []).map((preset) => ({
         id: preset.id,
         label: preset.label,
@@ -352,6 +354,44 @@ export function csvPresetBundle(presets, now = new Date()) {
     null,
     2,
   );
+}
+
+export function validateCsvPresetBundle(bundle) {
+  const issues = [];
+  const warnings = [];
+  if (bundle?.schema !== "return-warranty-guardian.csv-preset-bundle.v1") {
+    issues.push("unsupported preset bundle schema");
+  }
+  if (Number(bundle?.version || 1) > 1) {
+    issues.push(`unsupported preset bundle version ${bundle.version}`);
+  }
+  const allowedFields = new Set(CSV_IMPORT_FIELDS.map((field) => field.key));
+  const presets = Array.isArray(bundle?.presets) ? bundle.presets : [];
+  const normalizedPresets = [];
+  presets.forEach((preset, index) => {
+    if (!preset?.id || !preset?.label || !preset?.mapping || typeof preset.mapping !== "object") {
+      issues.push(`preset ${index + 1} is missing id, label, or mapping`);
+      return;
+    }
+    const mappingEntries = Object.entries(preset.mapping).filter(([field, header]) => {
+      if (!allowedFields.has(field)) {
+        warnings.push(`preset ${preset.id} ignores unsupported field ${field}`);
+        return false;
+      }
+      return String(header || "").trim();
+    });
+    normalizedPresets.push({
+      id: String(preset.id),
+      label: String(preset.label),
+      mapping: Object.fromEntries(mappingEntries),
+    });
+  });
+  return {
+    ok: issues.length === 0,
+    issues,
+    warnings,
+    presets: normalizedPresets,
+  };
 }
 
 export function purchasesFromCsv(text, now = new Date()) {

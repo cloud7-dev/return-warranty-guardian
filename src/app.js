@@ -8,6 +8,7 @@ import {
   evidencePackMarkdown,
   purchasesToCsv,
   purchasesToIcs,
+  selfHostedDryRunReport,
   selfHostedNotificationPayload,
 } from "./exporters.js";
 import {
@@ -18,6 +19,7 @@ import {
   csvImportReviewChecklist,
   csvMappingForPreset,
   csvPresetBundle,
+  validateCsvPresetBundle,
 } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { textFromHtmlSource, textFromPdfSource } from "./local-extraction.js";
@@ -212,6 +214,15 @@ function saveUserCsvPresets(presets) {
 
 function csvPresetOptions() {
   return [...CSV_IMPORT_PRESETS, ...state.userCsvPresets];
+}
+
+function withImportSelection(preview, previousSelection = null) {
+  const validRows = preview.valid || [];
+  const previous = previousSelection ? new Set(previousSelection) : null;
+  const selectedRowNumbers = previous
+    ? validRows.map((row) => row.rowNumber).filter((rowNumber) => previous.has(rowNumber))
+    : validRows.map((row) => row.rowNumber);
+  return { ...preview, selectedRowNumbers };
 }
 
 function loadSnoozedReminders() {
@@ -441,6 +452,7 @@ function renderReminderGuide() {
         <div class="detail-actions">
           <button class="secondary-action" id="export-ics-guide" type="button">${icons.calendar} ${t("ics")}</button>
           <button class="secondary-action" id="export-self-hosted-alerts" type="button">${icons.export} ${t("selfHostedAlerts")}</button>
+          <button class="secondary-action" id="export-self-hosted-dry-run" type="button">${icons.check} ${t("selfHostedDryRun")}</button>
         </div>
       </div>
       <div class="guide-steps">
@@ -515,7 +527,9 @@ function renderImportPreview() {
   const duplicates = preview.duplicates || [];
   const invalid = preview.invalid || [];
   const checklist = csvImportReviewChecklist(preview);
-  const previewRows = valid.slice(0, 4);
+  const selectedRows = new Set(preview.selectedRowNumbers || valid.map((row) => row.rowNumber));
+  const selectedValidCount = valid.filter((row) => selectedRows.has(row.rowNumber)).length;
+  const previewRows = valid.slice(0, 12);
   const headers = preview.headers || [];
   const mapping = preview.mapping || {};
 
@@ -527,13 +541,14 @@ function renderImportPreview() {
           <p>${h(t("importPreviewSubtitle", { file: preview.fileName }))}</p>
         </div>
         <div class="detail-actions">
-          <button class="secondary-action" id="confirm-import" type="button" ${valid.length ? "" : "disabled"}>${t("confirmImport")}</button>
+          <button class="secondary-action" id="confirm-import" type="button" ${selectedValidCount ? "" : "disabled"}>${t("confirmImport")}</button>
           <button class="secondary-action" id="export-import-report" type="button">${t("exportImportReport")}</button>
           <button class="ghost-action" id="cancel-import" type="button">${t("cancelImport")}</button>
         </div>
       </div>
       <div class="import-stats">
         <span>${t("importValidCount", { count: valid.length })}</span>
+        <span>${t("importSelectedCount", { count: selectedValidCount })}</span>
         <span>${t("importDuplicateCount", { count: duplicates.length })}</span>
         <span>${t("importInvalidCount", { count: invalid.length })}</span>
       </div>
@@ -593,8 +608,12 @@ function renderImportPreview() {
           ? `<div class="import-row-list">
               ${previewRows
                 .map(
-                  ({ purchase }) => `
+                  ({ rowNumber, purchase }) => `
                     <div class="import-row">
+                      <label class="checkbox-row">
+                        <input data-import-row="${h(String(rowNumber))}" type="checkbox" ${selectedRows.has(rowNumber) ? "checked" : ""} />
+                        <span>${t("includeImportRow")}</span>
+                      </label>
                       <strong>${h(purchase.productName)}</strong>
                       <span>${h(purchase.merchant)} · ${h(purchase.purchaseDate)} · ${money(purchase.price)}</span>
                     </div>
@@ -1032,12 +1051,9 @@ function render() {
 function parseImportedJson(text) {
   const parsed = JSON.parse(text);
   if (parsed?.schema === "return-warranty-guardian.csv-preset-bundle.v1") {
-    return {
-      mode: "presets",
-      presets: Array.isArray(parsed.presets)
-        ? parsed.presets.filter((preset) => preset?.id && preset?.label && preset?.mapping)
-        : [],
-    };
+    const validation = validateCsvPresetBundle(parsed);
+    if (!validation.ok) throw new Error(`CSV preset bundle validation failed: ${validation.issues.join("; ")}`);
+    return { mode: "presets", presets: validation.presets, warnings: validation.warnings };
   }
   if (!Array.isArray(parsed)) throw new Error("Expected an array of purchases");
   return { mode: "replace", purchases: parsed };
@@ -1049,7 +1065,7 @@ async function parseImportedFile(file) {
     return {
       mode: "preview",
       preview: {
-        ...analyzeCsvImport(text, state.purchases, today()),
+        ...withImportSelection(analyzeCsvImport(text, state.purchases, today())),
         sourceText: text,
         fileName: file.name,
       },
@@ -1065,10 +1081,13 @@ function reanalyzeImportPreview({ presetId, mapping } = {}) {
   const savedPreset = state.userCsvPresets.find((preset) => preset.id === nextPresetId);
   const nextMapping = mapping || savedPreset?.mapping || (presetId ? csvMappingForPreset(headers, nextPresetId) : state.importPreview.mapping);
   state.importPreview = {
-    ...analyzeCsvImport(state.importPreview.sourceText, state.purchases, today(), {
-      presetId: nextPresetId,
-      mapping: nextMapping,
-    }),
+    ...withImportSelection(
+      analyzeCsvImport(state.importPreview.sourceText, state.purchases, today(), {
+        presetId: nextPresetId,
+        mapping: nextMapping,
+      }),
+      state.importPreview.selectedRowNumbers,
+    ),
     sourceText: state.importPreview.sourceText,
     fileName: state.importPreview.fileName,
   };
@@ -1235,6 +1254,16 @@ app.addEventListener("change", async (event) => {
     return;
   }
 
+  if (event.target.dataset.importRow) {
+    const rowNumber = Number(event.target.dataset.importRow);
+    const current = new Set(state.importPreview?.selectedRowNumbers || []);
+    if (event.target.checked) current.add(rowNumber);
+    else current.delete(rowNumber);
+    state.importPreview = { ...state.importPreview, selectedRowNumbers: [...current].sort((a, b) => a - b) };
+    render();
+    return;
+  }
+
   if (event.target.id !== "import-json") return;
   const [file] = event.target.files;
   if (!file) return;
@@ -1249,7 +1278,9 @@ app.addEventListener("change", async (event) => {
       const existing = new Map(state.userCsvPresets.map((preset) => [preset.id, preset]));
       imported.presets.forEach((preset) => existing.set(preset.id, preset));
       saveUserCsvPresets([...existing.values()]);
-      state.notificationStatus = t("csvPresetsImported", { count: imported.presets.length });
+      state.notificationStatus = imported.warnings?.length
+        ? t("csvPresetsImportedWithWarnings", { count: imported.presets.length, warnings: imported.warnings.length })
+        : t("csvPresetsImported", { count: imported.presets.length });
       render();
       return;
     }
@@ -1332,7 +1363,10 @@ app.addEventListener("click", async (event) => {
   }
 
   if (button.id === "confirm-import") {
-    const purchases = (state.importPreview?.valid || []).map((row) => row.purchase);
+    const selectedRows = new Set(state.importPreview?.selectedRowNumbers || []);
+    const purchases = (state.importPreview?.valid || [])
+      .filter((row) => selectedRows.has(row.rowNumber))
+      .map((row) => row.purchase);
     state.purchases = [...purchases, ...state.purchases];
     state.selectedId = purchases[0]?.id || state.selectedId;
     state.importPreview = null;
@@ -1444,6 +1478,16 @@ app.addEventListener("click", async (event) => {
       "application/json",
       selfHostedNotificationPayload(state.purchases, today(), state.selfHostedAlerts),
     );
+    return;
+  }
+
+  if (button.id === "export-self-hosted-dry-run") {
+    downloadText(
+      "return-warranty-guardian-self-hosted-dry-run.json",
+      "application/json",
+      selfHostedDryRunReport(state.purchases, today(), state.selfHostedAlerts),
+    );
+    return;
   }
 });
 

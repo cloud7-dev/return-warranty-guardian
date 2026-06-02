@@ -1,6 +1,6 @@
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open("return-warranty-guardian-v7").then((cache) =>
+    caches.open("return-warranty-guardian-v8").then((cache) =>
       cache.addAll([
         "./",
         "./index.html",
@@ -26,7 +26,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== "return-warranty-guardian-v7").map((key) => caches.delete(key)))),
+      .then((keys) => Promise.all(keys.filter((key) => key !== "return-warranty-guardian-v8").map((key) => caches.delete(key)))),
   );
 });
 

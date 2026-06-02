@@ -81,6 +81,16 @@ function pdfTextToken(value) {
   return value.startsWith("<") ? decodePdfHex(value) : decodePdfLiteral(value);
 }
 
+export function pdfExtractionStatus(raw) {
+  const source = String(raw || "");
+  const hasTextOperators =
+    /(\((?:\\[\s\S]|[^\\)])*\)|<[\da-fA-F\s]+>)\s*(?:Tj|'|")/g.test(source) ||
+    /\[((?:\s*(?:\((?:\\[\s\S]|[^\\)])*\)|<[\da-fA-F\s]+>|-?\d+(?:\.\d+)?)\s*)+)\]\s*TJ/g.test(source);
+  if (hasTextOperators) return "text-operator";
+  if (/\/Filter\s*\/?(?:FlateDecode|DCTDecode|JPXDecode)|\/Subtype\s*\/Image/i.test(source)) return "scanned-or-compressed";
+  return "plain-fallback";
+}
+
 export function textFromPdfSource(raw) {
   const source = String(raw || "");
   const tokens = [];
@@ -98,7 +108,7 @@ export function textFromPdfSource(raw) {
     .filter(Boolean)
     .join("\n");
   if (extracted) return extracted;
-  if (/\/Filter\s*\/?(?:FlateDecode|DCTDecode|JPXDecode)|\/Subtype\s*\/Image/i.test(source)) {
+  if (pdfExtractionStatus(source) === "scanned-or-compressed") {
     return [
       "PDF local extraction note: this PDF appears to be compressed, image-based, or scanned.",
       "Browser-local text operators were not found. Paste OCR text manually or keep the PDF as local claim evidence.",

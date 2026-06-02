@@ -29,10 +29,10 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Stores purchases in browser storage with JSON export/import.
 - Stores local receipt, PDF, manual, and warranty-card attachments in the browser record, with save/skipped status for over-size files.
 - Previews CSV purchase rows before import, supports built-in presets for card/order exports including Korean card statements, Korean shopping orders, and Amazon-style order history, plus saved user presets, manual column mapping, duplicate skipping, and invalid row reporting locally.
-- Shows a local CSV import review checklist and exports/imports CSV preset bundles for sharing column mappings without purchase rows.
+- Shows a local CSV import review checklist, lets users exclude individual importable rows before confirm, validates CSV preset bundle compatibility, and exports/imports preset bundles for sharing column mappings without purchase rows.
 - Exports a local CSV import report for audit/debugging before the import is confirmed.
 - Extracts local text, CSV, HTML/email receipts, simple PDF text operators, scanned/compressed PDF fallback notices, and supported browser-local image OCR into the receipt parser without upload.
-- Applies user-confirmed policy templates with evidence requirements and country/jurisdiction disclaimers without fetching merchant data.
+- Applies user-confirmed policy templates with evidence requirements, source/version metadata, and country/jurisdiction disclaimers without fetching merchant data.
 - Includes a synthetic fixture corpus for CSV presets, email receipt extraction, PDF text extraction, and policy-template coverage.
 - Provides a local fixture anonymizer for turning private examples into privacy-safe test fixtures before contribution.
 - Parses pasted receipt or invoice text into candidate line items.
@@ -43,7 +43,7 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Exports a ZIP claim bundle with HTML, Markdown, JSON, submission template files, and attached local files.
 - Exports `.ics` calendar reminders with per-purchase lead-day alarms for purchase deadlines.
 - Supports browser notifications and 3-hour/tomorrow/7-day reminder snooze controls while the app is open, with `.ics` export as the no-server mobile/desktop fallback.
-- Stores optional self-hosted notification draft settings locally and exports payload drafts for ntfy, Gotify, or Apprise without sending data from the app.
+- Stores optional self-hosted notification draft settings locally and exports payload/dry-run drafts for ntfy, Gotify, or Apprise without sending data from the app.
 - Exports CSV records for spreadsheet review.
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
 - Switches the interface between Korean, English, Japanese, Chinese, German, French, Italian, and Hindi.
@@ -75,7 +75,7 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, preset bundle export, review checklist generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback notices, policy templates, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, self-hosted notification payload settings, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, scanned PDF fallback, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, local alert status, self-hosted settings export, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, preset bundle export/validation, review checklist generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback notices, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, self-hosted notification payload and dry-run settings, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, scanned PDF fallback, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
 
 To prepare a privacy-safe fixture from a local sample:
 

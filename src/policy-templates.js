@@ -3,6 +3,9 @@ export const POLICY_TEMPLATES = [
     id: "standard-30-day-return",
     label: "Standard 30-day return",
     country: "generic",
+    sourceType: "community-template",
+    version: "2026.06",
+    lastReviewed: "2026-06-02",
     returnWindowDays: 30,
     refundWindowDays: 14,
     warrantyMonths: 12,
@@ -14,6 +17,9 @@ export const POLICY_TEMPLATES = [
     id: "extended-60-day-return",
     label: "Extended 60-day retailer return",
     country: "generic",
+    sourceType: "community-template",
+    version: "2026.06",
+    lastReviewed: "2026-06-02",
     returnWindowDays: 60,
     refundWindowDays: 30,
     warrantyMonths: 12,
@@ -25,6 +31,9 @@ export const POLICY_TEMPLATES = [
     id: "warranty-only",
     label: "Warranty-only support",
     country: "generic",
+    sourceType: "community-template",
+    version: "2026.06",
+    lastReviewed: "2026-06-02",
     returnWindowDays: 0,
     refundWindowDays: 0,
     warrantyMonths: 12,
@@ -36,6 +45,9 @@ export const POLICY_TEMPLATES = [
     id: "final-sale",
     label: "Final sale or no return",
     country: "generic",
+    sourceType: "community-template",
+    version: "2026.06",
+    lastReviewed: "2026-06-02",
     returnWindowDays: 0,
     refundWindowDays: 0,
     warrantyMonths: 0,
@@ -47,6 +59,9 @@ export const POLICY_TEMPLATES = [
     id: "korea-online-purchase",
     label: "Korea online purchase review",
     country: "KR",
+    sourceType: "jurisdiction-template",
+    version: "2026.06",
+    lastReviewed: "2026-06-02",
     returnWindowDays: 7,
     refundWindowDays: 7,
     warrantyMonths: 12,
@@ -63,5 +78,5 @@ export function policyTemplateById(id) {
 export function policyTemplateReviewNote(template) {
   if (!template) return "";
   const evidence = (template.evidenceRequired || []).join(", ") || "Not specified";
-  return `Policy review scope: ${template.country || "generic"}. Evidence to verify: ${evidence}. Disclaimer: ${template.disclaimer || "Confirm current merchant and local rules."}`;
+  return `Policy review scope: ${template.country || "generic"}. Source type: ${template.sourceType || "community-template"}. Version: ${template.version || "unversioned"}. Last reviewed: ${template.lastReviewed || "unknown"}. Evidence to verify: ${evidence}. Disclaimer: ${template.disclaimer || "Confirm current merchant and local rules."}`;
 }

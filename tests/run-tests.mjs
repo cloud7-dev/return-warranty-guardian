@@ -9,8 +9,9 @@ import {
   csvMappingForPreset,
   csvPresetBundle,
   purchasesFromCsv,
+  validateCsvPresetBundle,
 } from "../src/importers.js";
-import { textFromHtmlSource, textFromPdfSource } from "../src/local-extraction.js";
+import { pdfExtractionStatus, textFromHtmlSource, textFromPdfSource } from "../src/local-extraction.js";
 import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
@@ -22,6 +23,7 @@ import {
   purchasesToCsv,
   purchasesToIcs,
   reminderAlarmOffsets,
+  selfHostedDryRunReport,
   selfHostedNotificationPayload,
 } from "../src/exporters.js";
 
@@ -150,7 +152,15 @@ assert.equal(reviewChecklist.find((item) => item.id === "duplicate-review").stat
 assert.equal(reviewChecklist.find((item) => item.id === "invalid-review").status, "warn");
 const presetBundle = JSON.parse(csvPresetBundle([{ id: "user-test", label: "User Test", mapping: { price: "amount" } }], now));
 assert.equal(presetBundle.schema, "return-warranty-guardian.csv-preset-bundle.v1");
+assert.equal(presetBundle.version, 1);
 assert.equal(presetBundle.presets[0].mapping.price, "amount");
+const presetValidation = validateCsvPresetBundle({
+  ...presetBundle,
+  presets: [{ id: "user-test", label: "User Test", mapping: { price: "amount", unexpected: "x" } }],
+});
+assert.equal(presetValidation.ok, true);
+assert.equal(presetValidation.warnings.length, 1);
+assert.deepEqual(presetValidation.presets[0].mapping, { price: "amount" });
 
 const cardMapping = csvMappingForPreset(["transaction_date", "description", "amount"], "card-statement");
 assert.equal(cardMapping.merchant, "description");
@@ -238,6 +248,8 @@ assert.match(pdfFixtureText, /PDF Fixture Store/);
 assert.match(pdfFixtureText, /Warranty Router 89.00/);
 const scannedPdfFallback = textFromPdfSource("%PDF-1.4\n/Filter /DCTDecode\n/Subtype /Image\nstream\n...");
 assert.match(scannedPdfFallback, /appears to be compressed, image-based, or scanned/);
+assert.equal(pdfExtractionStatus("%PDF-1.4\n/Filter /DCTDecode\n/Subtype /Image\nstream\n..."), "scanned-or-compressed");
+assert.equal(pdfExtractionStatus("(Readable) Tj"), "text-operator");
 
 const policyTemplate = policyTemplateById("extended-60-day-return");
 assert.equal(policyTemplate.returnWindowDays, 60);
@@ -250,6 +262,9 @@ for (const item of policyFixtures) {
   assert.equal(template.refundWindowDays, item.expectedRefundWindowDays);
   assert.equal(template.warrantyMonths, item.expectedWarrantyMonths);
   assert.equal(template.country, item.expectedCountry);
+  assert.equal(template.sourceType, item.expectedSourceType);
+  assert.equal(template.version, item.expectedVersion);
+  assert.match(template.lastReviewed, /^\d{4}-\d{2}-\d{2}$/);
   assert.ok(template.evidenceRequired.length >= 3);
   assert.ok(template.disclaimer.length > 40);
 }
@@ -308,5 +323,19 @@ assert.equal(selfHosted.settings.enabled, true);
 assert.equal(selfHosted.settings.tokenStored, false);
 assert.equal(selfHosted.reminders.length, 3);
 assert.match(selfHosted.providers.ntfy.curl, /alerts\.example\.test\/returns/);
+assert.equal(selfHosted.dryRun.requiresExternalRunner, true);
+assert.equal(selfHosted.dryRun.appSendsNetworkRequests, false);
+const dryRunReport = JSON.parse(
+  selfHostedDryRunReport([purchase], now, {
+    enabled: true,
+    provider: "gotify",
+    endpoint: "https://gotify.example.test",
+    topic: "",
+  }),
+);
+assert.equal(dryRunReport.schema, "return-warranty-guardian.self-hosted-dry-run.v1");
+assert.equal(dryRunReport.dryRun.provider, "gotify");
+assert.match(dryRunReport.dryRun.warnings.join(" "), /tokens are not stored/);
+assert.equal(dryRunReport.externalRunnerPlan.mode, "user-managed");
 
 console.log("All logic tests passed.");

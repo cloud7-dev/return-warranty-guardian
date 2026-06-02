@@ -4,34 +4,44 @@
     "expectedReturnWindowDays": 30,
     "expectedRefundWindowDays": 14,
     "expectedWarrantyMonths": 12,
-    "expectedCountry": "generic"
+    "expectedCountry": "generic",
+    "expectedSourceType": "community-template",
+    "expectedVersion": "2026.06"
   },
   {
     "id": "extended-60-day-return",
     "expectedReturnWindowDays": 60,
     "expectedRefundWindowDays": 30,
     "expectedWarrantyMonths": 12,
-    "expectedCountry": "generic"
+    "expectedCountry": "generic",
+    "expectedSourceType": "community-template",
+    "expectedVersion": "2026.06"
   },
   {
     "id": "warranty-only",
     "expectedReturnWindowDays": 0,
     "expectedRefundWindowDays": 0,
     "expectedWarrantyMonths": 12,
-    "expectedCountry": "generic"
+    "expectedCountry": "generic",
+    "expectedSourceType": "community-template",
+    "expectedVersion": "2026.06"
   },
   {
     "id": "final-sale",
     "expectedReturnWindowDays": 0,
     "expectedRefundWindowDays": 0,
     "expectedWarrantyMonths": 0,
-    "expectedCountry": "generic"
+    "expectedCountry": "generic",
+    "expectedSourceType": "community-template",
+    "expectedVersion": "2026.06"
   },
   {
     "id": "korea-online-purchase",
     "expectedReturnWindowDays": 7,
     "expectedRefundWindowDays": 7,
     "expectedWarrantyMonths": 12,
-    "expectedCountry": "KR"
+    "expectedCountry": "KR",
+    "expectedSourceType": "jurisdiction-template",
+    "expectedVersion": "2026.06"
   }
 ]

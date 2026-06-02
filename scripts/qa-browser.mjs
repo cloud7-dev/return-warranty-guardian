@@ -217,12 +217,19 @@ await page.locator('[data-import-map="purchaseDate"]').selectOption("bought_on")
 await page.locator('[data-import-map="price"]').selectOption("cost");
 await page.locator('[data-import-map="documents"]').selectOption("docs");
 await page.waitForSelector("text=1개 준비됨");
+await page.waitForSelector("text=1개 선택됨");
 await page.waitForSelector("text=중복 1개");
 await page.waitForSelector("text=오류 1개");
 const importPreviewVisible = await page.locator("text=가져오기 미리보기").count();
 const importMappingVisible = await page.locator("text=CSV 프리셋").count();
 const importDuplicateVisible = await page.locator("text=중복 1개").count();
 const importInvalidVisible = await page.locator("text=오류 1개").count();
+await page.locator("[data-import-row]").first().uncheck();
+await page.waitForSelector("text=0개 선택됨");
+const importConfirmDisabledWhenDeselected = await page.locator("#confirm-import").isDisabled();
+await page.locator("[data-import-row]").first().check();
+await page.waitForSelector("text=1개 선택됨");
+const importRowSelectionVisible = await page.locator("text=이 행 포함").count();
 page.once("dialog", (dialog) => dialog.accept("QA Statement Preset"));
 await page.evaluate(() => document.querySelector("#save-csv-preset")?.click());
 await page.waitForFunction(() => [...document.querySelectorAll("#csv-preset option")].some((option) => option.textContent.includes("QA Statement Preset")));
@@ -307,6 +314,13 @@ const selfHostedPath = `${root}/outputs/${selfHostedDownload.suggestedFilename()
 await selfHostedDownload.saveAs(selfHostedPath);
 stages.push("self-hosted-alerts-download");
 
+const selfHostedDryRunDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
+await page.click("#export-self-hosted-dry-run");
+const selfHostedDryRunDownload = await selfHostedDryRunDownloadPromise;
+const selfHostedDryRunPath = `${root}/outputs/${selfHostedDryRunDownload.suggestedFilename()}`;
+await selfHostedDryRunDownload.saveAs(selfHostedDryRunPath);
+stages.push("self-hosted-dry-run-download");
+
 await page.click("#enable-local-alerts");
 await page.waitForSelector("text=앱이 열려 있을 때의 로컬 알림을 켰습니다.");
 const localAlertsVisible = await page.locator("text=앱이 열려 있을 때의 로컬 알림을 켰습니다.").count();
@@ -337,6 +351,7 @@ const claimBundleText = await readFile(claimBundlePath, "utf8");
 const claimZipBytes = await readFile(claimZipPath);
 const icsText = await readFile(icsPath, "utf8");
 const selfHostedText = await readFile(selfHostedPath, "utf8");
+const selfHostedDryRunText = await readFile(selfHostedDryRunPath, "utf8");
 const csvText = await readFile(csvPath, "utf8");
 
 const result = {
@@ -366,6 +381,8 @@ const result = {
   importMappingVisible,
   importDuplicateVisible,
   importInvalidVisible,
+  importConfirmDisabledWhenDeselected,
+  importRowSelectionVisible,
   savedPresetVisible,
   presetBundlePath,
   presetBundleContainsSchema: presetBundleText.includes("return-warranty-guardian.csv-preset-bundle.v1"),
@@ -396,6 +413,8 @@ const result = {
   selfHostedPath,
   selfHostedSettingsSavedVisible,
   selfHostedContainsPayload: selfHostedText.includes("return-warranty-guardian.self-hosted-notifications.v1") && selfHostedText.includes("alerts.example.test/returns"),
+  selfHostedDryRunPath,
+  selfHostedDryRunContainsReport: selfHostedDryRunText.includes("return-warranty-guardian.self-hosted-dry-run.v1") && selfHostedDryRunText.includes("requiresExternalRunner"),
   localAlertsVisible,
   csvPath,
   csvContainsHomeFields: csvText.includes("support_contact") && csvText.includes("documents"),
@@ -431,6 +450,8 @@ const failures = [
   importMappingVisible < 1 && "Expected CSV mapping controls to appear",
   importDuplicateVisible < 1 && "Expected CSV duplicate count to appear",
   importInvalidVisible < 1 && "Expected CSV invalid row count to appear",
+  !importConfirmDisabledWhenDeselected && "Expected import confirm to disable when all rows are deselected",
+  importRowSelectionVisible < 1 && "Expected import row include checkboxes",
   savedPresetVisible < 1 && "Expected saved CSV preset to appear",
   !result.presetBundleContainsSchema && "Expected CSV preset bundle export",
   presetImportStatusVisible < 1 && "Expected CSV preset bundle import status",
@@ -453,6 +474,7 @@ const failures = [
   !result.icsContainsRepeatAlarm && "Expected repeated ICS reminder alarm",
   !result.selfHostedContainsPayload && "Expected self-hosted notification payload export",
   selfHostedSettingsSavedVisible < 1 && "Expected self-hosted settings save status",
+  !result.selfHostedDryRunContainsReport && "Expected self-hosted dry-run report export",
   localAlertsVisible < 1 && "Expected open-app local alert status",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",
