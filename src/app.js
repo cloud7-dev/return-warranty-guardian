@@ -10,10 +10,18 @@ import {
   purchasesToIcs,
   selfHostedNotificationPayload,
 } from "./exporters.js";
-import { CSV_IMPORT_FIELDS, CSV_IMPORT_PRESETS, analyzeCsvImport, csvImportReport, csvMappingForPreset } from "./importers.js";
+import {
+  CSV_IMPORT_FIELDS,
+  CSV_IMPORT_PRESETS,
+  analyzeCsvImport,
+  csvImportReport,
+  csvImportReviewChecklist,
+  csvMappingForPreset,
+  csvPresetBundle,
+} from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { textFromHtmlSource, textFromPdfSource } from "./local-extraction.js";
-import { POLICY_TEMPLATES, policyTemplateById } from "./policy-templates.js";
+import { POLICY_TEMPLATES, policyTemplateById, policyTemplateReviewNote } from "./policy-templates.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
 import { loadPurchases, savePurchases } from "./storage.js";
@@ -22,6 +30,7 @@ const app = document.querySelector("#app");
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const CSV_PRESETS_STORAGE_KEY = "rwg:csv-import-presets";
 const SNOOZE_STORAGE_KEY = "rwg:snoozed-reminders";
+const SELF_HOSTED_ALERTS_STORAGE_KEY = "rwg:self-hosted-alerts";
 
 const state = {
   purchases: [],
@@ -36,6 +45,7 @@ const state = {
   attachmentStatus: "",
   notificationStatus: "",
   snoozedReminders: {},
+  selfHostedAlerts: { enabled: false, provider: "ntfy", endpoint: "", topic: "" },
 };
 
 const today = () => new Date();
@@ -217,11 +227,31 @@ function saveSnoozedReminders() {
   localStorage.setItem(SNOOZE_STORAGE_KEY, JSON.stringify(state.snoozedReminders));
 }
 
+function loadSelfHostedAlerts() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SELF_HOSTED_ALERTS_STORAGE_KEY) || "{}");
+    return {
+      enabled: Boolean(parsed.enabled),
+      provider: ["ntfy", "gotify", "apprise"].includes(parsed.provider) ? parsed.provider : "ntfy",
+      endpoint: String(parsed.endpoint || ""),
+      topic: String(parsed.topic || ""),
+    };
+  } catch {
+    return { enabled: false, provider: "ntfy", endpoint: "", topic: "" };
+  }
+}
+
+function saveSelfHostedAlerts(settings) {
+  state.selfHostedAlerts = settings;
+  localStorage.setItem(SELF_HOSTED_ALERTS_STORAGE_KEY, JSON.stringify(settings));
+}
+
 async function normalizePurchase(formData) {
   const template = policyTemplateById(formData.get("policyTemplate"));
   const notes = String(formData.get("notes") || "").trim();
   const serviceNotes = String(formData.get("serviceNotes") || "").trim();
   const attachmentResult = await attachmentsFromForm(formData);
+  const policyNote = policyTemplateReviewNote(template);
   state.attachmentStatus = attachmentResult.total
     ? t("attachmentsSavedStatus", {
         saved: attachmentResult.attachments.length,
@@ -249,7 +279,11 @@ async function normalizePurchase(formData) {
     serviceNotes,
     source: String(formData.get("source") || "manual"),
     hasReceipt: formData.get("hasReceipt") === "on",
-    notes: [notes, template?.note && !notes.includes(template.note) ? template.note : ""].filter(Boolean).join("\n"),
+    notes: [
+      notes,
+      template?.note && !notes.includes(template.note) ? template.note : "",
+      policyNote && !notes.includes(policyNote) ? policyNote : "",
+    ].filter(Boolean).join("\n"),
     status: "active",
     createdAt: new Date().toISOString(),
   };
@@ -325,11 +359,13 @@ function isReminderSnoozed(key) {
   return until && new Date(until).getTime() > Date.now();
 }
 
-function snoozeReminder(key, days) {
-  const until = new Date(Date.now() + Number(days || 1) * 24 * 60 * 60 * 1000);
+function snoozeReminder(key, amount, unit = "days") {
+  const milliseconds = unit === "hours" ? Number(amount || 3) * 60 * 60 * 1000 : Number(amount || 1) * 24 * 60 * 60 * 1000;
+  const until = new Date(Date.now() + milliseconds);
   state.snoozedReminders = { ...state.snoozedReminders, [key]: until.toISOString() };
   saveSnoozedReminders();
-  state.notificationStatus = t("reminderSnoozed", { count: days });
+  state.notificationStatus =
+    unit === "hours" ? t("reminderSnoozedHours", { count: amount }) : t("reminderSnoozed", { count: amount });
 }
 
 function clearSnoozedReminders() {
@@ -434,7 +470,8 @@ function renderReminderGuide() {
                     <div class="reminder-item">
                       <span>${h(deadlineLabel(deadline))}: ${h(purchase.productName)} · ${h(deadline.date)} · ${t("daysLeft", { count: deadline.daysLeft })}</span>
                       <div>
-                        <button class="inline-action" data-snooze-reminder="${h(key)}" data-snooze-days="1" type="button">${t("snoozeOneDay")}</button>
+                        <button class="inline-action" data-snooze-reminder="${h(key)}" data-snooze-hours="3" type="button">${t("snoozeThreeHours")}</button>
+                        <button class="inline-action" data-snooze-reminder="${h(key)}" data-snooze-days="1" type="button">${t("snoozeTomorrow")}</button>
                         <button class="inline-action" data-snooze-reminder="${h(key)}" data-snooze-days="7" type="button">${t("snoozeSevenDays")}</button>
                       </div>
                     </div>
@@ -444,6 +481,29 @@ function renderReminderGuide() {
             : `<p class="empty-note">${t("openReminderEmpty")}</p>`
         }
       </div>
+      <form class="self-hosted-settings" id="self-hosted-alerts-form">
+        <strong>${t("selfHostedSettings")}</strong>
+        <label class="checkbox-row">
+          <input name="enabled" type="checkbox" ${state.selfHostedAlerts.enabled ? "checked" : ""} />
+          ${t("selfHostedOptIn")}
+        </label>
+        <label>
+          ${t("selfHostedProvider")}
+          <select name="provider">
+            ${["ntfy", "gotify", "apprise"].map((provider) => `<option value="${provider}" ${state.selfHostedAlerts.provider === provider ? "selected" : ""}>${provider}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          ${t("selfHostedEndpoint")}
+          <input name="endpoint" value="${h(state.selfHostedAlerts.endpoint)}" placeholder="https://ntfy.example.test" />
+        </label>
+        <label>
+          ${t("selfHostedTopic")}
+          <input name="topic" value="${h(state.selfHostedAlerts.topic)}" placeholder="return-warranty" />
+        </label>
+        <button class="ghost-action" type="submit">${t("saveSelfHostedSettings")}</button>
+        <span class="field-help">${t("selfHostedSettingsHelp")}</span>
+      </form>
     </section>
   `;
 }
@@ -454,6 +514,7 @@ function renderImportPreview() {
   const valid = preview.valid || [];
   const duplicates = preview.duplicates || [];
   const invalid = preview.invalid || [];
+  const checklist = csvImportReviewChecklist(preview);
   const previewRows = valid.slice(0, 4);
   const headers = preview.headers || [];
   const mapping = preview.mapping || {};
@@ -490,6 +551,7 @@ function renderImportPreview() {
               </label>
               <div class="preset-actions">
                 <button class="ghost-action" id="save-csv-preset" type="button">${t("saveCsvPreset")}</button>
+                <button class="ghost-action" id="export-csv-presets" type="button">${t("exportCsvPresets")}</button>
                 ${state.userCsvPresets.some((preset) => preset.id === preview.presetId) ? `<button class="ghost-action danger" id="delete-csv-preset" type="button">${t("deleteCsvPreset")}</button>` : ""}
               </div>
               <div class="mapping-grid">
@@ -513,6 +575,19 @@ function renderImportPreview() {
             </div>`
           : ""
       }
+      <div class="import-checklist">
+        <strong>${t("importReviewChecklist")}</strong>
+        ${checklist
+          .map(
+            (item) => `
+              <div class="checklist-row ${item.status}">
+                <span>${h(item.label)}</span>
+                <small>${h(item.detail)}</small>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
       ${
         previewRows.length
           ? `<div class="import-row-list">
@@ -956,8 +1031,16 @@ function render() {
 
 function parseImportedJson(text) {
   const parsed = JSON.parse(text);
+  if (parsed?.schema === "return-warranty-guardian.csv-preset-bundle.v1") {
+    return {
+      mode: "presets",
+      presets: Array.isArray(parsed.presets)
+        ? parsed.presets.filter((preset) => preset?.id && preset?.label && preset?.mapping)
+        : [],
+    };
+  }
   if (!Array.isArray(parsed)) throw new Error("Expected an array of purchases");
-  return parsed;
+  return { mode: "replace", purchases: parsed };
 }
 
 async function parseImportedFile(file) {
@@ -972,7 +1055,7 @@ async function parseImportedFile(file) {
       },
     };
   }
-  return { mode: "replace", purchases: parseImportedJson(text) };
+  return parseImportedJson(text);
 }
 
 function reanalyzeImportPreview({ presetId, mapping } = {}) {
@@ -1077,6 +1160,20 @@ function downloadAttachment(purchaseId, attachmentIndex) {
 }
 
 app.addEventListener("submit", async (event) => {
+  if (event.target.id === "self-hosted-alerts-form") {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    saveSelfHostedAlerts({
+      enabled: formData.get("enabled") === "on",
+      provider: String(formData.get("provider") || "ntfy"),
+      endpoint: String(formData.get("endpoint") || "").trim(),
+      topic: String(formData.get("topic") || "").trim(),
+    });
+    state.notificationStatus = t("selfHostedSettingsSaved");
+    render();
+    return;
+  }
+
   if (event.target.id !== "purchase-form") return;
   event.preventDefault();
   const purchase = await normalizePurchase(new FormData(event.target));
@@ -1120,6 +1217,10 @@ app.addEventListener("change", async (event) => {
     if (!notes.value.includes(template.note)) {
       notes.value = [notes.value.trim(), template.note].filter(Boolean).join("\n");
     }
+    const policyNote = policyTemplateReviewNote(template);
+    if (policyNote && !notes.value.includes(policyNote)) {
+      notes.value = [notes.value.trim(), policyNote].filter(Boolean).join("\n");
+    }
     return;
   }
 
@@ -1141,6 +1242,14 @@ app.addEventListener("change", async (event) => {
     const imported = await parseImportedFile(file);
     if (imported.mode === "preview") {
       state.importPreview = imported.preview;
+      render();
+      return;
+    }
+    if (imported.mode === "presets") {
+      const existing = new Map(state.userCsvPresets.map((preset) => [preset.id, preset]));
+      imported.presets.forEach((preset) => existing.set(preset.id, preset));
+      saveUserCsvPresets([...existing.values()]);
+      state.notificationStatus = t("csvPresetsImported", { count: imported.presets.length });
       render();
       return;
     }
@@ -1194,7 +1303,8 @@ app.addEventListener("click", async (event) => {
   }
 
   if (button.dataset.snoozeReminder) {
-    snoozeReminder(button.dataset.snoozeReminder, Number(button.dataset.snoozeDays || 1));
+    if (button.dataset.snoozeHours) snoozeReminder(button.dataset.snoozeReminder, Number(button.dataset.snoozeHours), "hours");
+    else snoozeReminder(button.dataset.snoozeReminder, Number(button.dataset.snoozeDays || 1), "days");
     render();
     return;
   }
@@ -1253,6 +1363,11 @@ app.addEventListener("click", async (event) => {
     saveUserCsvPresets(state.userCsvPresets.filter((preset) => preset.id !== state.importPreview.presetId));
     reanalyzeImportPreview({ presetId: "auto" });
     render();
+    return;
+  }
+
+  if (button.id === "export-csv-presets") {
+    downloadText("return-warranty-guardian-csv-presets.json", "application/json", csvPresetBundle(state.userCsvPresets, today()));
     return;
   }
 
@@ -1327,7 +1442,7 @@ app.addEventListener("click", async (event) => {
     downloadText(
       "return-warranty-guardian-self-hosted-alerts.json",
       "application/json",
-      selfHostedNotificationPayload(state.purchases, today()),
+      selfHostedNotificationPayload(state.purchases, today(), state.selfHostedAlerts),
     );
   }
 });
@@ -1335,6 +1450,7 @@ app.addEventListener("click", async (event) => {
 async function boot() {
   state.userCsvPresets = loadUserCsvPresets();
   state.snoozedReminders = loadSnoozedReminders();
+  state.selfHostedAlerts = loadSelfHostedAlerts();
   state.purchases = await loadPurchases();
   if (!state.purchases.length) {
     state.purchases = samplePurchases;

@@ -75,16 +75,16 @@ There is no API server and no account system. All purchase data remains in brows
 
 Deadlines are derived, not stored. This keeps deadline math transparent and reproducible.
 
-CSV imports are staged in an in-memory preview before they are saved. The app imports valid new rows, supports auto-detected, built-in preset, saved user preset, and manual field mapping, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file. Built-in presets cover generic card/order exports, Korean card statements, Korean shopping orders, and Amazon-style order history. User CSV presets are stored in browser `localStorage`.
+CSV imports are staged in an in-memory preview before they are saved. The app imports valid new rows, supports auto-detected, built-in preset, saved user preset, and manual field mapping, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file. Built-in presets cover generic card/order exports, Korean card statements, Korean shopping orders, and Amazon-style order history. User CSV presets and preset bundles are stored or imported through browser `localStorage` without purchase rows. `csvImportReviewChecklist` adds a local pre-import checklist for required mappings, duplicates, invalid rows, and missing proof markers.
 
-Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and simple PDF text-operator paths are file reads; image OCR uses browser-local `TextDetector` only when the current browser supports it.
+Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and simple PDF text-operator paths are file reads; image OCR uses browser-local `TextDetector` only when the current browser supports it. Compressed or scanned PDFs that do not expose text operators produce a no-upload fallback notice instead of calling cloud OCR.
 
-Notification behavior stays serverless. Each purchase can store `reminderLeadDays`; `.ics` exports include repeated `VALARM` entries using that lead time and a one-day reminder, and browser notifications are only attempted while the app is open and the user grants notification permission. Reminder snooze state is stored separately in `localStorage` under `rwg:snoozed-reminders`.
+Notification behavior stays serverless. Each purchase can store `reminderLeadDays`; `.ics` exports include repeated `VALARM` entries using that lead time and a one-day reminder, and browser notifications are only attempted while the app is open and the user grants notification permission. Reminder snooze state is stored separately in `localStorage` under `rwg:snoozed-reminders` and supports 3-hour, tomorrow, and 7-day snoozes.
 
-Self-hosted notification support is export-only. `selfHostedNotificationPayload` creates reviewed JSON/curl drafts for ntfy, Gotify, and Apprise, but the app does not send network requests.
+Self-hosted notification support is export-only. Optional provider/endpoint/topic settings are stored locally under `rwg:self-hosted-alerts`; `selfHostedNotificationPayload` creates reviewed JSON/curl drafts for ntfy, Gotify, and Apprise, but the app does not store tokens or send network requests.
 
 Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include PDF save guidance, attachment manifests, starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
 
-Tests use `tests/fixtures` as a synthetic corpus for CSV presets, HTML receipt extraction, PDF text-operator extraction, and user-confirmed policy template defaults. Private receipts or real card statements should not be committed.
+Tests use `tests/fixtures` as a synthetic corpus for CSV presets, HTML receipt extraction, PDF text-operator extraction, scanned/compressed PDF fallback behavior, and user-confirmed policy template defaults. Private receipts or real card statements should not be committed.
 
 `npm run fixture:anonymize -- <input-file>` writes a sanitized draft fixture. It is a helper, not a guarantee; generated samples still need manual review before commit.

@@ -3,24 +3,35 @@
     "id": "standard-30-day-return",
     "expectedReturnWindowDays": 30,
     "expectedRefundWindowDays": 14,
-    "expectedWarrantyMonths": 12
+    "expectedWarrantyMonths": 12,
+    "expectedCountry": "generic"
   },
   {
     "id": "extended-60-day-return",
     "expectedReturnWindowDays": 60,
     "expectedRefundWindowDays": 30,
-    "expectedWarrantyMonths": 12
+    "expectedWarrantyMonths": 12,
+    "expectedCountry": "generic"
   },
   {
     "id": "warranty-only",
     "expectedReturnWindowDays": 0,
     "expectedRefundWindowDays": 0,
-    "expectedWarrantyMonths": 12
+    "expectedWarrantyMonths": 12,
+    "expectedCountry": "generic"
   },
   {
     "id": "final-sale",
     "expectedReturnWindowDays": 0,
     "expectedRefundWindowDays": 0,
-    "expectedWarrantyMonths": 0
+    "expectedWarrantyMonths": 0,
+    "expectedCountry": "generic"
+  },
+  {
+    "id": "korea-online-purchase",
+    "expectedReturnWindowDays": 7,
+    "expectedRefundWindowDays": 7,
+    "expectedWarrantyMonths": 12,
+    "expectedCountry": "KR"
   }
 ]

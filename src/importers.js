@@ -290,6 +290,70 @@ export function csvImportReport(preview, now = new Date()) {
   );
 }
 
+export function csvImportReviewChecklist(preview) {
+  const mapping = preview?.mapping || {};
+  const requiredFields = CSV_IMPORT_FIELDS.filter((field) => field.required);
+  const valid = preview?.valid || [];
+  const duplicates = preview?.duplicates || [];
+  const invalid = preview?.invalid || [];
+  const missingRequiredMappings = requiredFields.filter((field) => !mapping[field.key]).map((field) => field.label);
+  const missingProofRows = valid.filter((row) => {
+    const purchase = row.purchase || {};
+    return !purchase.hasReceipt && !(purchase.documents || []).length;
+  });
+  return [
+    {
+      id: "required-mapping",
+      status: missingRequiredMappings.length ? "fail" : "pass",
+      label: "Required fields mapped",
+      detail: missingRequiredMappings.length
+        ? `Map required columns before import: ${missingRequiredMappings.join(", ")}.`
+        : "Product, merchant, and purchase date are mapped.",
+    },
+    {
+      id: "duplicate-review",
+      status: duplicates.length ? "warn" : "pass",
+      label: "Duplicate rows reviewed",
+      detail: duplicates.length
+        ? `${duplicates.length} duplicate row(s) will be skipped. Confirm this is expected.`
+        : "No duplicate rows detected.",
+    },
+    {
+      id: "invalid-review",
+      status: invalid.length ? "warn" : "pass",
+      label: "Invalid rows reviewed",
+      detail: invalid.length
+        ? `${invalid.length} invalid row(s) are excluded. Export the report before confirming.`
+        : "No invalid rows detected.",
+    },
+    {
+      id: "proof-review",
+      status: missingProofRows.length ? "warn" : "pass",
+      label: "Receipt proof reviewed",
+      detail: missingProofRows.length
+        ? `${missingProofRows.length} importable row(s) have no receipt/document marker.`
+        : "Importable rows include receipt or document markers.",
+    },
+  ];
+}
+
+export function csvPresetBundle(presets, now = new Date()) {
+  return JSON.stringify(
+    {
+      schema: "return-warranty-guardian.csv-preset-bundle.v1",
+      generatedAt: now.toISOString(),
+      privacyNote: "Preset bundles contain column mappings only. Do not include real receipts, card numbers, order IDs, or purchase rows.",
+      presets: (presets || []).map((preset) => ({
+        id: preset.id,
+        label: preset.label,
+        mapping: preset.mapping || {},
+      })),
+    },
+    null,
+    2,
+  );
+}
+
 export function purchasesFromCsv(text, now = new Date()) {
   return analyzeCsvImport(text, [], now).valid.map((row) => row.purchase);
 }

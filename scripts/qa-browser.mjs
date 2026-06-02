@@ -104,8 +104,8 @@ await page.screenshot({ path: `${root}/outputs/playwright-desktop.png`, fullPage
 stages.push("desktop-screenshot");
 
 await page.locator('[data-snooze-reminder]').first().click();
-await page.waitForSelector("text=1일 동안 알림을 미뤘습니다.");
-const snoozeStatusVisible = await page.locator("text=1일 동안 알림을 미뤘습니다.").count();
+await page.waitForSelector("text=3시간 동안 알림을 미뤘습니다.");
+const snoozeStatusVisible = await page.locator("text=3시간 동안 알림을 미뤘습니다.").count();
 await page.click("#clear-snoozes");
 await page.waitForSelector("text=스누즈를 모두 해제했습니다.");
 const clearSnoozeVisible = await page.locator("text=스누즈를 모두 해제했습니다.").count();
@@ -178,6 +178,14 @@ await page.waitForSelector("text=Monitor Stand");
 const pdfOcrVisible = await page.locator("text=Monitor Stand").count();
 stages.push("pdf-ocr-extract");
 
+const scannedPdfFixturePath = `${root}/outputs/qa-scanned-receipt.pdf`;
+await writeFile(scannedPdfFixturePath, "%PDF-1.4\n/Filter /DCTDecode\n/Subtype /Image\nstream\n...");
+await page.setInputFiles("#ocr-file", scannedPdfFixturePath);
+await page.click("#extract-local-ocr");
+await page.waitForSelector("text=PDF local extraction note");
+const scannedPdfFallbackVisible = await page.locator("text=PDF local extraction note").count();
+stages.push("scanned-pdf-fallback");
+
 const koreanCsvPresetPath = `${root}/outputs/qa-korean-card.csv`;
 await writeFile(
   koreanCsvPresetPath,
@@ -219,6 +227,15 @@ page.once("dialog", (dialog) => dialog.accept("QA Statement Preset"));
 await page.evaluate(() => document.querySelector("#save-csv-preset")?.click());
 await page.waitForFunction(() => [...document.querySelectorAll("#csv-preset option")].some((option) => option.textContent.includes("QA Statement Preset")));
 const savedPresetVisible = await page.locator('#csv-preset option:has-text("QA Statement Preset")').count();
+const presetBundleDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
+await page.click("#export-csv-presets");
+const presetBundleDownload = await presetBundleDownloadPromise;
+const presetBundlePath = `${root}/outputs/${presetBundleDownload.suggestedFilename()}`;
+await presetBundleDownload.saveAs(presetBundlePath);
+await page.setInputFiles("#import-json", presetBundlePath);
+await page.waitForSelector("text=CSV 프리셋 1개를 가져왔습니다.");
+const presetImportStatusVisible = await page.locator("text=CSV 프리셋 1개를 가져왔습니다.").count();
+stages.push("csv-preset-bundle");
 const importReportDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
 await page.click("#export-import-report");
 const importReportDownload = await importReportDownloadPromise;
@@ -274,6 +291,15 @@ const icsPath = `${root}/outputs/${icsDownload.suggestedFilename()}`;
 await icsDownload.saveAs(icsPath);
 stages.push("ics-download");
 
+await page.check('input[name="enabled"]');
+await page.selectOption('select[name="provider"]', "ntfy");
+await page.fill('input[name="endpoint"]', "https://alerts.example.test");
+await page.fill('input[name="topic"]', "returns");
+await page.click('#self-hosted-alerts-form button[type="submit"]');
+await page.waitForSelector("text=셀프호스티드 알림 설정을 로컬에 저장했습니다.");
+const selfHostedSettingsSavedVisible = await page.locator("text=셀프호스티드 알림 설정을 로컬에 저장했습니다.").count();
+stages.push("self-hosted-settings-save");
+
 const selfHostedDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
 await page.click("#export-self-hosted-alerts");
 const selfHostedDownload = await selfHostedDownloadPromise;
@@ -305,6 +331,7 @@ server.close();
 
 const evidenceText = await readFile(evidencePath, "utf8");
 const importReportText = await readFile(importReportPath, "utf8");
+const presetBundleText = await readFile(presetBundlePath, "utf8");
 const claimText = await readFile(claimPath, "utf8");
 const claimBundleText = await readFile(claimBundlePath, "utf8");
 const claimZipBytes = await readFile(claimZipPath);
@@ -328,16 +355,21 @@ const result = {
   attachmentStatusVisible,
   policyReturnDays,
   policyNotesUpdated: policyNotes.includes("extended 60-day return"),
+  policyReviewNoteVisible: policyNotes.includes("Policy review scope"),
   previewItems,
   rowsAfterParse,
   ocrImportedTextVisible,
   pdfOcrVisible,
+  scannedPdfFallbackVisible,
   koreanPresetPreviewVisible,
   importPreviewVisible,
   importMappingVisible,
   importDuplicateVisible,
   importInvalidVisible,
   savedPresetVisible,
+  presetBundlePath,
+  presetBundleContainsSchema: presetBundleText.includes("return-warranty-guardian.csv-preset-bundle.v1"),
+  presetImportStatusVisible,
   importReportPath,
   importReportContainsCounts: importReportText.includes("csv-import-report.v1") && importReportText.includes('"duplicateCount": 1'),
   rowsAfterCsvImport,
@@ -362,7 +394,8 @@ const result = {
   icsContainsAlarm: icsText.includes("BEGIN:VALARM") && icsText.includes("TRIGGER:-P"),
   icsContainsRepeatAlarm: icsText.includes("TRIGGER:-P1D"),
   selfHostedPath,
-  selfHostedContainsPayload: selfHostedText.includes("return-warranty-guardian.self-hosted-notifications.v1") && selfHostedText.includes("ntfy.example.test"),
+  selfHostedSettingsSavedVisible,
+  selfHostedContainsPayload: selfHostedText.includes("return-warranty-guardian.self-hosted-notifications.v1") && selfHostedText.includes("alerts.example.test/returns"),
   localAlertsVisible,
   csvPath,
   csvContainsHomeFields: csvText.includes("support_contact") && csvText.includes("documents"),
@@ -387,16 +420,20 @@ const failures = [
   attachmentStatusVisible < 1 && "Expected attachment save/skipped status",
   policyReturnDays !== "60" && "Expected policy template to set return days",
   !result.policyNotesUpdated && "Expected policy template to append a user-confirmed note",
+  !result.policyReviewNoteVisible && "Expected policy template to append structured review note",
   previewItems !== 2 && "Expected two parsed receipt items",
   rowsAfterParse < 6 && "Expected parsed items to be saved",
   ocrImportedTextVisible < 1 && "Expected local OCR extracted receipt item to be visible",
   pdfOcrVisible < 1 && "Expected local PDF text extraction preview",
+  scannedPdfFallbackVisible < 1 && "Expected scanned PDF fallback notice",
   koreanPresetPreviewVisible < 1 && "Expected Korean card CSV preset preview",
   importPreviewVisible < 1 && "Expected CSV import preview to appear",
   importMappingVisible < 1 && "Expected CSV mapping controls to appear",
   importDuplicateVisible < 1 && "Expected CSV duplicate count to appear",
   importInvalidVisible < 1 && "Expected CSV invalid row count to appear",
   savedPresetVisible < 1 && "Expected saved CSV preset to appear",
+  !result.presetBundleContainsSchema && "Expected CSV preset bundle export",
+  presetImportStatusVisible < 1 && "Expected CSV preset bundle import status",
   !result.importReportContainsCounts && "Expected CSV import report JSON export",
   rowsAfterCsvImport < 7 && "Expected CSV import to add a purchase",
   filteredRows !== 1 && "Expected Coffee Maker search to return one row",
@@ -415,6 +452,7 @@ const failures = [
   !result.icsContainsAlarm && "Expected ICS VALARM reminder export",
   !result.icsContainsRepeatAlarm && "Expected repeated ICS reminder alarm",
   !result.selfHostedContainsPayload && "Expected self-hosted notification payload export",
+  selfHostedSettingsSavedVisible < 1 && "Expected self-hosted settings save status",
   localAlertsVisible < 1 && "Expected open-app local alert status",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",

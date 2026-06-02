@@ -98,5 +98,12 @@ export function textFromPdfSource(raw) {
     .filter(Boolean)
     .join("\n");
   if (extracted) return extracted;
+  if (/\/Filter\s*\/?(?:FlateDecode|DCTDecode|JPXDecode)|\/Subtype\s*\/Image/i.test(source)) {
+    return [
+      "PDF local extraction note: this PDF appears to be compressed, image-based, or scanned.",
+      "Browser-local text operators were not found. Paste OCR text manually or keep the PDF as local claim evidence.",
+      "No cloud OCR was used.",
+    ].join("\n");
+  }
   return source.replace(/[^\x09\x0a\x0d\x20-\x7e가-힣一-龥ぁ-ゔァ-ヴー]/g, " ");
 }

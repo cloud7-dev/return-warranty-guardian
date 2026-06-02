@@ -2,9 +2,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { sanitizeFixtureFilename, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
-import { analyzeCsvImport, csvImportReport, csvMappingForPreset, purchasesFromCsv } from "../src/importers.js";
+import {
+  analyzeCsvImport,
+  csvImportReport,
+  csvImportReviewChecklist,
+  csvMappingForPreset,
+  csvPresetBundle,
+  purchasesFromCsv,
+} from "../src/importers.js";
 import { textFromHtmlSource, textFromPdfSource } from "../src/local-extraction.js";
-import { policyTemplateById } from "../src/policy-templates.js";
+import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
   claimPacketBundleJson,
@@ -137,6 +144,13 @@ const importReport = JSON.parse(csvImportReport({ ...analyzed, fileName: "qa.csv
 assert.equal(importReport.schema, "return-warranty-guardian.csv-import-report.v1");
 assert.equal(importReport.duplicateCount, 1);
 assert.equal(importReport.invalidCount, 1);
+const reviewChecklist = csvImportReviewChecklist(analyzed);
+assert.equal(reviewChecklist.length, 4);
+assert.equal(reviewChecklist.find((item) => item.id === "duplicate-review").status, "warn");
+assert.equal(reviewChecklist.find((item) => item.id === "invalid-review").status, "warn");
+const presetBundle = JSON.parse(csvPresetBundle([{ id: "user-test", label: "User Test", mapping: { price: "amount" } }], now));
+assert.equal(presetBundle.schema, "return-warranty-guardian.csv-preset-bundle.v1");
+assert.equal(presetBundle.presets[0].mapping.price, "amount");
 
 const cardMapping = csvMappingForPreset(["transaction_date", "description", "amount"], "card-statement");
 assert.equal(cardMapping.merchant, "description");
@@ -222,16 +236,22 @@ assert.match(pdfText, /2026-06-02/);
 const pdfFixtureText = textFromPdfSource(await fixture("pdf/simple-text-operator.pdf.txt"));
 assert.match(pdfFixtureText, /PDF Fixture Store/);
 assert.match(pdfFixtureText, /Warranty Router 89.00/);
+const scannedPdfFallback = textFromPdfSource("%PDF-1.4\n/Filter /DCTDecode\n/Subtype /Image\nstream\n...");
+assert.match(scannedPdfFallback, /appears to be compressed, image-based, or scanned/);
 
 const policyTemplate = policyTemplateById("extended-60-day-return");
 assert.equal(policyTemplate.returnWindowDays, 60);
 assert.match(policyTemplate.note, /Confirm current merchant terms/);
+assert.match(policyTemplateReviewNote(policyTemplate), /Evidence to verify/);
 const policyFixtures = JSON.parse(await fixture("policies/templates.json"));
 for (const item of policyFixtures) {
   const template = policyTemplateById(item.id);
   assert.equal(template.returnWindowDays, item.expectedReturnWindowDays);
   assert.equal(template.refundWindowDays, item.expectedRefundWindowDays);
   assert.equal(template.warrantyMonths, item.expectedWarrantyMonths);
+  assert.equal(template.country, item.expectedCountry);
+  assert.ok(template.evidenceRequired.length >= 3);
+  assert.ok(template.disclaimer.length > 40);
 }
 
 const claimPacket = claimPacketHtml(purchase, now);
@@ -274,10 +294,19 @@ assert.match(ics, /TRIGGER:-P5D/);
 assert.match(ics, /TRIGGER:-P1D/);
 assert.deepEqual(reminderAlarmOffsets(purchase), ["-P5D", "-P1D"]);
 
-const selfHosted = JSON.parse(selfHostedNotificationPayload([purchase], now));
+const selfHosted = JSON.parse(
+  selfHostedNotificationPayload([purchase], now, {
+    enabled: true,
+    provider: "ntfy",
+    endpoint: "https://alerts.example.test",
+    topic: "returns",
+  }),
+);
 assert.equal(selfHosted.schema, "return-warranty-guardian.self-hosted-notifications.v1");
 assert.match(selfHosted.privacyNote, /No data is sent/);
+assert.equal(selfHosted.settings.enabled, true);
+assert.equal(selfHosted.settings.tokenStored, false);
 assert.equal(selfHosted.reminders.length, 3);
-assert.match(selfHosted.providers.ntfy.curl, /ntfy\.example\.test/);
+assert.match(selfHosted.providers.ntfy.curl, /alerts\.example\.test\/returns/);
 
 console.log("All logic tests passed.");

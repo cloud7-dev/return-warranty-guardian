@@ -383,7 +383,23 @@ export function purchasesToIcs(purchases, now = new Date()) {
   );
 }
 
-export function selfHostedNotificationPayload(purchases, now = new Date()) {
+function selfHostedProviderDrafts(settings = {}) {
+  const endpoint = String(settings.endpoint || "").replace(/\/+$/, "") || "https://ntfy.example.test";
+  const topic = String(settings.topic || "").replace(/^\/+/, "") || "topic";
+  return {
+    ntfy: {
+      curl: `curl -H 'Title: Return & Warranty Guardian' -d '<message>' ${endpoint}/${topic}`,
+    },
+    gotify: {
+      curl: `curl -H 'Content-Type: application/json' -H 'Authorization: Bearer <token-not-stored>' -d '{"title":"<title>","message":"<message>","priority":5}' ${endpoint}/message`,
+    },
+    apprise: {
+      curl: `apprise -vv -t '<title>' -b '<message>' '${endpoint}'`,
+    },
+  };
+}
+
+export function selfHostedNotificationPayload(purchases, now = new Date(), settings = {}) {
   const reminders = purchases
     .filter((purchase) => purchase.status !== "resolved")
     .flatMap((purchase) => {
@@ -407,17 +423,14 @@ export function selfHostedNotificationPayload(purchases, now = new Date()) {
       schema: "return-warranty-guardian.self-hosted-notifications.v1",
       generatedAt: now.toISOString(),
       privacyNote: "Review payloads before sending them to a self-hosted notification service. No data is sent by this app.",
-      providers: {
-        ntfy: {
-          curl: "curl -H 'Title: Return & Warranty Guardian' -d '<message>' https://ntfy.example.test/topic",
-        },
-        gotify: {
-          curl: "curl -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{\"title\":\"<title>\",\"message\":\"<message>\",\"priority\":5}' https://gotify.example.test/message",
-        },
-        apprise: {
-          curl: "apprise -vv -t '<title>' -b '<message>' '<self-hosted-url>'",
-        },
+      settings: {
+        enabled: Boolean(settings.enabled),
+        provider: settings.provider || "ntfy",
+        endpoint: settings.endpoint || "",
+        topic: settings.topic || "",
+        tokenStored: false,
       },
+      providers: selfHostedProviderDrafts(settings),
       reminders,
     },
     null,

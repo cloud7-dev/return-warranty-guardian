@@ -8,8 +8,8 @@ Current fixture groups:
 
 - `csv/`: card statement and retailer order exports for import preset coverage.
 - `receipts/`: email-style receipt HTML for local text extraction and receipt parser coverage.
-- `pdf/`: PDF source snippets with simple text operators for local PDF extraction coverage.
-- `policies/`: expected defaults for user-confirmed policy templates.
+- `pdf/`: PDF source snippets with simple text operators plus scanned/compressed fallback coverage.
+- `policies/`: expected defaults, evidence requirements, and country/jurisdiction metadata for user-confirmed policy templates.
 
 To create a sanitized draft from a local private sample:
 

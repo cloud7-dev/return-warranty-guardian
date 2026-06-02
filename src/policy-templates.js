@@ -2,37 +2,66 @@ export const POLICY_TEMPLATES = [
   {
     id: "standard-30-day-return",
     label: "Standard 30-day return",
+    country: "generic",
     returnWindowDays: 30,
     refundWindowDays: 14,
     warrantyMonths: 12,
+    evidenceRequired: ["Receipt or order confirmation", "Product condition photos", "Box/accessory check"],
+    disclaimer: "Generic helper only. Return law and merchant policy vary by country, product category, and payment method.",
     note: "Policy template: standard 30-day return. Confirm merchant policy, item exclusions, and receipt requirements before relying on this deadline.",
   },
   {
     id: "extended-60-day-return",
     label: "Extended 60-day retailer return",
+    country: "generic",
     returnWindowDays: 60,
     refundWindowDays: 30,
     warrantyMonths: 12,
+    evidenceRequired: ["Receipt or order confirmation", "Membership or campaign eligibility", "Return label requirements"],
+    disclaimer: "Extended windows often depend on membership status, seasonal campaigns, and excluded categories.",
     note: "Policy template: extended 60-day return. Confirm current merchant terms, member-status rules, seasonal exceptions, and return-label requirements.",
   },
   {
     id: "warranty-only",
     label: "Warranty-only support",
+    country: "generic",
     returnWindowDays: 0,
     refundWindowDays: 0,
     warrantyMonths: 12,
+    evidenceRequired: ["Proof of purchase", "Serial/model number", "Failure description", "Service history"],
+    disclaimer: "Warranty periods and remedies vary by manufacturer, country, and product registration status.",
     note: "Policy template: warranty-only support. Use when the return/refund window is unavailable or unknown, and verify manufacturer claim steps.",
   },
   {
     id: "final-sale",
     label: "Final sale or no return",
+    country: "generic",
     returnWindowDays: 0,
     refundWindowDays: 0,
     warrantyMonths: 0,
+    evidenceRequired: ["Final-sale policy proof", "Order confirmation", "Warranty or recall eligibility check"],
+    disclaimer: "Final-sale language may not remove warranty, recall, safety, or payment-dispute rights in every jurisdiction.",
     note: "Policy template: final sale/no return. Confirm whether warranty, recall, or payment-dispute evidence still applies before closing the record.",
+  },
+  {
+    id: "korea-online-purchase",
+    label: "Korea online purchase review",
+    country: "KR",
+    returnWindowDays: 7,
+    refundWindowDays: 7,
+    warrantyMonths: 12,
+    evidenceRequired: ["Order confirmation", "Delivery/completion date", "Seller policy page", "Product condition photos"],
+    disclaimer: "Korea online-purchase rules have exceptions. Confirm seller terms, product category, and current consumer-protection requirements.",
+    note: "Policy template: Korea online purchase review. Confirm delivery date, seller terms, category exceptions, and current Korean consumer-protection rules before relying on this deadline.",
   },
 ];
 
 export function policyTemplateById(id) {
   return POLICY_TEMPLATES.find((template) => template.id === id) || null;
+}
+
+export function policyTemplateReviewNote(template) {
+  if (!template) return "";
+  const evidence = (template.evidenceRequired || []).join(", ") || "Not specified";
+  return `Policy review scope: ${template.country || "generic"}. Evidence to verify: ${evidence}. Disclaimer: ${template.disclaimer || "Confirm current merchant and local rules."}`;
 }

@@ -402,6 +402,44 @@ svg {
   justify-content: flex-end;
 }
 
+.self-hosted-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.self-hosted-settings strong,
+.self-hosted-settings .field-help {
+  grid-column: 1 / -1;
+}
+
+.self-hosted-settings label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.self-hosted-settings input,
+.self-hosted-settings select {
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: white;
+  color: var(--ink);
+  padding: 0 9px;
+}
+
+.self-hosted-settings .checkbox-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+}
+
 .import-preview {
   margin-bottom: 16px;
 }
@@ -437,6 +475,47 @@ svg {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel-2);
+}
+
+.import-checklist {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.import-checklist strong {
+  font-size: 13px;
+}
+
+.checklist-row {
+  display: grid;
+  gap: 3px;
+}
+
+.checklist-row span {
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.checklist-row small {
+  color: var(--muted);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.checklist-row.pass span {
+  color: var(--green);
+}
+
+.checklist-row.warn span {
+  color: var(--orange);
+}
+
+.checklist-row.fail span {
+  color: var(--red);
 }
 
 .import-mapping label {
@@ -988,6 +1067,7 @@ svg {
   .guide-steps,
   .purchase-form,
   .mapping-grid,
+  .self-hosted-settings,
   .purchase-row,
   .deadline-stack {
     grid-template-columns: 1fr;
