@@ -363,6 +363,45 @@ svg {
   line-height: 1.45;
 }
 
+.reminder-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.reminder-list-heading,
+.reminder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.reminder-list-heading strong {
+  font-size: 13px;
+}
+
+.reminder-item {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+}
+
+.reminder-item span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.reminder-item div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .import-preview {
   margin-bottom: 16px;
 }
@@ -955,6 +994,12 @@ svg {
   }
 
   .queue-heading {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .reminder-list-heading,
+  .reminder-item {
     align-items: stretch;
     display: grid;
   }

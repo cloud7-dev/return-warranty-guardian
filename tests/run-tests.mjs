@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
+import { sanitizeFixtureFilename, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { analyzeCsvImport, csvImportReport, csvMappingForPreset, purchasesFromCsv } from "../src/importers.js";
 import { textFromHtmlSource, textFromPdfSource } from "../src/local-extraction.js";
 import { policyTemplateById } from "../src/policy-templates.js";
@@ -17,6 +18,18 @@ import {
 
 const now = new Date("2026-06-02T10:00:00Z");
 const fixture = (path) => readFile(new URL(`./fixtures/${path}`, import.meta.url), "utf8");
+
+const sanitizedFixture = sanitizeFixtureText(`Jane Buyer
+jane.buyer@example.com
+010-1234-5678
+ORDER AB12CD34
+4111-1111-1111-1111
+서울시 샘플구 12345`);
+assert.doesNotMatch(sanitizedFixture, /jane\.buyer@example\.com/);
+assert.doesNotMatch(sanitizedFixture, /010-1234-5678/);
+assert.doesNotMatch(sanitizedFixture, /4111-1111-1111-1111/);
+assert.match(sanitizedFixture, /user@example\.test/);
+assert.equal(sanitizeFixtureFilename("Real Receipt 2026.pdf"), "real-receipt-2026");
 
 assert.equal(addDays("2026-06-02", 30), "2026-07-02");
 assert.equal(addDays("2026-06-02", 14), "2026-06-16");

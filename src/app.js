@@ -20,6 +20,7 @@ import { loadPurchases, savePurchases } from "./storage.js";
 const app = document.querySelector("#app");
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const CSV_PRESETS_STORAGE_KEY = "rwg:csv-import-presets";
+const SNOOZE_STORAGE_KEY = "rwg:snoozed-reminders";
 
 const state = {
   purchases: [],
@@ -32,6 +33,7 @@ const state = {
   importPreview: null,
   userCsvPresets: [],
   notificationStatus: "",
+  snoozedReminders: {},
 };
 
 const today = () => new Date();
@@ -195,6 +197,19 @@ function csvPresetOptions() {
   return [...CSV_IMPORT_PRESETS, ...state.userCsvPresets];
 }
 
+function loadSnoozedReminders() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SNOOZE_STORAGE_KEY) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSnoozedReminders() {
+  localStorage.setItem(SNOOZE_STORAGE_KEY, JSON.stringify(state.snoozedReminders));
+}
+
 async function normalizePurchase(formData) {
   const template = policyTemplateById(formData.get("policyTemplate"));
   const notes = String(formData.get("notes") || "").trim();
@@ -282,14 +297,36 @@ function reminderCandidates() {
       const lead = reminderLeadDays(item);
       return item.deadlines
         .filter((deadline) => deadline.daysLeft !== null && deadline.daysLeft >= 0 && deadline.daysLeft <= lead)
-        .map((deadline) => ({ purchase: item, deadline, lead }));
+        .map((deadline) => ({ purchase: item, deadline, lead, key: reminderKey(item, deadline) }))
+        .filter((candidate) => !isReminderSnoozed(candidate.key));
     });
+}
+
+function reminderKey(purchase, deadline) {
+  return `${purchase.id}:${deadline.type}:${deadline.date}`;
+}
+
+function isReminderSnoozed(key) {
+  const until = state.snoozedReminders[key];
+  return until && new Date(until).getTime() > Date.now();
+}
+
+function snoozeReminder(key, days) {
+  const until = new Date(Date.now() + Number(days || 1) * 24 * 60 * 60 * 1000);
+  state.snoozedReminders = { ...state.snoozedReminders, [key]: until.toISOString() };
+  saveSnoozedReminders();
+  state.notificationStatus = t("reminderSnoozed", { count: days });
+}
+
+function clearSnoozedReminders() {
+  state.snoozedReminders = {};
+  saveSnoozedReminders();
+  state.notificationStatus = t("remindersUnsnoozed");
 }
 
 function notifyOpenAppReminders() {
   if (typeof Notification !== "function" || Notification.permission !== "granted") return;
-  for (const { purchase, deadline } of reminderCandidates().slice(0, 5)) {
-    const key = `${purchase.id}:${deadline.type}:${deadline.date}`;
+  for (const { purchase, deadline, key } of reminderCandidates().slice(0, 5)) {
     if (notifiedReminderKeys.has(key)) continue;
     notifiedReminderKeys.add(key);
     try {
@@ -343,6 +380,7 @@ function renderDashboard() {
 }
 
 function renderReminderGuide() {
+  const candidates = reminderCandidates().slice(0, 4);
   return `
     <section class="panel reminder-guide" id="calendar-guide">
       <div class="panel-heading">
@@ -365,6 +403,29 @@ function renderReminderGuide() {
           <strong>${t("calendarGuideStepDesktopTitle")}</strong>
           <span>${t("calendarGuideStepDesktopBody")}</span>
         </div>
+      </div>
+      <div class="reminder-list">
+        <div class="reminder-list-heading">
+          <strong>${t("openReminderTitle")}</strong>
+          <button class="ghost-action" id="clear-snoozes" type="button">${t("clearSnoozes")}</button>
+        </div>
+        ${
+          candidates.length
+            ? candidates
+                .map(
+                  ({ purchase, deadline, key }) => `
+                    <div class="reminder-item">
+                      <span>${h(deadlineLabel(deadline))}: ${h(purchase.productName)} · ${h(deadline.date)} · ${t("daysLeft", { count: deadline.daysLeft })}</span>
+                      <div>
+                        <button class="inline-action" data-snooze-reminder="${h(key)}" data-snooze-days="1" type="button">${t("snoozeOneDay")}</button>
+                        <button class="inline-action" data-snooze-reminder="${h(key)}" data-snooze-days="7" type="button">${t("snoozeSevenDays")}</button>
+                      </div>
+                    </div>
+                  `,
+                )
+                .join("")
+            : `<p class="empty-note">${t("openReminderEmpty")}</p>`
+        }
       </div>
     </section>
   `;
@@ -1114,6 +1175,12 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.snoozeReminder) {
+    snoozeReminder(button.dataset.snoozeReminder, Number(button.dataset.snoozeDays || 1));
+    render();
+    return;
+  }
+
   if (button.dataset.resolve) {
     state.purchases = state.purchases.map((purchase) =>
       purchase.id === button.dataset.resolve ? { ...purchase, status: "resolved" } : purchase,
@@ -1217,6 +1284,12 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.id === "clear-snoozes") {
+    clearSnoozedReminders();
+    render();
+    return;
+  }
+
   if (button.id === "export-json") {
     downloadText("return-warranty-guardian-backup.json", "application/json", JSON.stringify(state.purchases, null, 2));
     return;
@@ -1234,6 +1307,7 @@ app.addEventListener("click", async (event) => {
 
 async function boot() {
   state.userCsvPresets = loadUserCsvPresets();
+  state.snoozedReminders = loadSnoozedReminders();
   state.purchases = await loadPurchases();
   if (!state.purchases.length) {
     state.purchases = samplePurchases;

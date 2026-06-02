@@ -10,6 +10,7 @@ Browser
   styles.css
   src/app.js
     deadline-engine.js
+    fixture-sanitizer.js
     receipt-parser.js
     importers.js
     local-extraction.js
@@ -24,6 +25,7 @@ There is no API server and no account system. All purchase data remains in brows
 ## Core Modules
 
 - `src/deadline-engine.js`: date math, deadline status, dashboard summaries.
+- `src/fixture-sanitizer.js`: local text/filename sanitizers for privacy-safe fixture drafts.
 - `src/receipt-parser.js`: deterministic pasted-text parser for receipts and invoices.
 - `src/importers.js`: CSV parsing, preset/manual field mapping, purchase-row normalization, duplicate detection, invalid-row reporting, and import report generation.
 - `src/local-extraction.js`: local PDF text operator extraction helpers used before the receipt parser.
@@ -77,8 +79,10 @@ CSV imports are staged in an in-memory preview before they are saved. The app im
 
 Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and simple PDF text-operator paths are file reads; image OCR uses browser-local `TextDetector` only when the current browser supports it.
 
-Notification behavior stays serverless. Each purchase can store `reminderLeadDays`; `.ics` exports include `VALARM` entries using that lead time, and browser notifications are only attempted while the app is open and the user grants notification permission.
+Notification behavior stays serverless. Each purchase can store `reminderLeadDays`; `.ics` exports include `VALARM` entries using that lead time, and browser notifications are only attempted while the app is open and the user grants notification permission. Reminder snooze state is stored separately in `localStorage` under `rwg:snoozed-reminders`.
 
 Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
 
 Tests use `tests/fixtures` as a synthetic corpus for CSV presets, HTML receipt extraction, PDF text-operator extraction, and user-confirmed policy template defaults. Private receipts or real card statements should not be committed.
+
+`npm run fixture:anonymize -- <input-file>` writes a sanitized draft fixture. It is a helper, not a guarantee; generated samples still need manual review before commit.

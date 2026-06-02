@@ -54,7 +54,7 @@ export const samplePurchases = [
     returnWindowDays: 60,
     refundWindowDays: 30,
     warrantyMonths: 24,
-    reminderLeadDays: 7,
+    reminderLeadDays: 14,
     model: "BrewHome C2",
     serial: "DEMO-BHC2-4421",
     category: "Appliance",

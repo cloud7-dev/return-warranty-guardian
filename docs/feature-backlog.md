@@ -6,7 +6,7 @@ This list separates high-leverage additions from features that could distract th
 
 1. **Reliable notifications without a server**
    - Users want mobile and PC reminders even when the web app is closed.
-   - Calendar export now includes per-purchase lead-day `VALARM` reminders, open-app browser notifications are available after user permission, and the app shows a mobile/PC calendar import guide.
+   - Calendar export now includes per-purchase lead-day `VALARM` reminders, open-app browser notifications are available after user permission, the app shows a mobile/PC calendar import guide, and in-app reminders can be snoozed for 1 or 7 days.
    - True background push still conflicts with the no-server promise unless it is opt-in or self-hosted.
 
 2. **More durable local attachments**
@@ -35,6 +35,7 @@ This list separates high-leverage additions from features that could distract th
 
 1. **Synthetic receipt fixture corpus**
    - Initial synthetic CSV, HTML receipt, PDF text-operator, and policy-template fixtures exist under `tests/fixtures`.
+   - A local anonymizer script helps turn private samples into reviewable fixture drafts before contribution.
    - Good for GitHub stars because it makes the project hackable.
 
 2. **Merchant policy templates**
@@ -52,7 +53,8 @@ This list separates high-leverage additions from features that could distract th
 5. **Importers**
    - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, import report export, Korean card statements, Korean shopping orders, and Amazon-style order history.
    - Synthetic fixture corpus covers the current built-in presets.
-   - Remaining work: anonymized real card-statement/retailer fixture expansion and community preset validation.
+   - Local fixture anonymization exists for draft samples.
+   - Remaining work: anonymized real card-statement/retailer fixture expansion, manual review workflow, and community preset validation.
 
 6. **Optional OCR**
    - Text, CSV, HTML/email, simple PDF text-operator extraction, and supported browser-local image OCR now run locally in the browser.
@@ -60,8 +62,8 @@ This list separates high-leverage additions from features that could distract th
    - Cloud OCR should be explicitly opt-in and disabled by default.
 
 7. **Local notification upgrade**
-   - Per-purchase lead days, `.ics` `VALARM`, open-app browser notifications, and calendar import guidance are implemented.
-   - Remaining work: repeated alerts, snooze, and platform-specific fallback copy.
+   - Per-purchase lead days, `.ics` `VALARM`, open-app browser notifications, calendar import guidance, and 1/7-day in-app snooze are implemented.
+   - Remaining work: repeated alert rules, custom snooze intervals, and platform-specific fallback copy.
 
 8. **Claim packet HTML/PDF**
    - Printable HTML claim packet exists with attachment links, image previews, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.

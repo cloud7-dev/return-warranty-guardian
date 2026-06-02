@@ -98,8 +98,18 @@ stages.push("language-switch");
 const initialRows = await page.locator(".purchase-row").count();
 const initialSummary = await page.locator(".summary-card").count();
 const calendarGuideVisible = await page.locator("text=캘린더 알림").count();
+const reminderQueueVisible = await page.locator("text=앱이 열려 있을 때의 알림 큐").count();
+const snoozeButtonVisible = await page.locator('[data-snooze-reminder]').count();
 await page.screenshot({ path: `${root}/outputs/playwright-desktop.png`, fullPage: true });
 stages.push("desktop-screenshot");
+
+await page.locator('[data-snooze-reminder]').first().click();
+await page.waitForSelector("text=1일 동안 알림을 미뤘습니다.");
+const snoozeStatusVisible = await page.locator("text=1일 동안 알림을 미뤘습니다.").count();
+await page.click("#clear-snoozes");
+await page.waitForSelector("text=스누즈를 모두 해제했습니다.");
+const clearSnoozeVisible = await page.locator("text=스누즈를 모두 해제했습니다.").count();
+stages.push("reminder-snooze");
 
 const attachmentFixturePath = `${root}/outputs/qa-receipt.pdf`;
 await mkdir(`${root}/outputs`, { recursive: true });
@@ -297,6 +307,10 @@ const result = {
   initialRows,
   initialSummary,
   calendarGuideVisible,
+  reminderQueueVisible,
+  snoozeButtonVisible,
+  snoozeStatusVisible,
+  clearSnoozeVisible,
   rowsAfterManualSave,
   attachmentVisible,
   policyReturnDays,
@@ -345,6 +359,10 @@ const failures = [
   initialRows < 3 && "Expected seeded purchase rows",
   initialSummary !== 4 && "Expected four dashboard summary cards",
   calendarGuideVisible < 1 && "Expected calendar import guide",
+  reminderQueueVisible < 1 && "Expected open-app reminder queue",
+  snoozeButtonVisible < 1 && "Expected reminder snooze controls",
+  snoozeStatusVisible < 1 && "Expected reminder snooze status",
+  clearSnoozeVisible < 1 && "Expected clear snooze status",
   rowsAfterManualSave < 4 && "Expected manual purchase with attachment to be saved",
   attachmentVisible < 1 && "Expected saved local attachment name to be visible",
   policyReturnDays !== "60" && "Expected policy template to set return days",
