@@ -66,7 +66,7 @@
    - 현재 구현: 압축/스캔 PDF처럼 text operator가 없는 파일은 cloud OCR 대신 로컬 fallback 안내를 표시하고 첨부 증빙으로 남기도록 유도
    - 현재 구현: 브라우저가 이미지 OCR을 지원하지 않을 때 cloud OCR 대신 붙여넣기 fallback을 안내
    - 현재 구현: 사용자가 확인해서 적용하는 정책 템플릿으로 반품/환불/보증 기본값, 증빙 요구사항, source/version/last reviewed, 국가/관할권 면책 메모를 채움
-   - 현재 구현: HTML 이메일 영수증, PDF text operator, 압축/스캔 PDF fallback 진단, 정책 템플릿 source URL/license metadata fixture corpus로 회귀 테스트
+   - 현재 구현: HTML 이메일 영수증, PDF text operator, 압축/스캔 PDF fallback 진단, local OCR text result, 정책 템플릿 source URL/license metadata fixture corpus로 회귀 테스트
    - 현재 구현: local OCR engine plan adapter: future bundled worker, browser TextDetector, manual fallback을 no-cloud 기준으로 판정
    - 남은 구현: 실제 번들형 이미지 OCR 엔진 탑재, 실제 스캔 PDF OCR, 실제 판매처 정책 fixture 확대, 실제 출처 URL/라이선스 검토
 
@@ -108,4 +108,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대/리뷰 체크리스트/row 선택/preset bundle 호환성 검증/fixture validation/trust metadata/fingerprint-ready signing payload/detached signature 검증/review manifest/대량 review filter의 1차 범위, 3번 로컬 OCR/정책 추출/fallback 진단/정책 source metadata/OCR adapter의 1차 범위, 4번 서버 없는 알림 경험/캘린더 가이드/세분화 스누즈/self-hosted 설정 저장/dry-run report/runner CLI/opt-in send guard/provider fixture/scheduler recipe/loopback smoke test/opt-in public smoke/manual GitHub Actions smoke/platform fallback guide/운영 문서는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 익명화된 실제 샘플 기반 import/OCR fixture 확대, 실제 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR, 유지관리자 별도 환경의 실제 public/self-hosted endpoint smoke run 결과 기록, 암호화 백업, polished PWA입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대/리뷰 체크리스트/row 선택/preset bundle 호환성 검증/fixture validation/trust metadata/fingerprint-ready signing payload/detached signature 검증/review manifest/대량 review filter의 1차 범위, 3번 로컬 OCR/정책 추출/fallback 진단/local OCR text fixture/정책 source metadata/OCR adapter의 1차 범위, 4번 서버 없는 알림 경험/캘린더 가이드/세분화 스누즈/self-hosted 설정 저장/dry-run report/runner CLI/opt-in send guard/provider fixture/scheduler recipe/loopback smoke test/opt-in public smoke/manual GitHub Actions smoke/platform fallback guide/운영 문서는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 익명화된 실제 샘플 기반 import/OCR fixture 확대, 실제 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR, 유지관리자 별도 환경의 실제 public/self-hosted endpoint smoke run 결과 기록, 암호화 백업, polished PWA입니다.

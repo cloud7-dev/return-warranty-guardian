@@ -17,7 +17,7 @@ This list separates high-leverage additions from features that could distract th
 3. **Messy receipt and policy extraction**
    - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
    - Local text/PDF text-operator/HTML extraction is now connected to the parser, scanned/compressed PDFs show a no-upload fallback notice, and image OCR works when the browser exposes local `TextDetector` support.
-   - User-confirmed policy templates can fill common return/refund/warranty assumptions with evidence requirements, source/version metadata, and jurisdiction disclaimers, and synthetic fixtures cover CSV/HTML/PDF/policy regression cases. A bundled cross-browser OCR engine and real anonymized policy fixture corpus are still needed before the app can reduce manual entry enough.
+   - User-confirmed policy templates can fill common return/refund/warranty assumptions with evidence requirements, source/version metadata, and jurisdiction disclaimers, and synthetic fixtures cover CSV/HTML/PDF/local OCR text/policy regression cases. A bundled cross-browser OCR engine and real anonymized policy fixture corpus are still needed before the app can reduce manual entry enough.
 
 4. **Warranty claim packet quality**
    - Users need a clean support packet with receipt, serial/model, photos, repair history, manuals, and merchant conversation notes.
@@ -58,7 +58,7 @@ This list separates high-leverage additions from features that could distract th
    - Remaining work: anonymized real card-statement/retailer fixture expansion, large-file row filtering, signed preset trust chains, and community preset review.
 
 6. **Optional OCR**
-   - Text, CSV, HTML/email, simple PDF text-operator extraction, scanned/compressed PDF fallback diagnostics/notices, and supported browser-local image OCR now run locally in the browser. Image OCR now has an adapter boundary for a future bundled worker, browser TextDetector, or manual fallback.
+   - Text, CSV, HTML/email, simple PDF text-operator extraction, scanned/compressed PDF fallback diagnostics/notices, local OCR text result fixtures, and supported browser-local image OCR now run locally in the browser. Image OCR now has an adapter boundary for a future bundled worker, browser TextDetector, or manual fallback.
    - A bundled cross-browser image OCR engine and real scan/bitmap PDF OCR are still needed if practical.
    - Cloud OCR should be explicitly opt-in and disabled by default.
 

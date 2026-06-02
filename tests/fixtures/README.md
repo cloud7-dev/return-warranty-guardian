@@ -9,6 +9,7 @@ Current fixture groups:
 - `csv/`: card statement, marketplace order, Shopify-style order, and Stripe-style receipt exports for import preset coverage.
 - `receipts/`: email-style receipt HTML for local text extraction and receipt parser coverage.
 - `pdf/`: PDF source snippets with simple text operators plus scanned/compressed fallback diagnostics.
+- `ocr/`: local OCR text result fixtures for scanned receipt parser regression without committing receipt images.
 - `notifications/`: ntfy, Gotify, and Apprise payload fixtures for local runner dry-run and endpoint-plan coverage.
 - `policies/`: expected defaults, evidence requirements, and country/jurisdiction metadata for user-confirmed policy templates.
 - `presets/`: review manifests for CSV preset bundle fingerprint and community review flow coverage.

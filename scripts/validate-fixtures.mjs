@@ -3,6 +3,7 @@ import path from "node:path";
 import { pdfExtractionDiagnostics, textFromPdfSource } from "../src/local-extraction.js";
 import { CSV_IMPORT_PRESETS, analyzeCsvImport, csvMappingForPreset, csvPresetBundle, csvPresetBundleFingerprint, csvPresetBundleReviewSummary } from "../src/importers.js";
 import { policyTemplateById } from "../src/policy-templates.js";
+import { parseReceiptText } from "../src/receipt-parser.js";
 import { buildRunnerPlan } from "./self-hosted-notification-runner.mjs";
 
 const root = path.resolve("tests/fixtures");
@@ -79,6 +80,25 @@ async function validatePolicyFixtures() {
   }
 }
 
+async function validateOcrResultFixtures() {
+  const manifestPath = path.join(root, "ocr/results.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  if (manifest.schema !== "return-warranty-guardian.ocr-result-fixtures.v1") {
+    throw new Error("OCR result fixture manifest has unsupported schema.");
+  }
+  for (const item of manifest.fixtures || []) {
+    const fixturePath = path.join(root, item.path);
+    const text = await readFile(fixturePath, "utf8");
+    assertNoPrivateData(fixturePath, text);
+    const parsed = parseReceiptText(text);
+    if (parsed.merchant !== item.expectedMerchant) throw new Error(`${item.path} merchant mismatch.`);
+    if (parsed.purchaseDate !== item.expectedPurchaseDate) throw new Error(`${item.path} purchase date mismatch.`);
+    if (parsed.items.length < Number(item.expectedMinItems || 1)) throw new Error(`${item.path} did not produce enough receipt items.`);
+    if (!parsed.items.some((receiptItem) => receiptItem.name === item.expectedItem)) throw new Error(`${item.path} missing expected item.`);
+    if (parsed.total !== Number(item.expectedTotal || 0)) throw new Error(`${item.path} total mismatch.`);
+  }
+}
+
 async function validateNotificationFixtures() {
   const notificationDir = path.join(root, "notifications");
   const files = (await listFiles(notificationDir)).filter((file) => file.endsWith(".json"));
@@ -135,6 +155,7 @@ async function main() {
   }
   await validateCsvFixtures();
   await validatePdfFixtures();
+  await validateOcrResultFixtures();
   await validatePolicyFixtures();
   await validateNotificationFixtures();
   await validatePresetReviewFixtures();

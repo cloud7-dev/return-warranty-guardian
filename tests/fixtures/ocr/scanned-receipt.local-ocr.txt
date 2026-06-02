@@ -1,0 +1,8 @@
+Fixture OCR Market
+Receipt 8001
+2026-06-02
+Countertop Filter 58.25
+Replacement Cartridge 12.00
+Subtotal 70.25
+Tax 5.62
+Total 75.87

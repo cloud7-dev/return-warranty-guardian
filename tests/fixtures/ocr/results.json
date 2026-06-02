@@ -1,0 +1,15 @@
+{
+  "schema": "return-warranty-guardian.ocr-result-fixtures.v1",
+  "privacyNote": "OCR result fixtures must be synthetic or anonymized local OCR text. Do not include images, addresses, phone numbers, emails, card numbers, or real order IDs.",
+  "fixtures": [
+    {
+      "path": "ocr/scanned-receipt.local-ocr.txt",
+      "sourceType": "local-ocr-text",
+      "expectedMerchant": "Fixture OCR Market",
+      "expectedPurchaseDate": "2026-06-02",
+      "expectedItem": "Countertop Filter",
+      "expectedMinItems": 2,
+      "expectedTotal": 75.87
+    }
+  ]
+}
