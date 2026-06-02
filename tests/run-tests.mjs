@@ -14,6 +14,8 @@ import {
   evidencePackMarkdown,
   purchasesToCsv,
   purchasesToIcs,
+  reminderAlarmOffsets,
+  selfHostedNotificationPayload,
 } from "../src/exporters.js";
 
 const now = new Date("2026-06-02T10:00:00Z");
@@ -235,6 +237,8 @@ for (const item of policyFixtures) {
 const claimPacket = claimPacketHtml(purchase, now);
 assert.match(claimPacket, /Claim Packet: Wireless Headset/);
 assert.match(claimPacket, /Print or save PDF/);
+assert.match(claimPacket, /PDF Save Guide/);
+assert.match(claimPacket, /Attachment Manifest/);
 assert.match(claimPacket, /warranty-card\.pdf/);
 assert.match(claimPacket, /data:image\/png/);
 assert.match(claimPacket, /Submission Note/);
@@ -251,11 +255,14 @@ const claimBundle = JSON.parse(claimPacketBundleJson(purchase, now));
 assert.equal(claimBundle.schema, "return-warranty-guardian.claim-bundle.v1");
 assert.match(claimBundle.claimPacketHtml, /Claim Packet: Wireless Headset/);
 assert.equal(claimBundle.submissionTemplates.length, 4);
+assert.equal(claimBundle.attachmentManifest.length, 2);
+assert.equal(claimBundle.attachmentManifest[0].exportPath, "attachments/01-warranty-card.pdf");
 assert.equal(claimBundle.attachments.length, 2);
 const claimZip = claimPacketZipBytes(purchase, now);
 assert.deepEqual([...claimZip.slice(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
 assert.match(new TextDecoder().decode(claimZip), /claim-packet\.html/);
 assert.match(new TextDecoder().decode(claimZip), /claim-bundle\.json/);
+assert.match(new TextDecoder().decode(claimZip), /attachment-manifest\.json/);
 assert.match(new TextDecoder().decode(claimZip), /templates\/merchant-return\.txt/);
 
 const ics = purchasesToIcs([purchase], now);
@@ -264,5 +271,13 @@ assert.match(ics, /SUMMARY:Return deadline: Wireless Headset/);
 assert.match(ics, /DTSTART;VALUE=DATE:20260702/);
 assert.match(ics, /BEGIN:VALARM/);
 assert.match(ics, /TRIGGER:-P5D/);
+assert.match(ics, /TRIGGER:-P1D/);
+assert.deepEqual(reminderAlarmOffsets(purchase), ["-P5D", "-P1D"]);
+
+const selfHosted = JSON.parse(selfHostedNotificationPayload([purchase], now));
+assert.equal(selfHosted.schema, "return-warranty-guardian.self-hosted-notifications.v1");
+assert.match(selfHosted.privacyNote, /No data is sent/);
+assert.equal(selfHosted.reminders.length, 3);
+assert.match(selfHosted.providers.ntfy.curl, /ntfy\.example\.test/);
 
 console.log("All logic tests passed.");

@@ -37,6 +37,17 @@ function attachmentEvidenceHtml(attachment) {
   return `<li>${name} (${type}, ${escapeHtml(sizeLabel)})</li>`;
 }
 
+function attachmentManifest(attachments) {
+  return attachments.map((attachment, index) => ({
+    index: index + 1,
+    name: attachment.name,
+    type: attachment.type || "application/octet-stream",
+    size: attachment.size || 0,
+    included: Boolean(attachment.dataUrl),
+    exportPath: `attachments/${String(index + 1).padStart(2, "0")}-${safePathSegment(attachment.name)}`,
+  }));
+}
+
 export function claimSubmissionTemplates(purchase, now = new Date()) {
   const item = computeDeadlines(purchase, now);
   const deadlineSummary = item.deadlines.map((deadline) => `${deadline.label}: ${deadline.date} (${deadline.status})`).join("; ");
@@ -139,6 +150,15 @@ function reminderLeadDays(purchase) {
   return Number.isFinite(value) && value >= 0 ? value : 3;
 }
 
+export function reminderAlarmOffsets(purchase) {
+  const leadDays = reminderLeadDays(purchase);
+  const offsets = new Set();
+  if (leadDays > 0) offsets.add(`-P${leadDays}D`);
+  if (leadDays > 1) offsets.add("-P1D");
+  if (leadDays === 0) offsets.add("PT0M");
+  return [...offsets];
+}
+
 export function purchasesToCsv(purchases, now = new Date()) {
   const columns = [
     "product_name",
@@ -205,6 +225,8 @@ export function claimPacketHtml(purchase, now = new Date()) {
     .join("");
   const imageAttachments = attachments.filter((attachment) => String(attachment.type || "").startsWith("image/"));
   const fileAttachments = attachments.filter((attachment) => !String(attachment.type || "").startsWith("image/"));
+  const manifest = attachmentManifest(attachments);
+  const attachmentSize = attachments.reduce((sum, attachment) => sum + Number(attachment.size || 0), 0);
   const templates = claimSubmissionTemplates(purchase, now);
 
   return `<!doctype html>
@@ -224,6 +246,7 @@ export function claimPacketHtml(purchase, now = new Date()) {
     .attachment-card{margin:0;border:1px solid #dfe6e1;border-radius:8px;padding:10px;background:#f9faf7}
     .attachment-card img{max-width:100%;max-height:260px;object-fit:contain;display:block;margin:auto}
     .attachment-card figcaption{margin-top:8px;color:#64716d;font-size:12px}
+    .guide{border:1px solid #b9d7cf;background:#eef8f5;border-radius:8px;padding:12px;margin:16px 0}
     .submission-note{border-left:4px solid #0f766e;background:#e6f4ef;padding:12px}
     pre{white-space:pre-wrap;font-family:inherit;font-size:13px;margin:0;color:#14211f}
     @media print{.print{display:none}body{margin:18px}a{color:#14211f}}
@@ -243,6 +266,11 @@ export function claimPacketHtml(purchase, now = new Date()) {
   </section>
   <h2>Deadline Math</h2>
   <table><thead><tr><th>Type</th><th>Date</th><th>Days left</th><th>Status</th></tr></thead><tbody>${deadlineRows}</tbody></table>
+  <h2>PDF Save Guide</h2>
+  <div class="guide">
+    <p>Use the print button, choose Save as PDF in the browser print dialog, then review every local attachment before sending the packet.</p>
+    <p>Attachment manifest: ${escapeHtml(String(attachments.length))} file(s), ${escapeHtml(String(attachmentSize))} bytes total.</p>
+  </div>
   <h2>Documents</h2>
   <ul>${documents.length ? documents.map((name) => `<li>${escapeHtml(name)}</li>`).join("") : "<li>No document names recorded.</li>"}</ul>
   <h2>Local Attachments</h2>
@@ -251,6 +279,17 @@ export function claimPacketHtml(purchase, now = new Date()) {
       ? `<ul>${fileAttachments.map(attachmentEvidenceHtml).join("")}</ul>
          ${imageAttachments.length ? `<div class="attachment-grid">${imageAttachments.map(attachmentEvidenceHtml).join("")}</div>` : ""}`
       : "<ul><li>No local files attached.</li></ul>"
+  }
+  <h2>Attachment Manifest</h2>
+  ${
+    manifest.length
+      ? `<table><thead><tr><th>#</th><th>Name</th><th>Type</th><th>Size</th><th>Included</th></tr></thead><tbody>${manifest
+          .map(
+            (attachment) =>
+              `<tr><td>${attachment.index}</td><td>${escapeHtml(attachment.name)}</td><td>${escapeHtml(attachment.type)}</td><td>${escapeHtml(String(attachment.size))}</td><td>${attachment.included ? "yes" : "no"}</td></tr>`,
+          )
+          .join("")}</tbody></table>`
+      : "<p>No local attachment manifest.</p>"
   }
   <h2>Service History</h2>
   <p>${escapeHtml(item.serviceNotes || "No service history recorded.")}</p>
@@ -296,6 +335,7 @@ export function claimPacketBundleJson(purchase, now = new Date()) {
       evidencePackMarkdown: evidencePackMarkdown(purchase, now),
       claimPacketHtml: claimPacketHtml(purchase, now),
       submissionTemplates: claimSubmissionTemplates(purchase, now),
+      attachmentManifest: attachmentManifest(attachments),
       attachments: attachments.map((attachment) => ({
         name: attachment.name,
         type: attachment.type || "application/octet-stream",
@@ -318,7 +358,7 @@ export function purchasesToIcs(purchases, now = new Date()) {
       const uid = `${purchase.id}-${deadline.type}@return-warranty-guardian`;
       const summary = `${deadline.label} deadline: ${purchase.productName}`;
       const description = `${purchase.merchant} | Purchase date ${purchase.purchaseDate} | ${deadline.daysLeft} days left`;
-      const leadDays = reminderLeadDays(purchase);
+      const alarmOffsets = reminderAlarmOffsets(purchase);
       return [
         "BEGIN:VEVENT",
         `UID:${uid}`,
@@ -326,15 +366,13 @@ export function purchasesToIcs(purchases, now = new Date()) {
         `DTSTART;VALUE=DATE:${date}`,
         `SUMMARY:${summary}`,
         `DESCRIPTION:${description}`,
-        ...(leadDays > 0
-          ? [
+        ...alarmOffsets.flatMap((offset) => [
               "BEGIN:VALARM",
               "ACTION:DISPLAY",
               `DESCRIPTION:${summary}`,
-              `TRIGGER:-P${leadDays}D`,
+              `TRIGGER:${offset}`,
               "END:VALARM",
-            ]
-          : []),
+            ]),
         "END:VEVENT",
       ].join("\r\n");
     });
@@ -342,6 +380,48 @@ export function purchasesToIcs(purchases, now = new Date()) {
 
   return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Return Warranty Guardian//EN", ...events, "END:VCALENDAR"].join(
     "\r\n",
+  );
+}
+
+export function selfHostedNotificationPayload(purchases, now = new Date()) {
+  const reminders = purchases
+    .filter((purchase) => purchase.status !== "resolved")
+    .flatMap((purchase) => {
+      const item = computeDeadlines(purchase, now);
+      return item.deadlines
+        .filter((deadline) => deadline.daysLeft !== null && deadline.daysLeft >= 0)
+        .map((deadline) => ({
+          productName: item.productName,
+          merchant: item.merchant,
+          deadlineType: deadline.type,
+          deadlineLabel: deadline.label,
+          deadlineDate: deadline.date,
+          daysLeft: deadline.daysLeft,
+          reminderLeadDays: reminderLeadDays(item),
+          title: `${deadline.label}: ${item.productName}`,
+          message: `${item.merchant} | ${deadline.date} | ${deadline.daysLeft} days left`,
+        }));
+    });
+  return JSON.stringify(
+    {
+      schema: "return-warranty-guardian.self-hosted-notifications.v1",
+      generatedAt: now.toISOString(),
+      privacyNote: "Review payloads before sending them to a self-hosted notification service. No data is sent by this app.",
+      providers: {
+        ntfy: {
+          curl: "curl -H 'Title: Return & Warranty Guardian' -d '<message>' https://ntfy.example.test/topic",
+        },
+        gotify: {
+          curl: "curl -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{\"title\":\"<title>\",\"message\":\"<message>\",\"priority\":5}' https://gotify.example.test/message",
+        },
+        apprise: {
+          curl: "apprise -vv -t '<title>' -b '<message>' '<self-hosted-url>'",
+        },
+      },
+      reminders,
+    },
+    null,
+    2,
   );
 }
 
@@ -476,6 +556,7 @@ export function claimPacketZipBytes(purchase, now = new Date()) {
     { name: `${root}/claim-packet.html`, content: claimPacketHtml(purchase, now) },
     { name: `${root}/evidence-pack.md`, content: evidencePackMarkdown(purchase, now) },
     { name: `${root}/claim-bundle.json`, content: claimPacketBundleJson(purchase, now) },
+    { name: `${root}/attachment-manifest.json`, content: JSON.stringify(attachmentManifest(attachments), null, 2) },
     ...claimSubmissionTemplates(purchase, now).map((template) => ({
       name: `${root}/templates/${safePathSegment(template.id)}.txt`,
       content: template.body,

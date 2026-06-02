@@ -79,9 +79,11 @@ CSV imports are staged in an in-memory preview before they are saved. The app im
 
 Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and simple PDF text-operator paths are file reads; image OCR uses browser-local `TextDetector` only when the current browser supports it.
 
-Notification behavior stays serverless. Each purchase can store `reminderLeadDays`; `.ics` exports include `VALARM` entries using that lead time, and browser notifications are only attempted while the app is open and the user grants notification permission. Reminder snooze state is stored separately in `localStorage` under `rwg:snoozed-reminders`.
+Notification behavior stays serverless. Each purchase can store `reminderLeadDays`; `.ics` exports include repeated `VALARM` entries using that lead time and a one-day reminder, and browser notifications are only attempted while the app is open and the user grants notification permission. Reminder snooze state is stored separately in `localStorage` under `rwg:snoozed-reminders`.
 
-Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
+Self-hosted notification support is export-only. `selfHostedNotificationPayload` creates reviewed JSON/curl drafts for ntfy, Gotify, and Apprise, but the app does not send network requests.
+
+Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include PDF save guidance, attachment manifests, starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
 
 Tests use `tests/fixtures` as a synthetic corpus for CSV presets, HTML receipt extraction, PDF text-operator extraction, and user-confirmed policy template defaults. Private receipts or real card statements should not be committed.
 

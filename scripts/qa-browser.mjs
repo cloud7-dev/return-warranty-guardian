@@ -112,17 +112,21 @@ const clearSnoozeVisible = await page.locator("text=스누즈를 모두 해제�
 stages.push("reminder-snooze");
 
 const attachmentFixturePath = `${root}/outputs/qa-receipt.pdf`;
+const oversizedAttachmentPath = `${root}/outputs/qa-too-large.pdf`;
 await mkdir(`${root}/outputs`, { recursive: true });
 await writeFile(attachmentFixturePath, "%PDF-1.4\n% Synthetic QA receipt\n");
+await writeFile(oversizedAttachmentPath, Buffer.alloc(5 * 1024 * 1024 + 1, "x"));
 await page.fill('input[name="productName"]', "QA Attachment Purchase");
 await page.fill('input[name="merchant"]', "QA Store");
 await page.fill('input[name="price"]', "42.50");
-await page.setInputFiles('input[name="attachments"]', attachmentFixturePath);
+await page.setInputFiles('input[name="attachments"]', [attachmentFixturePath, oversizedAttachmentPath]);
 await page.click("#purchase-form .primary-action");
 await page.waitForFunction(() => document.querySelectorAll(".purchase-row").length >= 4);
 await page.waitForSelector("text=qa-receipt.pdf");
+await page.waitForSelector("text=첨부 1개 저장됨, 5 MB 초과 1개 제외됨.");
 const rowsAfterManualSave = await page.locator(".purchase-row").count();
 const attachmentVisible = await page.locator("text=qa-receipt.pdf").count();
+const attachmentStatusVisible = await page.locator("text=첨부 1개 저장됨, 5 MB 초과 1개 제외됨.").count();
 stages.push("attachment-save");
 
 await page.selectOption("#policy-template", "extended-60-day-return");
@@ -270,6 +274,13 @@ const icsPath = `${root}/outputs/${icsDownload.suggestedFilename()}`;
 await icsDownload.saveAs(icsPath);
 stages.push("ics-download");
 
+const selfHostedDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
+await page.click("#export-self-hosted-alerts");
+const selfHostedDownload = await selfHostedDownloadPromise;
+const selfHostedPath = `${root}/outputs/${selfHostedDownload.suggestedFilename()}`;
+await selfHostedDownload.saveAs(selfHostedPath);
+stages.push("self-hosted-alerts-download");
+
 await page.click("#enable-local-alerts");
 await page.waitForSelector("text=앱이 열려 있을 때의 로컬 알림을 켰습니다.");
 const localAlertsVisible = await page.locator("text=앱이 열려 있을 때의 로컬 알림을 켰습니다.").count();
@@ -298,6 +309,7 @@ const claimText = await readFile(claimPath, "utf8");
 const claimBundleText = await readFile(claimBundlePath, "utf8");
 const claimZipBytes = await readFile(claimZipPath);
 const icsText = await readFile(icsPath, "utf8");
+const selfHostedText = await readFile(selfHostedPath, "utf8");
 const csvText = await readFile(csvPath, "utf8");
 
 const result = {
@@ -313,6 +325,7 @@ const result = {
   clearSnoozeVisible,
   rowsAfterManualSave,
   attachmentVisible,
+  attachmentStatusVisible,
   policyReturnDays,
   policyNotesUpdated: policyNotes.includes("extended 60-day return"),
   previewItems,
@@ -334,16 +347,22 @@ const result = {
   evidenceContainsChecklist: evidenceText.includes("Claim Checklist"),
   claimPath,
   claimContainsPrintPdf: claimText.includes("Print or save PDF") && claimText.includes("Claim Packet"),
+  claimContainsPdfGuide: claimText.includes("PDF Save Guide") && claimText.includes("Attachment Manifest"),
   claimContainsTemplates: claimText.includes("Submission Templates") && claimText.includes("Merchant Return Request"),
   claimBundlePath,
   claimBundleContainsEvidence: claimBundleText.includes("return-warranty-guardian.claim-bundle.v1") && claimBundleText.includes("claimPacketHtml"),
+  claimBundleContainsManifest: claimBundleText.includes("attachmentManifest"),
   claimBundleContainsTemplates: claimBundleText.includes("submissionTemplates") && claimBundleText.includes("chargeback-summary"),
   claimZipPath,
   claimZipHasSignature: claimZipBytes[0] === 0x50 && claimZipBytes[1] === 0x4b && claimZipBytes.includes(0x50),
   claimZipHasTemplateFiles: Buffer.from(claimZipBytes).includes(Buffer.from("templates/merchant-return.txt")),
+  claimZipHasAttachmentManifest: Buffer.from(claimZipBytes).includes(Buffer.from("attachment-manifest.json")),
   icsPath,
   icsContainsCalendar: icsText.includes("BEGIN:VCALENDAR"),
   icsContainsAlarm: icsText.includes("BEGIN:VALARM") && icsText.includes("TRIGGER:-P"),
+  icsContainsRepeatAlarm: icsText.includes("TRIGGER:-P1D"),
+  selfHostedPath,
+  selfHostedContainsPayload: selfHostedText.includes("return-warranty-guardian.self-hosted-notifications.v1") && selfHostedText.includes("ntfy.example.test"),
   localAlertsVisible,
   csvPath,
   csvContainsHomeFields: csvText.includes("support_contact") && csvText.includes("documents"),
@@ -365,6 +384,7 @@ const failures = [
   clearSnoozeVisible < 1 && "Expected clear snooze status",
   rowsAfterManualSave < 4 && "Expected manual purchase with attachment to be saved",
   attachmentVisible < 1 && "Expected saved local attachment name to be visible",
+  attachmentStatusVisible < 1 && "Expected attachment save/skipped status",
   policyReturnDays !== "60" && "Expected policy template to set return days",
   !result.policyNotesUpdated && "Expected policy template to append a user-confirmed note",
   previewItems !== 2 && "Expected two parsed receipt items",
@@ -383,13 +403,18 @@ const failures = [
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",
   !result.claimContainsPrintPdf && "Expected printable claim packet HTML",
+  !result.claimContainsPdfGuide && "Expected claim packet PDF save guide and attachment manifest",
   !result.claimContainsTemplates && "Expected claim packet submission templates",
   !result.claimBundleContainsEvidence && "Expected claim bundle JSON export",
+  !result.claimBundleContainsManifest && "Expected claim bundle attachment manifest",
   !result.claimBundleContainsTemplates && "Expected claim bundle templates",
   !result.claimZipHasSignature && "Expected claim ZIP bundle export",
   !result.claimZipHasTemplateFiles && "Expected claim ZIP template files",
+  !result.claimZipHasAttachmentManifest && "Expected claim ZIP attachment manifest",
   !result.icsContainsCalendar && "Expected ICS calendar export",
   !result.icsContainsAlarm && "Expected ICS VALARM reminder export",
+  !result.icsContainsRepeatAlarm && "Expected repeated ICS reminder alarm",
+  !result.selfHostedContainsPayload && "Expected self-hosted notification payload export",
   localAlertsVisible < 1 && "Expected open-app local alert status",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",

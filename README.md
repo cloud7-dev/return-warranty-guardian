@@ -27,7 +27,7 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 
 - Tracks return, refund, and warranty deadlines from one local dashboard.
 - Stores purchases in browser storage with JSON export/import.
-- Stores local receipt, PDF, manual, and warranty-card attachments in the browser record.
+- Stores local receipt, PDF, manual, and warranty-card attachments in the browser record, with save/skipped status for over-size files.
 - Previews CSV purchase rows before import, supports built-in presets for card/order exports including Korean card statements, Korean shopping orders, and Amazon-style order history, plus saved user presets, manual column mapping, duplicate skipping, and invalid row reporting locally.
 - Exports a local CSV import report for audit/debugging before the import is confirmed.
 - Extracts local text, CSV, HTML/email receipts, simple PDF text operators, and supported browser-local image OCR into the receipt parser without upload.
@@ -37,11 +37,12 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.
-- Exports printable HTML claim packets with local attachment links/previews and submission templates that can be saved as PDF from the browser print dialog.
+- Exports printable HTML claim packets with local attachment links/previews, PDF save guidance, attachment manifests, and submission templates that can be saved as PDF from the browser print dialog.
 - Exports claim bundle JSON with the purchase record, deadline math, evidence pack Markdown, claim HTML, submission templates, and local attachment data URLs.
 - Exports a ZIP claim bundle with HTML, Markdown, JSON, submission template files, and attached local files.
 - Exports `.ics` calendar reminders with per-purchase lead-day alarms for purchase deadlines.
 - Supports browser notifications and reminder snooze controls while the app is open, with `.ics` export as the no-server mobile/desktop fallback.
+- Exports self-hosted notification payload drafts for ntfy, Gotify, or Apprise without sending data from the app.
 - Exports CSV records for spreadsheet review.
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
 - Switches the interface between Korean, English, Japanese, Chinese, German, French, Italian, and Hindi.

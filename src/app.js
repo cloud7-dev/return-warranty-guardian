@@ -8,6 +8,7 @@ import {
   evidencePackMarkdown,
   purchasesToCsv,
   purchasesToIcs,
+  selfHostedNotificationPayload,
 } from "./exporters.js";
 import { CSV_IMPORT_FIELDS, CSV_IMPORT_PRESETS, analyzeCsvImport, csvImportReport, csvMappingForPreset } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
@@ -32,6 +33,7 @@ const state = {
   ocrStatus: "",
   importPreview: null,
   userCsvPresets: [],
+  attachmentStatus: "",
   notificationStatus: "",
   snoozedReminders: {},
 };
@@ -104,7 +106,12 @@ async function extractLocalText(file) {
 async function attachmentsFromForm(formData) {
   const files = formData.getAll("attachments").filter((file) => file instanceof File && file.name);
   const accepted = files.filter((file) => file.size <= MAX_ATTACHMENT_BYTES);
-  return Promise.all(accepted.map(fileToAttachment));
+  const rejected = files.filter((file) => file.size > MAX_ATTACHMENT_BYTES);
+  return {
+    attachments: await Promise.all(accepted.map(fileToAttachment)),
+    rejected,
+    total: files.length,
+  };
 }
 
 function purchaseAttachments(purchase) {
@@ -214,6 +221,13 @@ async function normalizePurchase(formData) {
   const template = policyTemplateById(formData.get("policyTemplate"));
   const notes = String(formData.get("notes") || "").trim();
   const serviceNotes = String(formData.get("serviceNotes") || "").trim();
+  const attachmentResult = await attachmentsFromForm(formData);
+  state.attachmentStatus = attachmentResult.total
+    ? t("attachmentsSavedStatus", {
+        saved: attachmentResult.attachments.length,
+        skipped: attachmentResult.rejected.length,
+      })
+    : "";
   return {
     id: makeId(),
     productName: String(formData.get("productName") || "").trim(),
@@ -230,7 +244,7 @@ async function normalizePurchase(formData) {
     room: String(formData.get("room") || "").trim(),
     supportContact: String(formData.get("supportContact") || "").trim(),
     documents: linesFromText(formData.get("documents")),
-    attachments: await attachmentsFromForm(formData),
+    attachments: attachmentResult.attachments,
     policyTemplateId: template?.id || "",
     serviceNotes,
     source: String(formData.get("source") || "manual"),
@@ -388,7 +402,10 @@ function renderReminderGuide() {
           <h2>${t("calendarGuideTitle")}</h2>
           <p>${t("calendarGuideSubtitle")}</p>
         </div>
-        <button class="secondary-action" id="export-ics-guide" type="button">${icons.calendar} ${t("ics")}</button>
+        <div class="detail-actions">
+          <button class="secondary-action" id="export-ics-guide" type="button">${icons.calendar} ${t("ics")}</button>
+          <button class="secondary-action" id="export-self-hosted-alerts" type="button">${icons.export} ${t("selfHostedAlerts")}</button>
+        </div>
       </div>
       <div class="guide-steps">
         <div>
@@ -626,6 +643,7 @@ function renderPurchaseForm() {
           <input name="attachments" type="file" multiple accept="image/*,application/pdf,.pdf" />
           <span class="field-help">${t("attachmentsHelp")}</span>
         </label>
+        ${state.attachmentStatus ? `<p class="empty-note full">${state.attachmentStatus}</p>` : ""}
         <label class="full">
           ${t("serviceNotes")}
           <textarea name="serviceNotes" rows="2" placeholder="${t("serviceNotesPlaceholder")}"></textarea>
@@ -1302,6 +1320,15 @@ app.addEventListener("click", async (event) => {
 
   if (button.id === "export-ics" || button.id === "export-ics-guide") {
     downloadText("return-warranty-guardian-deadlines.ics", "text/calendar", purchasesToIcs(state.purchases, today()));
+    return;
+  }
+
+  if (button.id === "export-self-hosted-alerts") {
+    downloadText(
+      "return-warranty-guardian-self-hosted-alerts.json",
+      "application/json",
+      selfHostedNotificationPayload(state.purchases, today()),
+    );
   }
 });
 

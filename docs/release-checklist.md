@@ -14,7 +14,7 @@ Expected result:
 
 - Logic tests pass.
 - Static file and PWA checks pass.
-- Browser QA confirms default Korean language, eight language options, local attachment save/download visibility, local HTML/PDF receipt extraction, user-confirmed policy templates, calendar import guide visibility, in-app reminder snooze controls, CSV import preview with built-in/manual column mapping plus saved preset, duplicate/invalid row counts, CSV import report export, receipt parsing, search, evidence pack export, claim packet HTML download with attachment evidence and submission templates, claim bundle JSON/ZIP download, ICS export with alarms, local alert status, CSV export, mobile layout, and no console errors.
+- Browser QA confirms default Korean language, eight language options, local attachment save/skipped status and download visibility, local HTML/PDF receipt extraction, user-confirmed policy templates, calendar import guide visibility, in-app reminder snooze controls, self-hosted notification payload export, CSV import preview with built-in/manual column mapping plus saved preset, duplicate/invalid row counts, CSV import report export, receipt parsing, search, evidence pack export, claim packet HTML download with PDF save guidance, attachment manifest, attachment evidence, and submission templates, claim bundle JSON/ZIP download, ICS export with repeated alarms, local alert status, CSV export, mobile layout, and no console errors.
 
 ## Screenshots
 
