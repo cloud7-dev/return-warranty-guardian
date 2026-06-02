@@ -513,6 +513,10 @@ assert.equal(smokeRecord.schema, "return-warranty-guardian.notification-smoke-re
 assert.equal(smokeRecord.publicSmoke.provider, "ntfy");
 assert.match(smokeRecord.publicSmoke.endpointHostHash, /^[a-f0-9]{64}$/);
 assert.equal(JSON.stringify(smokeRecord).includes("ntfy.example.test"), false);
+const smokePolicy = JSON.parse(await fixture("notifications/smoke-policy.json"));
+assert.equal(smokePolicy.schema, "return-warranty-guardian.notification-smoke-policy.v1");
+assert.ok(smokePolicy.maxRecordAgeDays >= 30);
+assert.ok(smokePolicy.requiredProviders.includes("ntfy"));
 for (const provider of ["ntfy", "gotify", "apprise"]) {
   const providerPayload = JSON.parse(await fixture(`notifications/${provider}-payload.json`));
   const providerPlan = buildRunnerPlan(providerPayload, { provider, limit: 1, checkEndpoint: true });

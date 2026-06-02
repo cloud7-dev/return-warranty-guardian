@@ -1,0 +1,16 @@
+{
+  "schema": "return-warranty-guardian.notification-smoke-policy.v1",
+  "privacyNote": "Smoke policy fixtures define sanitized operational evidence requirements only. Do not store endpoint URLs, topics, tokens, or reminder bodies.",
+  "maxRecordAgeDays": 45,
+  "requiredProviders": [
+    "ntfy"
+  ],
+  "requiredLoopbackStatuses": {
+    "ntfy": 204,
+    "gotify": 204
+  },
+  "acceptedPublicStatusRange": [
+    200,
+    299
+  ]
+}

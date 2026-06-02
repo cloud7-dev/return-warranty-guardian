@@ -22,6 +22,7 @@ const requiredFiles = [
   "scripts/self-hosted-notification-runner.mjs",
   "scripts/smoke-notifications.mjs",
   "scripts/record-notification-smoke-result.mjs",
+  "tests/fixtures/notifications/smoke-policy.json",
   "assets/icon.svg",
   "README.md",
   "CONTRIBUTING.md",

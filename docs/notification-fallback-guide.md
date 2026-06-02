@@ -43,6 +43,8 @@ After a real endpoint run, convert the raw smoke output into a sanitized record 
 npm run notify:record -- smoke-output.json
 ```
 
+Sanitized records are checked against `tests/fixtures/notifications/smoke-policy.json`. The policy requires fresh records, provider coverage, successful loopback status, successful public status, and a hashed endpoint host instead of the raw URL.
+
 ## OCR Fallback
 
 Image OCR is local only. The app tries a bundled local worker if one exists, then browser `TextDetector`, then manual paste/attachment fallback. Scanned PDFs without text operators stay as local claim evidence unless the user supplies local OCR text.

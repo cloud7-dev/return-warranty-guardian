@@ -195,6 +195,7 @@ async function validateNotificationFixtures() {
   const providers = new Set();
   for (const file of files) {
     if (file.includes(`${path.sep}smoke-records${path.sep}`)) continue;
+    if (file.endsWith(`${path.sep}smoke-policy.json`)) continue;
     const payload = JSON.parse(await readFile(file, "utf8"));
     const expectedProvider = payload.expectedRunner?.provider || payload.settings?.provider;
     const plan = buildRunnerPlan(payload, {
@@ -217,6 +218,17 @@ async function validateNotificationSmokeRecords() {
   const recordDir = path.join(root, "notifications/smoke-records");
   const files = (await listFiles(recordDir)).filter((file) => file.endsWith(".json"));
   if (!files.length) throw new Error("Expected at least one notification smoke record fixture.");
+  const policyPath = path.join(root, "notifications/smoke-policy.json");
+  const policy = JSON.parse(await readFile(policyPath, "utf8"));
+  if (policy.schema !== "return-warranty-guardian.notification-smoke-policy.v1") {
+    throw new Error("Notification smoke policy fixture has unsupported schema.");
+  }
+  const maxRecordAgeDays = Number(policy.maxRecordAgeDays || 0);
+  if (!Number.isFinite(maxRecordAgeDays) || maxRecordAgeDays < 1) {
+    throw new Error("Notification smoke policy must set maxRecordAgeDays.");
+  }
+  const acceptedStatusRange = Array.isArray(policy.acceptedPublicStatusRange) ? policy.acceptedPublicStatusRange : [200, 299];
+  const seenProviders = new Set();
   for (const file of files) {
     const text = await readFile(file, "utf8");
     assertNoPrivateData(file, text);
@@ -231,9 +243,30 @@ async function validateNotificationSmokeRecords() {
     if (!/^[a-f0-9]{64}$/.test(record.publicSmoke?.endpointHostHash || "")) {
       throw new Error(`${file} must store a SHA-256 endpoint host hash.`);
     }
+    const generatedAt = new Date(record.generatedAt || "");
+    if (Number.isNaN(generatedAt.getTime())) throw new Error(`${file} must include a valid generatedAt timestamp.`);
+    const ageDays = (Date.now() - generatedAt.getTime()) / 86_400_000;
+    if (ageDays > maxRecordAgeDays) {
+      throw new Error(`${file} smoke record is stale. Refresh within ${maxRecordAgeDays} days.`);
+    }
     if (!record.loopback?.purchaseDataSentOnlyDuringExplicitSend) {
       throw new Error(`${file} must confirm purchase data is only sent during explicit send.`);
     }
+    const expectedLoopback = policy.requiredLoopbackStatuses || {};
+    for (const [provider, status] of Object.entries(expectedLoopback)) {
+      const actual = record.loopback?.[`${provider}Status`];
+      if (actual !== Number(status)) throw new Error(`${file} ${provider} loopback status must be ${status}.`);
+    }
+    if (!record.publicSmoke?.skipped) {
+      seenProviders.add(record.publicSmoke.provider);
+      const status = Number(record.publicSmoke.status || 0);
+      if (!record.publicSmoke.ok || status < Number(acceptedStatusRange[0]) || status > Number(acceptedStatusRange[1])) {
+        throw new Error(`${file} public smoke status must be successful.`);
+      }
+    }
+  }
+  for (const provider of policy.requiredProviders || []) {
+    if (!seenProviders.has(provider)) throw new Error(`Missing fresh successful public smoke record for ${provider}.`);
   }
 }
 
