@@ -1,0 +1,40 @@
+{
+  "schema": "return-warranty-guardian.csv-preset-key-governance.v1",
+  "privacyNote": "Key governance fixtures contain public key lifecycle metadata only. Do not store private keys, maintainer emails, tokens, or real user data.",
+  "generatedAt": "2026-06-02T10:00:00.000Z",
+  "minimumActiveReviewKeys": 1,
+  "allowedAlgorithms": [
+    "ECDSA-P256-SHA256"
+  ],
+  "rotationPolicy": {
+    "reviewCadenceDays": 90,
+    "overlapDays": 30,
+    "revokedKeyBlocksSignatures": true
+  },
+  "keyStates": [
+    {
+      "keyId": "fixture-maintainer-p256",
+      "state": "active",
+      "purpose": "csv-preset-review",
+      "trustedSince": "2026-06-02",
+      "reviewedAt": "2026-06-02"
+    },
+    {
+      "keyId": "fixture-retired-p256",
+      "state": "retired",
+      "purpose": "csv-preset-review",
+      "trustedSince": "2026-01-01",
+      "retiredAt": "2026-06-02",
+      "reviewedAt": "2026-06-02"
+    },
+    {
+      "keyId": "fixture-compromised-p256",
+      "state": "revoked",
+      "purpose": "csv-preset-review",
+      "trustedSince": "2026-01-01",
+      "revokedAt": "2026-06-02",
+      "reason": "fixture-compromise-drill",
+      "reviewedAt": "2026-06-02"
+    }
+  ]
+}

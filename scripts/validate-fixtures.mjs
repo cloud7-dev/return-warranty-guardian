@@ -323,16 +323,44 @@ async function validatePresetReviewFixtures() {
   if (trustedKeys.schema !== "return-warranty-guardian.csv-preset-trusted-keys.v1") {
     throw new Error("Trusted key registry fixture has unsupported schema.");
   }
+  const keyGovernancePath = path.join(root, "presets/key-governance.json");
+  const keyGovernance = JSON.parse(await readFile(keyGovernancePath, "utf8"));
+  if (keyGovernance.schema !== "return-warranty-guardian.csv-preset-key-governance.v1") {
+    throw new Error("Preset key governance fixture has unsupported schema.");
+  }
+  const allowedAlgorithms = new Set(keyGovernance.allowedAlgorithms || []);
+  if (!allowedAlgorithms.has("ECDSA-P256-SHA256")) throw new Error("Preset key governance must allow ECDSA-P256-SHA256.");
+  const keyStates = new Map((keyGovernance.keyStates || []).map((key) => [key.keyId, key]));
+  const activeReviewKeyIds = new Set(
+    (keyGovernance.keyStates || [])
+      .filter((key) => key.state === "active" && key.purpose === "csv-preset-review")
+      .map((key) => key.keyId),
+  );
+  if (activeReviewKeyIds.size < Number(keyGovernance.minimumActiveReviewKeys || 1)) {
+    throw new Error("Preset key governance does not include enough active review keys.");
+  }
   const reviewKeys = (trustedKeys.keys || []).filter((key) => key.purpose === "csv-preset-review");
   if (!reviewKeys.length) throw new Error("Trusted key registry fixture must include at least one csv-preset-review key.");
   for (const key of reviewKeys) {
     if (!key.keyId || !key.trustedSince || key.publicKeyJwk?.kty !== "EC" || key.publicKeyJwk?.crv !== "P-256") {
       throw new Error(`Trusted key ${key.keyId || "(missing)"} must include P-256 public key metadata.`);
     }
+    const state = keyStates.get(key.keyId);
+    if (!state) throw new Error(`Trusted key ${key.keyId} is missing key governance metadata.`);
+    if (state.state !== "active") throw new Error(`Trusted key ${key.keyId} must be active before it can verify preset bundles.`);
+  }
+  for (const state of keyGovernance.keyStates || []) {
+    if (!["active", "retired", "revoked"].includes(state.state)) throw new Error(`Unsupported key state for ${state.keyId}.`);
+    if (state.state === "retired" && !state.retiredAt) throw new Error(`Retired key ${state.keyId} must include retiredAt.`);
+    if (state.state === "revoked" && (!state.revokedAt || !state.reason)) throw new Error(`Revoked key ${state.keyId} must include revokedAt and reason.`);
   }
 
   const signedBundlePath = path.join(root, "presets/signed-bundle.json");
   const signedBundle = JSON.parse(await readFile(signedBundlePath, "utf8"));
+  for (const signature of signedBundle.signatures || []) {
+    if (!allowedAlgorithms.has(signature.algorithm)) throw new Error(`Signed preset bundle uses unsupported algorithm ${signature.algorithm}.`);
+    if (!activeReviewKeyIds.has(signature.keyId)) throw new Error(`Signed preset bundle uses inactive key ${signature.keyId}.`);
+  }
   const signedFingerprintCheck = await verifyCsvPresetBundleFingerprint(signedBundle);
   if (!signedFingerprintCheck.ok) throw new Error(`Signed preset bundle fingerprint failed: ${signedFingerprintCheck.issues.join("; ")}`);
   const signatureCheck = await verifyCsvPresetBundleDetachedSignatures(signedBundle, reviewKeys);

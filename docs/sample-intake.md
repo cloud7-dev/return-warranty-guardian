@@ -33,6 +33,8 @@ Required intake entries must include:
 - `review.reviewedAt`: review date in `YYYY-MM-DD` format.
 - `review.reviewer`: a non-sensitive reviewer handle, not an email address.
 
+CSV preset bundle fixtures also use `tests/fixtures/presets/key-governance.json` to document active, retired, and revoked signing keys. A signed preset bundle must use an active review key and an allowed algorithm.
+
 ## OCR Samples
 
 Do not commit scanned receipt images by default. Commit only local OCR text output that has been anonymized and reviewed. Keep the original image as local evidence outside the repo.

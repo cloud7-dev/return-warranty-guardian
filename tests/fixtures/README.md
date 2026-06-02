@@ -13,7 +13,7 @@ Current fixture groups:
 - `ocr/`: local OCR text result fixtures and synthetic SVG bundled-worker fixtures for scanned receipt parser regression without committing private receipt images.
 - `notifications/`: ntfy, Gotify, and Apprise payload fixtures plus sanitized smoke policy and result records for local runner dry-run and endpoint-plan coverage.
 - `policies/`: expected defaults, evidence requirements, and country/jurisdiction metadata for user-confirmed policy templates.
-- `presets/`: review manifests, trusted public key registry fixtures, and signed CSV preset bundles for fingerprint and detached signature coverage.
+- `presets/`: review manifests, trusted public key registry fixtures, key governance policy, and signed CSV preset bundles for fingerprint and detached signature coverage.
 
 To create a sanitized draft from a local private sample:
 
