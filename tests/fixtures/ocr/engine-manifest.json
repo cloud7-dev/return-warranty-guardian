@@ -1,0 +1,52 @@
+{
+  "schema": "return-warranty-guardian.local-ocr-engine-manifest.v1",
+  "privacyNote": "OCR engine manifests document local/no-cloud extraction capabilities only. Do not include model weights, private receipt images, endpoint URLs, tokens, or telemetry IDs.",
+  "engines": [
+    {
+      "id": "bundled-svg-fixture-worker",
+      "kind": "bundled-worker-fixture",
+      "entrypoint": "src/local-ocr-worker.js",
+      "license": "Apache-2.0",
+      "networkAccess": "none",
+      "storesInput": false,
+      "supportedMimeTypes": [
+        "image/svg+xml"
+      ],
+      "fixtureCoverage": [
+        "tests/fixtures/ocr/scanned-receipt.local-ocr.svg"
+      ],
+      "status": "fixture-only"
+    },
+    {
+      "id": "browser-text-detector",
+      "kind": "browser-local-api",
+      "entrypoint": "TextDetector",
+      "license": "browser-provided",
+      "networkAccess": "none",
+      "storesInput": false,
+      "supportedMimeTypes": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ],
+      "fixtureCoverage": [],
+      "status": "optional-runtime"
+    },
+    {
+      "id": "manual-local-ocr-sidecar",
+      "kind": "manual-sidecar",
+      "entrypoint": "textFromScannedPdfWithLocalOcr",
+      "license": "user-provided-local-output",
+      "networkAccess": "none",
+      "storesInput": false,
+      "supportedMimeTypes": [
+        "application/pdf",
+        "text/plain"
+      ],
+      "fixtureCoverage": [
+        "tests/fixtures/pdf/scanned-sidecars.json"
+      ],
+      "status": "available"
+    }
+  ]
+}

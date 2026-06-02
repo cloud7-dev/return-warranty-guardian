@@ -400,6 +400,10 @@ const svgOcrText = await textFromImageSource(svgOcrFile, localOcrEnvironment(glo
 assert.match(svgOcrText, /Fixture SVG OCR Market/);
 assert.equal(parseReceiptText(svgOcrText).total, 42.6);
 assert.equal(await bundledLocalOcrWorker(svgOcrFile), svgOcrText);
+const ocrEngineManifest = JSON.parse(await fixture("ocr/engine-manifest.json"));
+assert.equal(ocrEngineManifest.schema, "return-warranty-guardian.local-ocr-engine-manifest.v1");
+assert.ok(ocrEngineManifest.engines.every((engine) => engine.networkAccess === "none"));
+assert.ok(ocrEngineManifest.engines.some((engine) => engine.id === "bundled-svg-fixture-worker"));
 
 const policyTemplate = policyTemplateById("extended-60-day-return");
 assert.equal(policyTemplate.returnWindowDays, 60);

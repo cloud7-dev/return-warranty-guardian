@@ -25,6 +25,7 @@ const requiredFiles = [
   "tests/fixtures/notifications/smoke-policy.json",
   "tests/fixtures/pdf/scanned-sidecars.json",
   "tests/fixtures/presets/key-governance.json",
+  "tests/fixtures/ocr/engine-manifest.json",
   "assets/icon.svg",
   "README.md",
   "CONTRIBUTING.md",

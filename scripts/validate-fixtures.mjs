@@ -191,6 +191,28 @@ async function validatePolicyFixtures() {
 }
 
 async function validateOcrResultFixtures() {
+  const engineManifestPath = path.join(root, "ocr/engine-manifest.json");
+  const engineManifest = JSON.parse(await readFile(engineManifestPath, "utf8"));
+  if (engineManifest.schema !== "return-warranty-guardian.local-ocr-engine-manifest.v1") {
+    throw new Error("OCR engine manifest has unsupported schema.");
+  }
+  const engines = Array.isArray(engineManifest.engines) ? engineManifest.engines : [];
+  for (const engine of engines) {
+    if (!engine.id || !engine.kind || !engine.entrypoint || !engine.license) throw new Error("OCR engine manifest entries need id, kind, entrypoint, and license.");
+    if (engine.networkAccess !== "none") throw new Error(`${engine.id} must not require network access.`);
+    if (engine.storesInput !== false) throw new Error(`${engine.id} must not store OCR input.`);
+    if (!Array.isArray(engine.supportedMimeTypes) || !engine.supportedMimeTypes.length) throw new Error(`${engine.id} must declare supported MIME types.`);
+    for (const fixturePath of engine.fixtureCoverage || []) {
+      await readFile(path.join(root, fixturePath.replace(/^tests\/fixtures\//, "")), "utf8");
+    }
+  }
+  if (!engines.some((engine) => engine.id === "bundled-svg-fixture-worker" && engine.status === "fixture-only")) {
+    throw new Error("OCR engine manifest must describe the bundled SVG fixture worker.");
+  }
+  if (!engines.some((engine) => engine.id === "manual-local-ocr-sidecar")) {
+    throw new Error("OCR engine manifest must describe local scanned PDF sidecar extraction.");
+  }
+
   const manifestPath = path.join(root, "ocr/results.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (manifest.schema !== "return-warranty-guardian.ocr-result-fixtures.v1") {

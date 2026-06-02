@@ -45,6 +45,8 @@ The repo also includes synthetic SVG OCR fixtures for the bundled no-cloud worke
 
 Scanned PDF fixtures may be paired with anonymized local OCR text through `tests/fixtures/pdf/scanned-sidecars.json`. The sidecar text must come from a local/no-cloud process and must be parser-checked before commit.
 
+OCR engine coverage is documented in `tests/fixtures/ocr/engine-manifest.json`. Every listed engine must declare supported MIME types, no network access, no input storage, license scope, and fixture coverage when applicable.
+
 ## Real Endpoint Smoke Records
 
 Do not commit raw notification smoke output. Convert it first:
