@@ -18,6 +18,37 @@
       "status": "fixture-only"
     },
     {
+      "id": "bundled-template-pbm-worker",
+      "kind": "bundled-template-ocr",
+      "entrypoint": "src/local-ocr-worker.js",
+      "license": "Apache-2.0",
+      "networkAccess": "none",
+      "storesInput": false,
+      "supportedMimeTypes": [
+        "image/x-portable-bitmap"
+      ],
+      "fixtureCoverage": [
+        "tests/fixtures/ocr/template-receipt.local-ocr.pbm"
+      ],
+      "status": "available"
+    },
+    {
+      "id": "scanned-pdf-embedded-template-ocr",
+      "kind": "scanned-pdf-automation",
+      "entrypoint": "textFromScannedPdfWithBundledOcr",
+      "license": "Apache-2.0",
+      "networkAccess": "none",
+      "storesInput": false,
+      "supportedMimeTypes": [
+        "application/pdf",
+        "image/x-portable-bitmap"
+      ],
+      "fixtureCoverage": [
+        "tests/fixtures/ocr/template-receipt.local-ocr.pbm"
+      ],
+      "status": "available"
+    },
+    {
       "id": "browser-text-detector",
       "kind": "browser-local-api",
       "entrypoint": "TextDetector",

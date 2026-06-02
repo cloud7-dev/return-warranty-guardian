@@ -28,6 +28,15 @@
       "expectedItem": "Strategy Accessory",
       "expectedMinItems": 6,
       "expectedTotal": 587.04
+    },
+    {
+      "path": "ocr/template-receipt.local-ocr.pbm",
+      "sourceType": "bundled-template-pbm-worker",
+      "expectedMerchant": "OCR",
+      "expectedPurchaseDate": "2026-06-03",
+      "expectedItem": "ITEM",
+      "expectedMinItems": 1,
+      "expectedTotal": 1
     }
   ]
 }

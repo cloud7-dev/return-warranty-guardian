@@ -79,4 +79,4 @@ The operations report is suitable for release notes or maintainer checklists bec
 
 ## OCR Fallback
 
-Image OCR is local only. The app tries a bundled local worker if one exists, then browser `TextDetector`, then manual paste/attachment fallback. Scanned PDFs without text operators stay as local claim evidence unless the user supplies local OCR text.
+Image OCR is local only. The app tries the bundled PBM template worker for supported bitmap fixtures, then browser `TextDetector`, then manual paste/attachment fallback. Scanned PDFs without text operators can be processed automatically when they contain an embedded PBM template stream; otherwise they stay as local claim evidence unless the user supplies local OCR text.

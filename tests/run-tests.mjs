@@ -38,15 +38,17 @@ import {
   verifyCsvPresetBundleFingerprint,
 } from "../src/importers.js";
 import {
+  embeddedBundledOcrBitmapFromPdf,
   localOcrEnginePlan,
   pdfExtractionDiagnostics,
   pdfExtractionStatus,
   textFromHtmlSource,
   textFromImageSource,
   textFromPdfSource,
+  textFromScannedPdfWithBundledOcr,
   textFromScannedPdfWithLocalOcr,
 } from "../src/local-extraction.js";
-import { bundledLocalOcrWorker, bundledLocalOcrWorkerSupports, localOcrEnvironment } from "../src/local-ocr-worker.js";
+import { bundledLocalOcrWorker, bundledLocalOcrWorkerSupports, localOcrEnvironment, renderBundledOcrPbm } from "../src/local-ocr-worker.js";
 import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
@@ -426,10 +428,35 @@ const svgOcrText = await textFromImageSource(svgOcrFile, localOcrEnvironment(glo
 assert.match(svgOcrText, /Fixture SVG OCR Market/);
 assert.equal(parseReceiptText(svgOcrText).total, 42.6);
 assert.equal(await bundledLocalOcrWorker(svgOcrFile), svgOcrText);
+const templateOcrPbm = renderBundledOcrPbm(`PUBLIC MART
+2026-06-03
+FILTER 19.99
+LAMP 42.50
+TOTAL 62.49`);
+const templateOcrFile = new File([templateOcrPbm], "public-receipt.pbm", { type: "image/x-portable-bitmap" });
+assert.equal(bundledLocalOcrWorkerSupports(templateOcrFile), true);
+const templateOcrText = await textFromImageSource(templateOcrFile, localOcrEnvironment(globalThis, templateOcrFile));
+assert.match(templateOcrText, /PUBLIC MART/);
+assert.equal(parseReceiptText(templateOcrText).merchant, "PUBLIC MART");
+assert.equal(parseReceiptText(templateOcrText).total, 62.49);
+const scannedPdfWithEmbeddedBitmap = `%PDF-1.4
+1 0 obj
+<< /Subtype /Image /Filter /DCTDecode /Width 1 /Height 1 >>
+stream
+${templateOcrPbm}
+endstream
+endobj`;
+assert.match(embeddedBundledOcrBitmapFromPdf(scannedPdfWithEmbeddedBitmap), /^P1/);
+const bundledPdfOcrText = await textFromScannedPdfWithBundledOcr(scannedPdfWithEmbeddedBitmap);
+assert.match(bundledPdfOcrText, /PDF bundled OCR note/);
+assert.match(bundledPdfOcrText, /No cloud OCR was used/);
+assert.equal(parseReceiptText(bundledPdfOcrText).merchant, "PUBLIC MART");
+assert.equal(parseReceiptText(bundledPdfOcrText).total, 62.49);
 const ocrEngineManifest = JSON.parse(await fixture("ocr/engine-manifest.json"));
 assert.equal(ocrEngineManifest.schema, "return-warranty-guardian.local-ocr-engine-manifest.v1");
 assert.ok(ocrEngineManifest.engines.every((engine) => engine.networkAccess === "none"));
 assert.ok(ocrEngineManifest.engines.some((engine) => engine.id === "bundled-svg-fixture-worker"));
+assert.ok(ocrEngineManifest.engines.some((engine) => engine.id === "bundled-template-pbm-worker" && engine.status === "available"));
 
 const policyTemplate = policyTemplateById("extended-60-day-return");
 assert.equal(policyTemplate.returnWindowDays, 60);
@@ -769,24 +796,26 @@ const { stdout: requestPackStdout } = await execFileAsync(process.execPath, [
 ]);
 assert.match(requestPackStdout, /Sample Request Pack/);
 assert.match(requestPackStdout, /Maintainer Gate/);
-const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit });
+const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit, ocrEngineManifest });
 assert.equal(releaseReport.schema, "return-warranty-guardian.release-readiness-report.v1");
-assert.equal(releaseReport.remainingItems.length, 1);
-assert.match(releaseReport.remainingItems.join("\n"), /Actual bundled cross-browser OCR engine/);
+assert.equal(releaseReport.remainingItems.length, 0);
+assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /Actual bundled cross-browser OCR engine/);
 assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /Actual anonymized-community or public-open-license/);
 assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /recurring public\/self-hosted endpoint smoke/);
 const releaseMarkdown = releaseReadinessMarkdown(releaseReport);
 assert.match(releaseMarkdown, /Release Readiness Report/);
 assert.match(releaseMarkdown, /Recurring public smoke configured/);
+assert.match(releaseMarkdown, /Bundled OCR automation available/);
 assert.match(releaseMarkdown, /Community-ready/);
-assert.match(releaseMarkdown, /3 remain/);
+assert.match(releaseMarkdown, /No numbered follow-up items remain/);
 const { stdout: releaseStdout } = await execFileAsync(process.execPath, [
   "scripts/release-readiness-report.mjs",
   "tests/fixtures/intake/sample-intake.json",
 ]);
 assert.match(releaseStdout, /Release Readiness Report/);
 assert.match(releaseStdout, /Recurring public smoke configured/);
-assert.match(releaseStdout, /3 remain/);
+assert.match(releaseStdout, /Bundled OCR automation available/);
+assert.match(releaseStdout, /No numbered follow-up items remain/);
 const { stdout: strictCoverageStdout } = await execFileAsync(process.execPath, [
   "scripts/sample-intake-coverage-report.mjs",
   "--strict-community",

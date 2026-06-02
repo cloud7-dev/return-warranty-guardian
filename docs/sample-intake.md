@@ -77,11 +77,11 @@ Current fixture coverage includes synthetic samples and a reviewed public-open-l
 
 Do not commit scanned receipt images by default. Commit only local OCR text output that has been anonymized and reviewed. Keep the original image as local evidence outside the repo.
 
-The repo also includes synthetic SVG OCR fixtures for the bundled no-cloud worker path. These SVG files must contain only fake receipt text in `data-rwg-ocr-text` metadata and must pass `npm run fixture:validate`.
+The repo also includes synthetic SVG OCR fixtures for legacy metadata extraction and PBM template OCR fixtures for the bundled no-cloud worker path. SVG files must contain only fake receipt text in `data-rwg-ocr-text` metadata. PBM fixtures must be generated from non-sensitive receipt text and pass `npm run fixture:validate`.
 
 Scanned PDF fixtures may be paired with anonymized local OCR text through `tests/fixtures/pdf/scanned-sidecars.json`. The sidecar text must come from a local/no-cloud process and must be parser-checked before commit. The app parser also exposes a local OCR sidecar text box and `.txt` file input so a user can paste or attach local OCR output for an image-based PDF without committing or uploading the raw scan.
 
-OCR engine coverage is documented in `tests/fixtures/ocr/engine-manifest.json`. Every listed engine must declare supported MIME types, no network access, no input storage, license scope, and fixture coverage when applicable.
+OCR engine coverage is documented in `tests/fixtures/ocr/engine-manifest.json`. Every listed engine must declare supported MIME types, no network access, no input storage, license scope, and fixture coverage when applicable. The bundled PBM template OCR worker is intentionally narrow and deterministic; it proves no-cloud bundled OCR and scanned PDF automation without claiming general Tesseract-like OCR breadth.
 
 ## Real Endpoint Smoke Records
 

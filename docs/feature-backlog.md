@@ -62,8 +62,8 @@ This list separates high-leverage additions from features that could distract th
    - Remaining work: broader anonymized real card-statement/retailer fixture expansion, signed maintainer key registry operations, and community preset review at scale.
 
 6. **Optional OCR**
-   - Text, CSV, HTML/email, simple PDF text-operator extraction, scanned/compressed PDF fallback diagnostics/notices, local OCR text sidecar paste/file input and matching `.ocr.txt` auto-pairing for scanned PDFs, local OCR text result fixtures, and supported browser-local image OCR now run locally in the browser. Image OCR now has an adapter boundary for a future bundled worker, browser TextDetector, or manual fallback.
-   - A bundled cross-browser image OCR engine and real scan/bitmap PDF OCR are still needed if practical.
+   - Text, CSV, HTML/email, simple PDF text-operator extraction, scanned/compressed PDF fallback diagnostics/notices, local OCR text sidecar paste/file input and matching `.ocr.txt` auto-pairing for scanned PDFs, local OCR text result fixtures, bundled PBM template OCR, scanned PDF embedded-bitmap OCR automation, and supported browser-local image OCR now run locally in the browser.
+   - The bundled PBM template OCR worker is deterministic and cross-browser JavaScript with no network access, but it is intentionally narrow; broader natural receipt photo OCR would still require a larger local model if the project chooses to carry that maintenance cost.
    - Cloud OCR should be explicitly opt-in and disabled by default.
 
 7. **Local notification upgrade**

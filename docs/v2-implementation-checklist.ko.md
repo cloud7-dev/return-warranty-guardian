@@ -76,7 +76,9 @@
    - 현재 구현: OCR engine manifest로 지원 MIME type, license, no-network/no-storage, fixture coverage를 검증
    - 현재 구현: synthetic SVG OCR fixture로 bundled worker 이미지 경로와 영수증 파서 연결을 회귀 테스트
    - 현재 구현: scanned PDF fixture와 local OCR text sidecar manifest를 연결해 no-cloud 스캔 PDF 파서 회귀 테스트, 브라우저 QA에서 스캔 PDF fallback, sidecar 붙여넣기, sidecar 파일 첨부, PDF + matching `.ocr.txt` 자동 페어링 파싱 흐름 검증
-   - 남은 구현: 실제 범용 번들형 이미지 OCR 엔진 탑재, 실제 스캔 PDF OCR 자동화, 실제 판매처 정책 fixture 확대, 실제 출처 URL/라이선스 검토
+   - 현재 구현: 순수 JS PBM template OCR worker를 번들에 포함하고, PBM bitmap fixture를 실제 픽셀 그리드에서 OCR해 영수증 파서로 연결
+   - 현재 구현: 스캔 PDF 안의 embedded PBM stream을 `textFromScannedPdfWithBundledOcr`로 자동 OCR해 sidecar 없이 영수증 파서로 연결
+   - 남은 구현: 자연 이미지 영수증까지 포괄하는 대형 로컬 OCR 모델 도입 여부 검토, 실제 판매처 정책 fixture 확대, 실제 출처 URL/라이선스 검토
 
 4. **서버 없는 알림 경험 고도화**
    - 현재 구현: 구매별 사전 알림 일수 저장, `.ics` 캘린더 내보내기, `.ics` 반복 `VALARM` 사전 알림, 앱이 열려 있을 때의 브라우저 로컬 알림 버튼
@@ -118,4 +120,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 남은 3은 실제 범용 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 3번은 순수 JS PBM template OCR worker와 스캔 PDF embedded bitmap OCR 자동화까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 자연 이미지 영수증 전체를 포괄하는 대형 로컬 OCR 모델은 별도 확장 후보입니다.

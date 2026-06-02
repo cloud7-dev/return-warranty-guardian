@@ -27,7 +27,7 @@ import {
   validateCsvPresetBundle,
 } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
-import { textFromHtmlSource, textFromImageSource, textFromPdfSource, textFromScannedPdfWithLocalOcr } from "./local-extraction.js";
+import { textFromHtmlSource, textFromImageSource, textFromPdfSource, textFromScannedPdfWithBundledOcr, textFromScannedPdfWithLocalOcr } from "./local-extraction.js";
 import { localOcrEnvironment } from "./local-ocr-worker.js";
 import { POLICY_TEMPLATES, policyTemplateById, policyTemplateReviewNote } from "./policy-templates.js";
 import { parseReceiptText } from "./receipt-parser.js";
@@ -89,7 +89,8 @@ async function extractLocalText(file, ocrSidecarText = "") {
   if (/^text\//.test(file.type) || /\.txt$|\.csv$/i.test(file.name)) return file.text();
   if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
     const pdfText = await file.text();
-    return String(ocrSidecarText || "").trim() ? textFromScannedPdfWithLocalOcr(pdfText, ocrSidecarText) : textFromPdfSource(pdfText);
+    if (String(ocrSidecarText || "").trim()) return textFromScannedPdfWithLocalOcr(pdfText, ocrSidecarText);
+    return textFromScannedPdfWithBundledOcr(pdfText, localOcrEnvironment(globalThis, { name: "scanned-pdf-embedded-bundled-ocr.pbm", type: "image/x-portable-bitmap" }));
   }
   if (/^image\//.test(file.type)) {
     return textFromImageSource(file, localOcrEnvironment(globalThis, file));

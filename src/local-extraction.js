@@ -1,3 +1,5 @@
+import { bundledLocalOcrWorker, bundledLocalOcrWorkerSupports } from "./local-ocr-worker.js";
+
 export function textFromHtmlSource(raw) {
   const source = String(raw || "");
   if (typeof DOMParser === "function") {
@@ -179,6 +181,34 @@ export function textFromScannedPdfWithLocalOcr(pdfRaw, ocrText) {
   return [
     text,
     "PDF local OCR sidecar note: scanned PDF text was supplied by a local OCR sidecar fixture.",
+    "No cloud OCR was used.",
+  ].join("\n");
+}
+
+export function embeddedBundledOcrBitmapFromPdf(pdfRaw) {
+  const source = String(pdfRaw || "");
+  const streamMatch = source.match(/stream\s*(P1[\s\S]*?)\s*endstream/i);
+  return streamMatch?.[1]?.trim() || "";
+}
+
+export async function textFromScannedPdfWithBundledOcr(pdfRaw, environment = globalThis) {
+  const diagnostics = pdfExtractionDiagnostics(pdfRaw);
+  if (diagnostics.status !== "scanned-or-compressed") return textFromPdfSource(pdfRaw);
+  const pbm = embeddedBundledOcrBitmapFromPdf(pdfRaw);
+  if (!pbm) return textFromPdfSource(pdfRaw);
+  const file = {
+    name: "scanned-pdf-embedded-bundled-ocr.pbm",
+    type: "image/x-portable-bitmap",
+    text: async () => pbm,
+  };
+  const worker =
+    typeof environment?.ReturnWarrantyGuardianOcrWorker === "function" && bundledLocalOcrWorkerSupports(file)
+      ? environment.ReturnWarrantyGuardianOcrWorker
+      : bundledLocalOcrWorker;
+  const text = await worker(file);
+  return [
+    text,
+    "PDF bundled OCR note: scanned PDF image stream was processed by the bundled local OCR worker.",
     "No cloud OCR was used.",
   ].join("\n");
 }

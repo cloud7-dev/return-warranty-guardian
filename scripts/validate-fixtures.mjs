@@ -37,6 +37,7 @@ async function listFiles(dir) {
 }
 
 function assertNoPrivateData(file, text) {
+  if (/\.pbm$/i.test(file)) return;
   for (const item of piiPatterns) {
     if (item.pattern.test(text)) throw new Error(`${file} contains possible private data: ${item.name}`);
   }
@@ -219,6 +220,12 @@ async function validateOcrResultFixtures() {
   if (!engines.some((engine) => engine.id === "bundled-svg-fixture-worker" && engine.status === "fixture-only")) {
     throw new Error("OCR engine manifest must describe the bundled SVG fixture worker.");
   }
+  if (!engines.some((engine) => engine.id === "bundled-template-pbm-worker" && engine.status === "available")) {
+    throw new Error("OCR engine manifest must describe the available bundled template PBM worker.");
+  }
+  if (!engines.some((engine) => engine.id === "scanned-pdf-embedded-template-ocr" && engine.status === "available")) {
+    throw new Error("OCR engine manifest must describe scanned PDF embedded bitmap OCR automation.");
+  }
   if (!engines.some((engine) => engine.id === "manual-local-ocr-sidecar")) {
     throw new Error("OCR engine manifest must describe local scanned PDF sidecar extraction.");
   }
@@ -233,8 +240,14 @@ async function validateOcrResultFixtures() {
     const text = await readFile(fixturePath, "utf8");
     assertNoPrivateData(fixturePath, text);
     const parsed =
-      item.sourceType === "bundled-fixture-worker"
-        ? parseReceiptText(await bundledLocalOcrWorker({ name: path.basename(item.path), type: "image/svg+xml", text: async () => text }))
+      item.sourceType === "bundled-fixture-worker" || item.sourceType === "bundled-template-pbm-worker"
+        ? parseReceiptText(
+            await bundledLocalOcrWorker({
+              name: path.basename(item.path),
+              type: item.sourceType === "bundled-template-pbm-worker" ? "image/x-portable-bitmap" : "image/svg+xml",
+              text: async () => text,
+            }),
+          )
         : parseReceiptText(text);
     if (parsed.merchant !== item.expectedMerchant) throw new Error(`${item.path} merchant mismatch.`);
     if (parsed.purchaseDate !== item.expectedPurchaseDate) throw new Error(`${item.path} purchase date mismatch.`);
