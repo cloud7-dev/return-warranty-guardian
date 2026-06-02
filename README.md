@@ -29,9 +29,9 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Stores purchases in browser storage with JSON export/import.
 - Stores local receipt, PDF, manual, and warranty-card attachments in the browser record, with save/skipped status for over-size files.
 - Previews CSV purchase rows before import, supports built-in presets for card/order exports including Korean card statements, Korean shopping orders, and Amazon-style order history, plus saved user presets, manual column mapping, duplicate skipping, and invalid row reporting locally.
-- Shows a local CSV import review checklist, lets users exclude individual importable rows before confirm, validates CSV preset bundle compatibility, and exports/imports preset bundles for sharing column mappings without purchase rows.
+- Shows a local CSV import review checklist, lets users exclude individual importable rows before confirm, filters staged import rows for review, validates CSV preset bundle compatibility, and exports/imports preset bundles with trust metadata for sharing column mappings without purchase rows.
 - Exports a local CSV import report for audit/debugging before the import is confirmed.
-- Extracts local text, CSV, HTML/email receipts, simple PDF text operators, scanned/compressed PDF fallback notices, and supported browser-local image OCR into the receipt parser without upload.
+- Extracts local text, CSV, HTML/email receipts, simple PDF text operators, scanned/compressed PDF fallback diagnostics, and supported browser-local image OCR into the receipt parser without upload.
 - Applies user-confirmed policy templates with evidence requirements, source/version metadata, and country/jurisdiction disclaimers without fetching merchant data.
 - Includes a synthetic fixture corpus for CSV presets, email receipt extraction, PDF text extraction/scanned fallback diagnostics, notification runner payloads, and policy-template coverage.
 - Provides a local fixture anonymizer for turning private examples into privacy-safe test fixtures before contribution.
@@ -76,7 +76,7 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, preset bundle export/validation, review checklist generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback diagnostics, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, self-hosted notification payload, provider fixture plans, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, scanned PDF fallback, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, preset bundle export/validation/trust metadata, review checklist/filter generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback diagnostics, local OCR engine planning, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, self-hosted notification payload, provider fixture plans, scheduler recipes, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, scanned PDF fallback, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
 
 To prepare a privacy-safe fixture from a local sample:
 
@@ -106,7 +106,7 @@ Provider-specific fixture payloads live in `tests/fixtures/notifications`, and t
 
 Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use JSON export for backups.
 
-Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, HTML/email receipts, simple PDF text operators, scanned/compressed PDF fallback notices, and image OCR when the browser exposes a local `TextDetector` API. If image OCR is not available in the current browser, the app keeps the flow local and asks the user to paste receipt text instead of calling a cloud OCR service.
+Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, HTML/email receipts, simple PDF text operators, scanned/compressed PDF fallback diagnostics, and image OCR through a local OCR adapter when the browser exposes `TextDetector` or a future bundled worker. If image OCR is not available in the current browser, the app keeps the flow local and asks the user to paste receipt text instead of calling a cloud OCR service.
 
 This project is a tracking and evidence-organization tool. It does not guarantee that a merchant will accept a return, refund, or warranty claim.
 

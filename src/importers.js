@@ -285,6 +285,41 @@ export function analyzeCsvImport(text, existingPurchases = [], now = new Date(),
   };
 }
 
+export function csvImportReviewFilters(preview, options = {}) {
+  const query = String(options.query || "").trim().toLowerCase();
+  const proof = options.proof || "all";
+  const sectionRows = {
+    valid: preview?.valid || [],
+    duplicate: preview?.duplicates || [],
+    invalid: preview?.invalid || [],
+  };
+  const matchesQuery = (row) => {
+    if (!query) return true;
+    const purchase = row.purchase || {};
+    return [purchase.productName, purchase.merchant, purchase.purchaseDate, purchase.notes, ...(purchase.documents || []), ...(row.issues || [])]
+      .join(" ")
+      .toLowerCase()
+      .includes(query);
+  };
+  const matchesProof = (row) => {
+    if (proof === "all") return true;
+    const purchase = row.purchase || {};
+    const hasProof = Boolean(purchase.hasReceipt || (purchase.documents || []).length);
+    return proof === "with-proof" ? hasProof : !hasProof;
+  };
+  const filtered = Object.fromEntries(
+    Object.entries(sectionRows).map(([section, rows]) => [section, rows.filter((row) => matchesQuery(row) && matchesProof(row))]),
+  );
+  return {
+    schema: "return-warranty-guardian.csv-import-review-filters.v1",
+    query,
+    proof,
+    totalCount: Object.values(sectionRows).reduce((sum, rows) => sum + rows.length, 0),
+    filteredCount: Object.values(filtered).reduce((sum, rows) => sum + rows.length, 0),
+    sections: filtered,
+  };
+}
+
 export function csvImportReport(preview, now = new Date()) {
   const rowSummary = (row) => ({
     rowNumber: row.rowNumber,
@@ -368,11 +403,16 @@ export function csvPresetBundle(presets, now = new Date()) {
       version: 1,
       generatedAt: now.toISOString(),
       privacyNote: "Preset bundles contain column mappings only. Do not include real receipts, card numbers, order IDs, or purchase rows.",
+      trustModel: "community-reviewed-local-mapping",
+      signatureStatus: "unsigned-local-draft",
       supportedFields: CSV_IMPORT_FIELDS.map((field) => field.key),
       presets: (presets || []).map((preset) => ({
         id: preset.id,
         label: preset.label,
         mapping: preset.mapping || {},
+        source: preset.source || "local-user",
+        reviewedAt: preset.reviewedAt || now.toISOString().slice(0, 10),
+        fixtureCoverage: preset.fixtureCoverage || [],
       })),
     },
     null,
@@ -389,6 +429,8 @@ export function validateCsvPresetBundle(bundle) {
   if (Number(bundle?.version || 1) > 1) {
     issues.push(`unsupported preset bundle version ${bundle.version}`);
   }
+  if (!bundle?.trustModel) warnings.push("preset bundle has no trust model metadata");
+  if (!bundle?.signatureStatus) warnings.push("preset bundle has no signature status metadata");
   const allowedFields = new Set(CSV_IMPORT_FIELDS.map((field) => field.key));
   const presets = Array.isArray(bundle?.presets) ? bundle.presets : [];
   const normalizedPresets = [];
@@ -408,7 +450,12 @@ export function validateCsvPresetBundle(bundle) {
       id: String(preset.id),
       label: String(preset.label),
       mapping: Object.fromEntries(mappingEntries),
+      source: String(preset.source || "unknown"),
+      reviewedAt: String(preset.reviewedAt || ""),
+      fixtureCoverage: Array.isArray(preset.fixtureCoverage) ? preset.fixtureCoverage.map(String) : [],
     });
+    if (!preset.source) warnings.push(`preset ${preset.id} has no source metadata`);
+    if (!preset.reviewedAt) warnings.push(`preset ${preset.id} has no reviewedAt metadata`);
   });
   return {
     ok: issues.length === 0,

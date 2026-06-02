@@ -8,7 +8,7 @@ Return & Warranty Guardian does not run a server and does not upload purchase re
 npm run notify:dry-run -- path/to/payload.json --provider ntfy --limit 3 --json
 ```
 
-Dry-run mode prints the provider, reminder count, endpoint-check plan, warnings, and command previews. Endpoint checks are metadata-only and must not send purchase details.
+Dry-run mode prints the provider, reminder count, endpoint-check plan, warnings, command previews, and scheduler recipes. Endpoint checks are metadata-only and must not send purchase details.
 
 ## Provider fixtures
 
@@ -39,3 +39,13 @@ Actual sending is off by default. It requires all of the following:
 Gotify additionally requires `GOTIFY_TOKEN` in the runner environment. Tokens must not be stored in app state or fixture files.
 
 Apprise send mode is intentionally command-preview-only in this runner. Users can copy the preview into their own Apprise installation if they accept that external tool's behavior.
+
+## Scheduler recipes
+
+The runner exposes recipe text in JSON output:
+
+```bash
+npm run notify:dry-run -- path/to/payload.json --provider ntfy --limit 3 --json
+```
+
+Use the recipe as a starting point only. The default command remains a dry-run. Add real send flags only after reviewing the payload, endpoint, and local secret handling.

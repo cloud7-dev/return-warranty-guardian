@@ -57,6 +57,23 @@ function endpointForProvider(payload, provider) {
   return endpoint;
 }
 
+export function schedulerRecipes(payload, options = {}) {
+  const provider = options.provider || payload?.settings?.provider || "ntfy";
+  const payloadPath = options.payloadPath || "/path/to/return-warranty-guardian-self-hosted-alerts.json";
+  const nodePath = options.nodePath || "node";
+  const runnerPath = options.runnerPath || "scripts/self-hosted-notification-runner.mjs";
+  const command = `${nodePath} ${runnerPath} ${shellSingleQuote(payloadPath)} --provider ${provider} --limit ${Number(options.limit || 5)}`;
+  return {
+    schema: "return-warranty-guardian.scheduler-recipes.v1",
+    provider,
+    sendsPurchaseDataDuringEndpointCheck: false,
+    macosLaunchd: `0 9 * * * ${command}`,
+    linuxCron: `0 9 * * * ${command}`,
+    windowsTaskScheduler: `schtasks /Create /SC DAILY /TN ReturnWarrantyGuardianNotify /TR "${command}" /ST 09:00`,
+    note: "Recipes default to dry-run command previews. Add --send --yes and RWG_NOTIFY_SEND=1 only after reviewing the payload and provider endpoint.",
+  };
+}
+
 function sendPreconditions(payload, options) {
   const issues = [];
   if (!options.send) return issues;
@@ -102,6 +119,7 @@ export function buildRunnerPlan(payload, options = {}) {
       command: fillCommand(providerDraft?.curl || "", reminder),
       message: reminder.message,
     })),
+    schedulerRecipes: schedulerRecipes(payload, { provider, limit, payloadPath: options.payloadPath }),
     warnings: [...warnings, ...sendIssues],
     runnerNote:
       "Dry-run is the default. Sending requires --send --yes and RWG_NOTIFY_SEND=1; keep provider tokens outside this app.",

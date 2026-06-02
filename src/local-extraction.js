@@ -108,6 +108,38 @@ export function pdfExtractionDiagnostics(raw) {
   };
 }
 
+export function localOcrEnginePlan(environment = globalThis) {
+  const hasTextDetector = typeof environment?.TextDetector === "function";
+  const hasBundledWorker = typeof environment?.ReturnWarrantyGuardianOcrWorker === "function";
+  const engine = hasBundledWorker ? "bundled-worker" : hasTextDetector ? "browser-text-detector" : "manual-fallback";
+  return {
+    schema: "return-warranty-guardian.local-ocr-engine-plan.v1",
+    engine,
+    available: hasBundledWorker || hasTextDetector,
+    noCloudOcrUsed: true,
+    requiresNetwork: false,
+    fallbackAction: hasBundledWorker || hasTextDetector ? "Run local OCR before parsing receipt text." : "Paste OCR text manually or attach the file as local claim evidence.",
+  };
+}
+
+export async function textFromImageSource(file, environment = globalThis) {
+  const plan = localOcrEnginePlan(environment);
+  if (plan.engine === "bundled-worker") {
+    return environment.ReturnWarrantyGuardianOcrWorker(file);
+  }
+  if (plan.engine === "browser-text-detector") {
+    const bitmap = await environment.createImageBitmap(file);
+    try {
+      const detector = new environment.TextDetector();
+      const detections = await detector.detect(bitmap);
+      return detections.map((item) => item.rawValue || "").filter(Boolean).join("\n");
+    } finally {
+      bitmap.close?.();
+    }
+  }
+  throw new Error("Image OCR is not available locally. Paste receipt text or attach the file as local claim evidence.");
+}
+
 export function textFromPdfSource(raw) {
   const source = String(raw || "");
   const tokens = [];

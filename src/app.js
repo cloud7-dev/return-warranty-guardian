@@ -22,7 +22,7 @@ import {
   validateCsvPresetBundle,
 } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
-import { textFromHtmlSource, textFromPdfSource } from "./local-extraction.js";
+import { textFromHtmlSource, textFromImageSource, textFromPdfSource } from "./local-extraction.js";
 import { POLICY_TEMPLATES, policyTemplateById, policyTemplateReviewNote } from "./policy-templates.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
@@ -100,17 +100,7 @@ async function extractLocalText(file) {
     return textFromPdfSource(await file.text());
   }
   if (/^image\//.test(file.type)) {
-    if (typeof TextDetector !== "function") {
-      throw new Error("Image OCR is not available in this browser. Paste receipt text or use a browser with local TextDetector support.");
-    }
-    const bitmap = await createImageBitmap(file);
-    try {
-      const detector = new TextDetector();
-      const detections = await detector.detect(bitmap);
-      return detections.map((item) => item.rawValue || "").filter(Boolean).join("\n");
-    } finally {
-      bitmap.close?.();
-    }
+    return textFromImageSource(file);
   }
   throw new Error("Unsupported local file type.");
 }

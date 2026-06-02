@@ -52,20 +52,20 @@ This list separates high-leverage additions from features that could distract th
    - Keeps local-first story while reducing data-loss risk.
 
 5. **Importers**
-   - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, selected-row import, import report export, review checklist generation, preset bundle export/import with compatibility validation, fixture validation, Korean card statements, Korean shopping orders, Amazon-style order history, Shopify-style order exports, and Stripe-style receipt exports.
+   - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, selected-row import, import report export, review checklist generation, large-import review filters, preset bundle export/import with compatibility validation and trust metadata, fixture validation, Korean card statements, Korean shopping orders, Amazon-style order history, Shopify-style order exports, and Stripe-style receipt exports.
    - Synthetic fixture corpus covers the current built-in presets.
    - Local fixture anonymization exists for draft samples.
    - Remaining work: anonymized real card-statement/retailer fixture expansion, large-file row filtering, signed preset trust chains, and community preset review.
 
 6. **Optional OCR**
-   - Text, CSV, HTML/email, simple PDF text-operator extraction, scanned/compressed PDF fallback diagnostics/notices, and supported browser-local image OCR now run locally in the browser.
+   - Text, CSV, HTML/email, simple PDF text-operator extraction, scanned/compressed PDF fallback diagnostics/notices, and supported browser-local image OCR now run locally in the browser. Image OCR now has an adapter boundary for a future bundled worker, browser TextDetector, or manual fallback.
    - A bundled cross-browser image OCR engine and real scan/bitmap PDF OCR are still needed if practical.
    - Cloud OCR should be explicitly opt-in and disabled by default.
 
 7. **Local notification upgrade**
    - Per-purchase lead days, repeated `.ics` `VALARM`, open-app browser notifications, calendar import guidance, 3-hour/tomorrow/7-day in-app snooze, local self-hosted settings, self-hosted notification payload exports, dry-run reports, a runner CLI, and guarded opt-in send mode are implemented.
-   - Provider-specific endpoint fixtures and an operating guide now cover ntfy, Gotify, and Apprise dry-run plans.
-   - Remaining work: platform-specific fallback copy, scheduler recipes, and real self-hosted endpoint smoke tests maintained outside the app.
+   - Provider-specific endpoint fixtures, scheduler recipes, and an operating guide now cover ntfy, Gotify, and Apprise dry-run plans.
+   - Remaining work: platform-specific fallback copy and real self-hosted endpoint smoke tests maintained outside the app.
 
 8. **Claim packet HTML/PDF**
    - Printable HTML claim packet exists with attachment links, image previews, PDF save guidance, attachment manifests, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.

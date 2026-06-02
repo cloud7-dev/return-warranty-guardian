@@ -6,10 +6,11 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { sanitizeFixtureFilename, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
-import { buildRunnerPlan } from "../scripts/self-hosted-notification-runner.mjs";
+import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
 import {
   analyzeCsvImport,
   csvImportReport,
+  csvImportReviewFilters,
   csvImportReviewChecklist,
   csvHeaders,
   csvMappingForPreset,
@@ -17,7 +18,7 @@ import {
   purchasesFromCsv,
   validateCsvPresetBundle,
 } from "../src/importers.js";
-import { pdfExtractionDiagnostics, pdfExtractionStatus, textFromHtmlSource, textFromPdfSource } from "../src/local-extraction.js";
+import { localOcrEnginePlan, pdfExtractionDiagnostics, pdfExtractionStatus, textFromHtmlSource, textFromImageSource, textFromPdfSource } from "../src/local-extraction.js";
 import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
@@ -157,16 +158,30 @@ const reviewChecklist = csvImportReviewChecklist(analyzed);
 assert.equal(reviewChecklist.length, 4);
 assert.equal(reviewChecklist.find((item) => item.id === "duplicate-review").status, "warn");
 assert.equal(reviewChecklist.find((item) => item.id === "invalid-review").status, "warn");
-const presetBundle = JSON.parse(csvPresetBundle([{ id: "user-test", label: "User Test", mapping: { price: "amount" } }], now));
+const reviewFilters = csvImportReviewFilters(analyzed, { query: "lamp", proof: "without-proof" });
+assert.equal(reviewFilters.schema, "return-warranty-guardian.csv-import-review-filters.v1");
+assert.equal(reviewFilters.totalCount, 3);
+assert.equal(reviewFilters.filteredCount, 1);
+assert.equal(reviewFilters.sections.valid[0].purchase.productName, "Imported Lamp");
+const presetBundle = JSON.parse(
+  csvPresetBundle(
+    [{ id: "user-test", label: "User Test", mapping: { price: "amount" }, source: "community-fixture", fixtureCoverage: ["tests/fixtures/csv/shopify-order-export.csv"] }],
+    now,
+  ),
+);
 assert.equal(presetBundle.schema, "return-warranty-guardian.csv-preset-bundle.v1");
 assert.equal(presetBundle.version, 1);
+assert.equal(presetBundle.trustModel, "community-reviewed-local-mapping");
+assert.equal(presetBundle.signatureStatus, "unsigned-local-draft");
 assert.equal(presetBundle.presets[0].mapping.price, "amount");
+assert.equal(presetBundle.presets[0].source, "community-fixture");
 const presetValidation = validateCsvPresetBundle({
   ...presetBundle,
   presets: [{ id: "user-test", label: "User Test", mapping: { price: "amount", unexpected: "x" } }],
 });
 assert.equal(presetValidation.ok, true);
-assert.equal(presetValidation.warnings.length, 1);
+assert.equal(presetValidation.warnings.length, 3);
+assert.match(presetValidation.warnings.join(" "), /no source metadata/);
 assert.deepEqual(presetValidation.presets[0].mapping, { price: "amount" });
 
 const cardMapping = csvMappingForPreset(["transaction_date", "description", "amount"], "card-statement");
@@ -282,6 +297,13 @@ assert.equal(scannedPdfDiagnostics.status, "scanned-or-compressed");
 assert.equal(scannedPdfDiagnostics.hasImageXObject, true);
 assert.equal(scannedPdfDiagnostics.hasCompressedStream, true);
 assert.equal(scannedPdfDiagnostics.noCloudOcrUsed, true);
+assert.equal(localOcrEnginePlan({}).engine, "manual-fallback");
+assert.equal(localOcrEnginePlan({ TextDetector: function TextDetector() {} }).engine, "browser-text-detector");
+assert.equal(localOcrEnginePlan({ ReturnWarrantyGuardianOcrWorker: function worker() {} }).engine, "bundled-worker");
+const bundledOcrText = await textFromImageSource("synthetic-image", {
+  ReturnWarrantyGuardianOcrWorker: async () => "Bundled OCR Fixture Store\nReceipt 12.00",
+});
+assert.match(bundledOcrText, /Bundled OCR Fixture Store/);
 
 const policyTemplate = policyTemplateById("extended-60-day-return");
 assert.equal(policyTemplate.returnWindowDays, 60);
@@ -383,7 +405,13 @@ const runnerPlan = buildRunnerPlan(runnerPayload, { limit: 2, checkEndpoint: tru
 assert.equal(runnerPlan.schema, "return-warranty-guardian.self-hosted-runner-plan.v1");
 assert.equal(runnerPlan.plannedCount, 2);
 assert.equal(runnerPlan.endpointCheck.sendsPurchaseData, false);
+assert.equal(runnerPlan.schedulerRecipes.provider, "ntfy");
+assert.match(runnerPlan.schedulerRecipes.linuxCron, /self-hosted-notification-runner/);
 assert.match(runnerPlan.commands[0].command, /alerts\.example\.test\/returns/);
+const recipes = schedulerRecipes(runnerPayload, { provider: "gotify", payloadPath: "/tmp/rwg-payload.json", limit: 1 });
+assert.match(recipes.macosLaunchd, /gotify/);
+assert.match(recipes.windowsTaskScheduler, /ReturnWarrantyGuardianNotify/);
+assert.equal(recipes.sendsPurchaseDataDuringEndpointCheck, false);
 const refusedSendPlan = buildRunnerPlan(runnerPayload, { limit: 1, send: true, yes: false });
 assert.equal(refusedSendPlan.sendRequested, true);
 assert.equal(refusedSendPlan.sendAllowed, false);
