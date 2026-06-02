@@ -11,6 +11,7 @@
     "qa:browser": "/Users/jstudio/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/qa-browser.mjs",
     "fixture:anonymize": "node scripts/anonymize-fixture.mjs",
     "fixture:review": "node scripts/review-sample-intake.mjs",
+    "fixture:review-batch": "node scripts/review-sample-batch.mjs",
     "fixture:validate": "node scripts/validate-fixtures.mjs",
     "notify:dry-run": "node scripts/self-hosted-notification-runner.mjs",
     "notify:readiness": "node scripts/notification-smoke-readiness.mjs",

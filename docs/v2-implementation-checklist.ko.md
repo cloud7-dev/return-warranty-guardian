@@ -52,7 +52,7 @@
    - 현재 구현: 현재 매핑을 사용자 preset으로 localStorage에 저장/삭제
    - 현재 구현: 한국 카드명세서, 한국 쇼핑몰 주문내역, Amazon-style 주문내역 프리셋과 한국어/영어 주요 헤더 alias
    - 현재 구현: 개인정보 없는 synthetic CSV fixture corpus로 한국 카드 명세서, 한국 쇼핑 주문, Amazon-style order, Shopify-style order, Stripe-style receipt 프리셋 회귀 테스트
-   - 현재 구현: private sample을 테스트 fixture 후보로 바꾸기 위한 로컬 익명화 스크립트, anonymization report, intake entry draft 생성, 단일 incoming sample 후보를 manifest 병합 전 검증하는 `npm run fixture:review` CLI
+   - 현재 구현: private sample을 테스트 fixture 후보로 바꾸기 위한 로컬 익명화 스크립트, anonymization report, intake entry draft 생성, 단일/복수 incoming sample 후보를 manifest 병합 전 검증하는 `npm run fixture:review` / `npm run fixture:review-batch` CLI
    - 현재 구현: sample intake manifest로 익명화 여부, parser 검토 여부, fixture path, source shape coverage target, provenance, 재사용 허가, 원본 샘플 미보관, 비민감 contributor handle을 검증
    - 현재 구현: `npm run fixture:validate`로 개인정보 패턴, CSV fixture importability, 정책 source/license metadata 검증
    - 현재 구현: import review checklist로 필수 매핑/중복/오류/증빙 누락을 확인하고, 정상 행을 포함/제외 선택한 뒤 확정 import
@@ -112,4 +112,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대/리뷰 체크리스트/row 선택/preset bundle 호환성 검증/fixture validation/sample intake manifest/단일 sample review CLI/provenance와 재사용 허가 검증/trust metadata/fingerprint-ready signing payload/detached signature 검증/review manifest/대량 review filter의 1차 범위, 3번 로컬 OCR/정책 추출/fallback 진단/local OCR text fixture/스캔 PDF용 로컬 OCR sidecar 입력/정책 source metadata/OCR adapter의 1차 범위, 4번 서버 없는 알림 경험/캘린더 가이드/세분화 스누즈/self-hosted 설정 저장/dry-run report/runner CLI/opt-in send guard/provider fixture/scheduler recipe/loopback smoke test/opt-in public smoke/readiness report/smoke record audit/scheduled and manual GitHub Actions smoke/sanitized result record/platform fallback guide/운영 문서는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 익명화된 실제 샘플 기반 import/OCR fixture 확대, 실제 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화, 유지관리자 별도 환경의 recurring public/self-hosted endpoint smoke 운영, 암호화 백업, polished PWA입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대/리뷰 체크리스트/row 선택/preset bundle 호환성 검증/fixture validation/sample intake manifest/단일 및 batch sample review CLI/provenance와 재사용 허가 검증/trust metadata/fingerprint-ready signing payload/detached signature 검증/review manifest/대량 review filter의 1차 범위, 3번 로컬 OCR/정책 추출/fallback 진단/local OCR text fixture/스캔 PDF용 로컬 OCR sidecar 입력/정책 source metadata/OCR adapter의 1차 범위, 4번 서버 없는 알림 경험/캘린더 가이드/세분화 스누즈/self-hosted 설정 저장/dry-run report/runner CLI/opt-in send guard/provider fixture/scheduler recipe/loopback smoke test/opt-in public smoke/readiness report/smoke record audit/scheduled and manual GitHub Actions smoke/sanitized result record/platform fallback guide/운영 문서는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 익명화된 실제 샘플 기반 import/OCR fixture 확대, 실제 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화, 유지관리자 별도 환경의 recurring public/self-hosted endpoint smoke 운영, 암호화 백업, polished PWA입니다.

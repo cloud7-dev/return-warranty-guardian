@@ -19,6 +19,7 @@ const requiredFiles = [
   "src/sample-data.js",
   "scripts/anonymize-fixture.mjs",
   "scripts/review-sample-intake.mjs",
+  "scripts/review-sample-batch.mjs",
   "scripts/validate-fixtures.mjs",
   "scripts/self-hosted-notification-runner.mjs",
   "scripts/notification-smoke-readiness.mjs",

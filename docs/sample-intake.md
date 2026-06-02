@@ -20,15 +20,21 @@ The command writes three local review artifacts: a sanitized fixture draft, an a
 npm run fixture:review -- path/to/intake-entry.json path/to/fixture-root
 ```
 
-5. Move only the reviewed anonymized fixture into `tests/fixtures`.
-6. Copy the finalized intake entry into `tests/fixtures/intake/sample-intake.json` and set `piiChecked` / `parserChecked` to `true` only after review.
+For multiple candidates, review a directory of intake entries:
+
+```bash
+npm run fixture:review-batch -- path/to/intake-entry-dir path/to/fixture-root
+```
+
+5. Move only the reviewed anonymized fixtures into `tests/fixtures`.
+6. Copy the finalized accepted entries into `tests/fixtures/intake/sample-intake.json` and set `piiChecked` / `parserChecked` to `true` only after review.
 7. Run:
 
 ```bash
 npm run fixture:validate
 ```
 
-The single-entry reviewer checks metadata, provenance, PII patterns, and parser importability before a fixture is merged into the corpus. The full validator checks the intake manifest, coverage targets, parser importability, OCR text result expectations, policy metadata, notification payloads, and smoke records.
+The single-entry and batch reviewers check metadata, provenance, PII patterns, and parser importability before a fixture is merged into the corpus. The batch reviewer also prints `acceptedEntries`, which can be copied into the manifest after manual review. The full validator checks the intake manifest, coverage targets, parser importability, OCR text result expectations, policy metadata, notification payloads, and smoke records.
 
 ## Coverage Targets
 

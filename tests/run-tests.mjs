@@ -674,5 +674,18 @@ const reviewSampleResult = JSON.parse(reviewSampleStdout);
 assert.equal(reviewSampleResult.schema, "return-warranty-guardian.sample-intake-review.v1");
 assert.equal(reviewSampleResult.ok, true);
 assert.equal(reviewSampleResult.parserResult.validRows, 1);
+const batchEntryDir = join(anonymizeDir, "entries");
+await mkdir(batchEntryDir, { recursive: true });
+await writeFile(join(batchEntryDir, "reviewed-entry.json"), await readFile(reviewedEntryPath, "utf8"));
+const { stdout: batchReviewStdout } = await execFileAsync(process.execPath, [
+  "scripts/review-sample-batch.mjs",
+  batchEntryDir,
+  anonymizeDir,
+]);
+const batchReview = JSON.parse(batchReviewStdout);
+assert.equal(batchReview.schema, "return-warranty-guardian.sample-intake-batch-review.v1");
+assert.equal(batchReview.ok, true);
+assert.equal(batchReview.acceptedCount, 1);
+assert.equal(batchReview.acceptedEntries[0].id, "reviewed-community-sample");
 
 console.log("All logic tests passed.");
