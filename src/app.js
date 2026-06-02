@@ -107,6 +107,14 @@ async function extractLocalText(file, ocrSidecarText = "") {
   throw new Error("Unsupported local file type.");
 }
 
+async function localOcrSidecarText() {
+  const typedText = document.querySelector("#ocr-sidecar-text")?.value || "";
+  const [sidecarFile] = document.querySelector("#ocr-sidecar-file")?.files || [];
+  if (!sidecarFile) return typedText;
+  const fileText = await sidecarFile.text();
+  return [typedText.trim(), fileText.trim()].filter(Boolean).join("\n");
+}
+
 async function attachmentsFromForm(formData) {
   const files = formData.getAll("attachments").filter((file) => file instanceof File && file.name);
   const accepted = files.filter((file) => file.size <= MAX_ATTACHMENT_BYTES);
@@ -798,6 +806,7 @@ Total 166.99</textarea>
       </div>
       <label class="ocr-sidecar">
         <span>${t("localOcrSidecar")}</span>
+        <input id="ocr-sidecar-file" type="file" accept="text/plain,.txt,.ocr.txt" />
         <textarea id="ocr-sidecar-text" rows="3" spellcheck="false" placeholder="${t("localOcrSidecarPlaceholder")}"></textarea>
       </label>
       ${state.ocrStatus ? `<p class="empty-note">${state.ocrStatus}</p>` : ""}
@@ -1418,7 +1427,7 @@ app.addEventListener("click", async (event) => {
     const [file] = document.querySelector("#ocr-file")?.files || [];
     if (!file) return;
     try {
-      const sidecarText = document.querySelector("#ocr-sidecar-text")?.value || "";
+      const sidecarText = await localOcrSidecarText();
       const text = await extractLocalText(file, sidecarText);
       const receiptText = document.querySelector("#receipt-text");
       receiptText.value = text.trim() || receiptText.value;

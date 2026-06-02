@@ -207,6 +207,7 @@ svg {
 .purchase-form select,
 .purchase-form textarea,
 .receipt-text,
+.ocr-sidecar input,
 .ocr-sidecar textarea {
   width: 100%;
   border: 1px solid var(--line-strong);
@@ -228,6 +229,7 @@ svg {
 .purchase-form select:focus,
 .purchase-form textarea:focus,
 .receipt-text:focus,
+.ocr-sidecar input:focus,
 .ocr-sidecar textarea:focus {
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
@@ -716,6 +718,13 @@ svg {
   font-size: 12px;
   line-height: 1.45;
   resize: vertical;
+}
+
+.ocr-sidecar input {
+  min-height: 40px;
+  padding: 8px 10px;
+  color: var(--ink);
+  font-size: 12px;
 }
 
 .parser-preview {

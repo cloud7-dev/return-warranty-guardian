@@ -55,7 +55,7 @@ Do not commit scanned receipt images by default. Commit only local OCR text outp
 
 The repo also includes synthetic SVG OCR fixtures for the bundled no-cloud worker path. These SVG files must contain only fake receipt text in `data-rwg-ocr-text` metadata and must pass `npm run fixture:validate`.
 
-Scanned PDF fixtures may be paired with anonymized local OCR text through `tests/fixtures/pdf/scanned-sidecars.json`. The sidecar text must come from a local/no-cloud process and must be parser-checked before commit. The app parser also exposes a local OCR sidecar text box so a user can paste local OCR output for an image-based PDF without committing or uploading the raw scan.
+Scanned PDF fixtures may be paired with anonymized local OCR text through `tests/fixtures/pdf/scanned-sidecars.json`. The sidecar text must come from a local/no-cloud process and must be parser-checked before commit. The app parser also exposes a local OCR sidecar text box and `.txt` file input so a user can paste or attach local OCR output for an image-based PDF without committing or uploading the raw scan.
 
 OCR engine coverage is documented in `tests/fixtures/ocr/engine-manifest.json`. Every listed engine must declare supported MIME types, no network access, no input storage, license scope, and fixture coverage when applicable.
 
