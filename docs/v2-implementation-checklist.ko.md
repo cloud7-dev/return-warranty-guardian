@@ -83,7 +83,7 @@
    - 현재 구현: provider/endpoint/topic 설정, 토큰 미저장, 외부 runner 필요 여부를 dry-run report로 검증
    - 현재 구현: `npm run notify:dry-run` CLI로 payload JSON을 읽고 provider별 명령 미리보기와 endpoint-only check 계획을 생성
    - 현재 구현: CLI opt-in send mode는 `--send --yes`와 `RWG_NOTIFY_SEND=1`을 요구하고, Gotify token은 환경변수로만 받음
-   - 현재 구현: ntfy/Gotify/Apprise provider별 synthetic payload fixture, endpoint-only dry-run plan 검증, send mode 운영 문서, macOS/Linux/Windows scheduler recipe 생성, ntfy/Gotify loopback endpoint smoke test, opt-in public endpoint smoke mode, raw endpoint를 출력하지 않는 public smoke readiness report, scheduled/manual GitHub Actions smoke workflow, sanitized smoke result record, smoke freshness/coverage policy, 여러 sanitized smoke record의 freshness/provider coverage를 점검하는 audit CLI, GitHub Actions sanitized smoke artifact 검증/업로드, 모바일/PC fallback guide
+   - 현재 구현: ntfy/Gotify/Apprise provider별 synthetic payload fixture, endpoint-only dry-run plan 검증, send mode 운영 문서, macOS/Linux/Windows scheduler recipe 생성, ntfy/Gotify loopback endpoint smoke test, opt-in public endpoint smoke mode, raw endpoint를 출력하지 않는 public smoke readiness report, scheduled/manual GitHub Actions smoke workflow, sanitized smoke result record, smoke freshness/coverage policy, 여러 sanitized smoke record의 freshness/provider coverage를 점검하는 audit CLI, sanitized smoke record를 Markdown 운영 리포트로 요약하는 `notify:ops-report`, GitHub Actions sanitized smoke artifact와 ops report 검증/업로드, 모바일/PC fallback guide
    - 남은 구현: 실제 public/self-hosted endpoint smoke 설정과 기록을 유지관리자가 별도 환경에서 지속 관리
 
 ### v0.4: 클레임/홈 히스토리 출력

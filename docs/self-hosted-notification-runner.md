@@ -49,6 +49,14 @@ npm run notify:record -- smoke-output.json
 
 Sanitized records keep status codes, provider names, loopback counts, and a SHA-256 hash of the endpoint host only.
 
+To turn downloaded sanitized records into a human-readable operations summary:
+
+```bash
+npm run notify:ops-report -- path/to/smoke-records tests/fixtures/notifications/smoke-policy.json
+```
+
+The report is Markdown and should remain free of raw endpoint URLs, topics, tokens, authorization headers, and reminder bodies. The GitHub Actions smoke workflow uploads `ops-report.md` with the sanitized JSON artifact after a successful public endpoint smoke.
+
 ## Actual send guard
 
 Actual sending is off by default. It requires all of the following:

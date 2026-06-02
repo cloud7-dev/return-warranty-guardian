@@ -14,6 +14,7 @@ import {
 import { sanitizeFixtureFilename, sanitizeFixtureReport, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
 import { auditNotificationSmokeRecords } from "../scripts/audit-notification-smoke-records.mjs";
+import { notificationSmokeOpsReportMarkdown } from "../scripts/notification-smoke-ops-report.mjs";
 import { notificationSmokeReadiness } from "../scripts/notification-smoke-readiness.mjs";
 import { notificationSmokeRecord } from "../scripts/record-notification-smoke-result.mjs";
 import { validateNotificationSmokeRecord } from "../scripts/validate-notification-smoke-record.mjs";
@@ -606,6 +607,11 @@ assert.equal(smokeRecordAudit.schema, "return-warranty-guardian.notification-smo
 assert.equal(smokeRecordAudit.ok, true);
 assert.equal(smokeRecordAudit.freshSuccessfulProviders.includes("ntfy"), true);
 assert.equal(JSON.stringify(smokeRecordAudit).includes("https://"), false);
+const smokeOpsReport = notificationSmokeOpsReportMarkdown(smokeRecordAudit);
+assert.match(smokeOpsReport, /Notification Smoke Operations Report/);
+assert.match(smokeOpsReport, /Status: PASS/);
+assert.match(smokeOpsReport, /Fresh successful providers: ntfy/);
+assert.equal(/https?:\/\//i.test(smokeOpsReport), false);
 for (const provider of ["ntfy", "gotify", "apprise"]) {
   const providerPayload = JSON.parse(await fixture(`notifications/${provider}-payload.json`));
   const providerPlan = buildRunnerPlan(providerPayload, { provider, limit: 1, checkEndpoint: true });
@@ -644,6 +650,14 @@ const { stdout: auditStdout } = await execFileAsync(process.execPath, [
 const auditCli = JSON.parse(auditStdout);
 assert.equal(auditCli.ok, true);
 assert.equal(auditCli.freshSuccessfulProviders.includes("ntfy"), true);
+const { stdout: opsReportStdout } = await execFileAsync(process.execPath, [
+  "scripts/notification-smoke-ops-report.mjs",
+  "tests/fixtures/notifications/smoke-records",
+  "tests/fixtures/notifications/smoke-policy.json",
+]);
+assert.match(opsReportStdout, /Notification Smoke Operations Report/);
+assert.match(opsReportStdout, /Status: PASS/);
+assert.equal(/https?:\/\//i.test(opsReportStdout), false);
 const anonymizeDir = await mkdtemp(join(tmpdir(), "rwg-anonymize-"));
 const privateSamplePath = join(anonymizeDir, "private-sample.csv");
 await writeFile(

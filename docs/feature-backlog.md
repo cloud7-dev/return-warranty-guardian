@@ -65,7 +65,7 @@ This list separates high-leverage additions from features that could distract th
 
 7. **Local notification upgrade**
    - Per-purchase lead days, repeated `.ics` `VALARM`, open-app browser notifications, calendar import guidance, 3-hour/tomorrow/7-day in-app snooze, local self-hosted settings, self-hosted notification payload exports, dry-run reports, a runner CLI, and guarded opt-in send mode are implemented.
-   - Provider-specific endpoint fixtures, scheduler recipes, platform fallback guidance, an operating guide, local loopback smoke tests, opt-in public endpoint smoke mode, public smoke readiness reports, scheduled/manual GitHub Actions smoke workflow, sanitized smoke result records, and smoke record audits now cover ntfy and Gotify send paths plus Apprise dry-run plans.
+   - Provider-specific endpoint fixtures, scheduler recipes, platform fallback guidance, an operating guide, local loopback smoke tests, opt-in public endpoint smoke mode, public smoke readiness reports, scheduled/manual GitHub Actions smoke workflow, sanitized smoke result records, smoke record audits, and Markdown operations reports now cover ntfy and Gotify send paths plus Apprise dry-run plans.
    - Remaining work: maintaining real public/self-hosted endpoint smoke configuration and records outside the default CI environment.
 
 8. **Claim packet HTML/PDF**

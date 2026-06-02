@@ -69,6 +69,14 @@ npm run notify:audit-records -- path/to/smoke-records tests/fixtures/notificatio
 
 The audit checks every record, verifies freshness and required provider coverage, and prints only provider/status metadata plus endpoint host hashes.
 
+To generate a maintainer-facing Markdown summary from the same sanitized records:
+
+```bash
+npm run notify:ops-report -- path/to/smoke-records tests/fixtures/notifications/smoke-policy.json
+```
+
+The operations report is suitable for release notes or maintainer checklists because it includes provider coverage, freshness, status codes, and endpoint host hashes without raw endpoint URLs, topics, tokens, authorization headers, or reminder bodies. The `Notification Smoke` GitHub Actions workflow uploads this report alongside the sanitized record after a successful public/self-hosted endpoint run.
+
 ## OCR Fallback
 
 Image OCR is local only. The app tries a bundled local worker if one exists, then browser `TextDetector`, then manual paste/attachment fallback. Scanned PDFs without text operators stay as local claim evidence unless the user supplies local OCR text.

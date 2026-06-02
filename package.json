@@ -18,7 +18,8 @@
     "notify:audit-records": "node scripts/audit-notification-smoke-records.mjs",
     "notify:smoke": "node scripts/smoke-notifications.mjs",
     "notify:record": "node scripts/record-notification-smoke-result.mjs",
-    "notify:validate-record": "node scripts/validate-notification-smoke-record.mjs"
+    "notify:validate-record": "node scripts/validate-notification-smoke-record.mjs",
+    "notify:ops-report": "node scripts/notification-smoke-ops-report.mjs"
   },
   "keywords": [
     "local-first",

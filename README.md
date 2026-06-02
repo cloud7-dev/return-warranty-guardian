@@ -118,6 +118,12 @@ To convert a smoke output JSON into a sanitized record without raw endpoint URLs
 npm run notify:record -- smoke-output.json
 ```
 
+To summarize sanitized records for maintainer release notes or operational review:
+
+```bash
+npm run notify:ops-report -- path/to/smoke-records tests/fixtures/notifications/smoke-policy.json
+```
+
 ## Privacy Model
 
 Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use JSON export for backups.
