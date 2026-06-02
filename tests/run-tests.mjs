@@ -740,18 +740,20 @@ const sampleManifest = JSON.parse(await fixture("intake/sample-intake.json"));
 const sampleCoverage = sampleIntakeCoverageReport(sampleManifest, now);
 assert.equal(sampleCoverage.schema, "return-warranty-guardian.sample-intake-coverage-report.v1");
 assert.equal(sampleCoverage.ok, true);
-assert.equal(sampleCoverage.communityReady, false);
+assert.equal(sampleCoverage.communityReady, true);
 assert.equal(sampleCoverage.countsByType.csv, 5);
+assert.equal(sampleCoverage.countsByType["ocr-text"], 2);
+assert.equal(sampleCoverage.countsByOrigin["public-open-license"], 1);
 const sampleCoverageMarkdown = sampleIntakeCoverageMarkdown(sampleCoverage);
 assert.match(sampleCoverageMarkdown, /Sample Intake Coverage Report/);
-assert.match(sampleCoverageMarkdown, /Community sample status: MISSING/);
+assert.match(sampleCoverageMarkdown, /Community sample status: READY/);
 const requestPack = sampleRequestPack(sampleManifest, now);
 assert.equal(requestPack.schema, "return-warranty-guardian.sample-request-pack.v1");
-assert.equal(requestPack.communitySampleStatus, "MISSING");
+assert.equal(requestPack.communitySampleStatus, "READY");
 assert.match(JSON.stringify(requestPack.intakeEntryTemplate), /rawSampleRetained/);
 const requestPackMarkdown = sampleRequestPackMarkdown(requestPack);
 assert.match(requestPackMarkdown, /Sample Request Pack/);
-assert.match(requestPackMarkdown, /Community sample status: MISSING/);
+assert.match(requestPackMarkdown, /Community sample status: READY/);
 assert.match(requestPackMarkdown, /fixture:anonymize/);
 assert.match(requestPackMarkdown, /rawSampleRetained=false/);
 assert.match(requestPackMarkdown, /card-statement-shape/);
@@ -760,7 +762,7 @@ const { stdout: sampleCoverageStdout } = await execFileAsync(process.execPath, [
   "tests/fixtures/intake/sample-intake.json",
 ]);
 assert.match(sampleCoverageStdout, /Coverage status: PASS/);
-assert.match(sampleCoverageStdout, /Community sample status: MISSING/);
+assert.match(sampleCoverageStdout, /Community sample status: READY/);
 const { stdout: requestPackStdout } = await execFileAsync(process.execPath, [
   "scripts/sample-request-pack.mjs",
   "tests/fixtures/intake/sample-intake.json",
@@ -769,28 +771,27 @@ assert.match(requestPackStdout, /Sample Request Pack/);
 assert.match(requestPackStdout, /Maintainer Gate/);
 const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit });
 assert.equal(releaseReport.schema, "return-warranty-guardian.release-readiness-report.v1");
-assert.equal(releaseReport.remainingItems.length, 2);
+assert.equal(releaseReport.remainingItems.length, 1);
 assert.match(releaseReport.remainingItems.join("\n"), /Actual bundled cross-browser OCR engine/);
+assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /Actual anonymized-community or public-open-license/);
 assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /recurring public\/self-hosted endpoint smoke/);
 const releaseMarkdown = releaseReadinessMarkdown(releaseReport);
 assert.match(releaseMarkdown, /Release Readiness Report/);
 assert.match(releaseMarkdown, /Recurring public smoke configured/);
-assert.match(releaseMarkdown, /Needs accepted community\/public sample/);
-assert.match(releaseMarkdown, /2, 3 remain/);
+assert.match(releaseMarkdown, /Community-ready/);
+assert.match(releaseMarkdown, /3 remain/);
 const { stdout: releaseStdout } = await execFileAsync(process.execPath, [
   "scripts/release-readiness-report.mjs",
   "tests/fixtures/intake/sample-intake.json",
 ]);
 assert.match(releaseStdout, /Release Readiness Report/);
 assert.match(releaseStdout, /Recurring public smoke configured/);
-assert.match(releaseStdout, /2, 3 remain/);
-await assert.rejects(
-  execFileAsync(process.execPath, [
-    "scripts/sample-intake-coverage-report.mjs",
-    "--strict-community",
-    "tests/fixtures/intake/sample-intake.json",
-  ]),
-  /Command failed/,
-);
+assert.match(releaseStdout, /3 remain/);
+const { stdout: strictCoverageStdout } = await execFileAsync(process.execPath, [
+  "scripts/sample-intake-coverage-report.mjs",
+  "--strict-community",
+  "tests/fixtures/intake/sample-intake.json",
+]);
+assert.match(strictCoverageStdout, /Community sample status: READY/);
 
 console.log("All logic tests passed.");

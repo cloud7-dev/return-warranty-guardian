@@ -42,7 +42,7 @@ To produce a maintainer-facing coverage report:
 npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json
 ```
 
-The report summarizes accepted entries by type, source kind, and provenance origin. It also makes the current community-sample gap explicit. Use `--strict-community` when a release gate should fail unless at least one `anonymized-community` or `public-open-license` sample has been accepted.
+The report summarizes accepted entries by type, source kind, and provenance origin. It also makes any community-sample gap explicit. Use `--strict-community` when a release gate should fail unless at least one `anonymized-community` or `public-open-license` sample has been accepted.
 
 To produce a privacy-safe contributor request pack:
 
@@ -71,7 +71,7 @@ Required intake entries must include:
 
 CSV preset bundle fixtures also use `tests/fixtures/presets/key-governance.json` to document active, retired, and revoked signing keys. A signed preset bundle must use an active review key and an allowed algorithm.
 
-Current fixture coverage is synthetic-only until reviewed community or public-open-license samples are accepted. That is intentional for privacy, but it means the app should not claim real-world parser breadth from the current corpus alone.
+Current fixture coverage includes synthetic samples and a reviewed public-open-license OCR text sample. That proves the intake path can accept non-synthetic public samples, but the app still should not claim broad real-world parser coverage until more card-statement, marketplace, merchant, and OCR shapes are accepted.
 
 ## OCR Samples
 

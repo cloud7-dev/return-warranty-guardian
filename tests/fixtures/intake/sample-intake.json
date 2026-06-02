@@ -1,6 +1,6 @@
 {
   "schema": "return-warranty-guardian.sample-intake.v1",
-  "privacyNote": "Use this manifest for synthetic or anonymized community sample intake. Do not include raw private receipts, images, card statements, names, addresses, phone numbers, emails, or real order IDs.",
+  "privacyNote": "Use this manifest for synthetic, anonymized-community, or public-open-license sample intake. Do not include raw private receipts, images, card statements, names, addresses, phone numbers, emails, or real order IDs.",
   "coverageTargets": {
     "minByType": {
       "csv": 5,
@@ -22,6 +22,7 @@
       "csv/shopify-order-export.csv",
       "csv/stripe-receipt-export.csv",
       "ocr/scanned-receipt.local-ocr.txt",
+      "ocr/wikimedia-cc0-example-receipt.local-ocr.txt",
       "ocr/scanned-receipt.local-ocr.svg"
     ]
   },
@@ -157,6 +158,30 @@
         "permission": "repo-owned-synthetic-fixture",
         "rawSampleRetained": false,
         "contributorHandle": "fixture-reviewer"
+      },
+      "anonymized": true,
+      "review": {
+        "piiChecked": true,
+        "parserChecked": true,
+        "reviewedAt": "2026-06-03",
+        "reviewer": "fixture-reviewer"
+      }
+    },
+    {
+      "id": "public-wikimedia-cc0-example-receipt-2026-06",
+      "type": "ocr-text",
+      "fixturePath": "ocr/wikimedia-cc0-example-receipt.local-ocr.txt",
+      "sourceKind": "local-ocr-text",
+      "provenance": {
+        "origin": "public-open-license",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "sourceName": "Wikimedia Commons File:Example Reciept 001.png",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Example_Reciept_001.png",
+        "sourceOldId": "999685831",
+        "permission": "CC0 public-domain dedication by the uploader; OCR text keeps only parser-relevant non-sensitive lines.",
+        "rawSampleRetained": false,
+        "contributorHandle": "DoubleCritch"
       },
       "anonymized": true,
       "review": {

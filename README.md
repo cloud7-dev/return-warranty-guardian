@@ -101,6 +101,12 @@ To summarize fixture intake coverage and see whether reviewed community/public s
 npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json
 ```
 
+The committed corpus includes a reviewed `public-open-license` OCR text fixture, so the strict community/public gate should pass:
+
+```bash
+npm run fixture:coverage -- --strict-community tests/fixtures/intake/sample-intake.json
+```
+
 To generate a privacy-safe request pack for potential fixture contributors and maintainers:
 
 ```bash

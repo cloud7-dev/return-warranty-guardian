@@ -1,0 +1,12 @@
+Jackson-Washington
+Date: 2025-02-16 11:25:12
+Strategy Accessory 43.31
+Conference Product 48.40
+Scientist Item 48.07
+Situation Item 23.87
+Life Accessory 48.04
+Music Accessory 24.45
+Subtotal: $524.14
+GST (5%): $26.21
+PST (7%): $36.69
+Total: $587.04

@@ -1,6 +1,6 @@
 # Fixture Corpus
 
-These fixtures are synthetic examples for importer, receipt extraction, notification runner, and policy-template tests.
+These fixtures are synthetic examples plus reviewed public-open-license examples for importer, receipt extraction, notification runner, and policy-template tests.
 
 Do not commit private receipts, real card statements, real order IDs, names, phone numbers, addresses, serial numbers, or support tickets. When adding coverage, create fake merchant names, fake order IDs, and rounded example amounts that exercise the parser shape without exposing personal data.
 
@@ -29,4 +29,4 @@ To summarize accepted fixture coverage:
 npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json
 ```
 
-The current committed corpus is synthetic-only unless the coverage report shows accepted `anonymized-community` or `public-open-license` entries.
+The current committed corpus includes synthetic fixtures and a reviewed `public-open-license` OCR text fixture. The coverage report shows whether additional `anonymized-community` or `public-open-license` entries have been accepted.

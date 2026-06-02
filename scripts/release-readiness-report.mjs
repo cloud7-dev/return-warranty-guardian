@@ -53,7 +53,9 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
     generatedAt: now.toISOString(),
     gates,
     remainingItems: [
-      "2. Actual anonymized-community or public-open-license user/community samples accepted into the fixture corpus.",
+      ...(!sampleCoverage.communityReady
+        ? ["2. Actual anonymized-community or public-open-license user/community samples accepted into the fixture corpus."]
+        : []),
       "3. Actual bundled cross-browser OCR engine and automated scanned PDF OCR path beyond sidecars/adapters.",
       ...(!notificationSmokeReady
         ? ["4. Actual recurring public/self-hosted endpoint smoke records operated by the maintainer environment."]

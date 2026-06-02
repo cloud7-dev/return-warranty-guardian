@@ -37,7 +37,8 @@ This list separates high-leverage additions from features that could distract th
 1. **Synthetic receipt fixture corpus**
    - Initial synthetic CSV, HTML receipt, PDF text-operator, and policy-template fixtures exist under `tests/fixtures`.
    - A local anonymizer script helps turn private samples into reviewable fixture drafts before contribution, `npm run fixture:review` / `npm run fixture:review-batch` check incoming sample candidates before merge, and sample intake now requires provenance, reuse permission, raw-sample non-retention, non-sensitive contributor handles, PII review, and parser review before a fixture can pass validation.
-   - Sample intake manifests now record anonymization and parser-review status before accepting community-shaped CSV/OCR fixtures, and `npm run fixture:coverage` reports whether accepted entries are still synthetic-only or include reviewed community/public-open-license samples.
+   - Sample intake manifests now record anonymization and parser-review status before accepting community-shaped CSV/OCR fixtures, and `npm run fixture:coverage` reports whether accepted entries include reviewed community/public-open-license samples.
+   - A CC0 Wikimedia Commons example receipt OCR text fixture is now accepted as `public-open-license`, proving the intake gate can move beyond synthetic-only fixtures without storing raw private receipts.
    - `npm run fixture:request-pack` now generates a privacy-safe contributor request pack with requested sample shapes, maintainer gates, and an intake entry template.
    - Good for GitHub stars because it makes the project hackable.
 
@@ -56,8 +57,8 @@ This list separates high-leverage additions from features that could distract th
 5. **Importers**
    - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, selected-row import, import report export, review checklist generation, large-import review filters, preset bundle export/import with compatibility validation, SHA-256 fingerprint-ready signing payloads, ECDSA P-256 detached signature verification, trust metadata, fixture validation, Korean card statements, Korean shopping orders, Amazon-style order history, Shopify-style order exports, and Stripe-style receipt exports.
    - Synthetic fixture corpus covers the current built-in presets.
-   - Local fixture anonymization exists for draft samples, and fixture coverage reports expose the current accepted community-sample gap.
-   - Release readiness reporting keeps the accepted-sample gap visible instead of letting synthetic-only coverage look like production breadth.
+   - Local fixture anonymization exists for draft samples, and fixture coverage reports expose whether accepted community/public samples are present.
+   - Release readiness reporting keeps real-sample breadth visible instead of letting a single public sample look like production breadth.
    - Remaining work: broader anonymized real card-statement/retailer fixture expansion, signed maintainer key registry operations, and community preset review at scale.
 
 6. **Optional OCR**

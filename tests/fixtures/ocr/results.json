@@ -19,6 +19,15 @@
       "expectedItem": "Travel Mug",
       "expectedMinItems": 2,
       "expectedTotal": 42.6
+    },
+    {
+      "path": "ocr/wikimedia-cc0-example-receipt.local-ocr.txt",
+      "sourceType": "public-open-license-local-ocr-text",
+      "expectedMerchant": "Jackson-Washington",
+      "expectedPurchaseDate": "2025-02-16",
+      "expectedItem": "Strategy Accessory",
+      "expectedMinItems": 6,
+      "expectedTotal": 587.04
     }
   ]
 }

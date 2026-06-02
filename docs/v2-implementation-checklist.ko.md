@@ -56,8 +56,9 @@
    - 현재 구현: private sample을 테스트 fixture 후보로 바꾸기 위한 로컬 익명화 스크립트, anonymization report, intake entry draft 생성, 단일/복수 incoming sample 후보를 manifest 병합 전 검증하는 `npm run fixture:review` / `npm run fixture:review-batch` CLI
    - 현재 구현: sample intake manifest로 익명화 여부, parser 검토 여부, fixture path, source shape coverage target, provenance, 재사용 허가, 원본 샘플 미보관, 비민감 contributor handle을 검증
    - 현재 구현: `npm run fixture:validate`로 개인정보 패턴, CSV fixture importability, 정책 source/license metadata 검증
-   - 현재 구현: `npm run fixture:coverage`로 fixture type/source/provenance별 현황과 synthetic-only 상태, 실제 커뮤니티/public-open-license 샘플 부재 여부를 Markdown으로 표시
+   - 현재 구현: `npm run fixture:coverage`로 fixture type/source/provenance별 현황과 실제 커뮤니티/public-open-license 샘플 수락 여부를 Markdown으로 표시
    - 현재 구현: `npm run fixture:request-pack`으로 실제 샘플 기여자에게 전달할 개인정보 보호형 요청 패키지, intake entry 템플릿, maintainer gate 명령을 Markdown으로 생성
+   - 현재 구현: CC0 Wikimedia Commons 예시 영수증 OCR 텍스트를 `public-open-license` fixture로 수락해 synthetic-only 상태 해소
    - 현재 구현: import review checklist로 필수 매핑/중복/오류/증빙 누락을 확인하고, 정상 행을 포함/제외 선택한 뒤 확정 import
    - 현재 구현: CSV preset bundle JSON 내보내기/가져오기와 schema/version/field 호환성 검증
    - 현재 구현: preset bundle trust model/source/reviewedAt/fixtureCoverage metadata, SHA-256 fingerprint-ready signing payload, ECDSA P-256 detached signature 검증 helper, review manifest, trusted public key registry fixture, key rotation/revocation governance fixture, signed preset bundle fixture, 대량 row query/proof review filter helper
@@ -117,4 +118,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration까지 보강되었으며, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 남은 2,3은 익명화된 실제 사용자/커뮤니티 샘플 기반 import fixture 확대, 실제 범용 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 남은 3은 실제 범용 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화입니다.
