@@ -7,7 +7,7 @@ This list separates high-leverage additions from features that could distract th
 1. **Reliable notifications without a server**
    - Users want mobile and PC reminders even when the web app is closed.
    - Calendar export now includes repeated `VALARM` reminders, open-app browser notifications are available after user permission, the app shows a mobile/PC calendar import guide, and in-app reminders can be snoozed for 3 hours, tomorrow, or 7 days.
-   - Self-hosted notification settings can be stored locally and exported as JSON/curl drafts plus dry-run reports for ntfy, Gotify, and Apprise. True automatic background push still conflicts with the no-server promise unless it is explicitly opt-in and self-hosted.
+   - Self-hosted notification settings can be stored locally and exported as JSON/curl drafts plus dry-run reports for ntfy, Gotify, and Apprise. A local runner CLI can read the payload and print scheduler-ready dry-run commands without sending requests. True automatic background push still conflicts with the no-server promise unless it is explicitly opt-in and self-hosted.
 
 2. **More durable local attachments**
    - Receipt images, PDFs, manuals, and warranty cards can now be stored in the browser record.
@@ -63,8 +63,8 @@ This list separates high-leverage additions from features that could distract th
    - Cloud OCR should be explicitly opt-in and disabled by default.
 
 7. **Local notification upgrade**
-   - Per-purchase lead days, repeated `.ics` `VALARM`, open-app browser notifications, calendar import guidance, 3-hour/tomorrow/7-day in-app snooze, local self-hosted settings, self-hosted notification payload exports, and dry-run reports are implemented.
-   - Remaining work: background self-hosted runner with real endpoint checks and platform-specific fallback copy.
+   - Per-purchase lead days, repeated `.ics` `VALARM`, open-app browser notifications, calendar import guidance, 3-hour/tomorrow/7-day in-app snooze, local self-hosted settings, self-hosted notification payload exports, dry-run reports, and a dry-run runner CLI are implemented.
+   - Remaining work: opt-in send mode with real endpoint checks and platform-specific fallback copy.
 
 8. **Claim packet HTML/PDF**
    - Printable HTML claim packet exists with attachment links, image previews, PDF save guidance, attachment manifests, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.

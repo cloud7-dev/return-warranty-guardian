@@ -9,7 +9,8 @@
     "test": "node tests/run-tests.mjs",
     "build": "node scripts/check-static.mjs",
     "qa:browser": "/Users/jstudio/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/qa-browser.mjs",
-    "fixture:anonymize": "node scripts/anonymize-fixture.mjs"
+    "fixture:anonymize": "node scripts/anonymize-fixture.mjs",
+    "notify:dry-run": "node scripts/self-hosted-notification-runner.mjs"
   },
   "keywords": [
     "local-first",

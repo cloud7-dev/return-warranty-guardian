@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { sanitizeFixtureFilename, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
+import { buildRunnerPlan } from "../scripts/self-hosted-notification-runner.mjs";
 import {
   analyzeCsvImport,
   csvImportReport,
@@ -29,6 +34,7 @@ import {
 
 const now = new Date("2026-06-02T10:00:00Z");
 const fixture = (path) => readFile(new URL(`./fixtures/${path}`, import.meta.url), "utf8");
+const execFileAsync = promisify(execFile);
 
 const sanitizedFixture = sanitizeFixtureText(`Jane Buyer
 jane.buyer@example.com
@@ -337,5 +343,31 @@ assert.equal(dryRunReport.schema, "return-warranty-guardian.self-hosted-dry-run.
 assert.equal(dryRunReport.dryRun.provider, "gotify");
 assert.match(dryRunReport.dryRun.warnings.join(" "), /tokens are not stored/);
 assert.equal(dryRunReport.externalRunnerPlan.mode, "user-managed");
+const runnerPayload = JSON.parse(
+  selfHostedNotificationPayload([purchase], now, {
+    enabled: true,
+    provider: "ntfy",
+    endpoint: "https://alerts.example.test",
+    topic: "returns",
+  }),
+);
+const runnerPlan = buildRunnerPlan(runnerPayload, { limit: 2, checkEndpoint: true });
+assert.equal(runnerPlan.schema, "return-warranty-guardian.self-hosted-runner-plan.v1");
+assert.equal(runnerPlan.plannedCount, 2);
+assert.equal(runnerPlan.endpointCheck.sendsPurchaseData, false);
+assert.match(runnerPlan.commands[0].command, /alerts\.example\.test\/returns/);
+const tempDir = await mkdtemp(join(tmpdir(), "rwg-runner-"));
+const payloadPath = join(tempDir, "payload.json");
+await writeFile(payloadPath, JSON.stringify(runnerPayload, null, 2));
+const { stdout: runnerStdout } = await execFileAsync(process.execPath, [
+  "scripts/self-hosted-notification-runner.mjs",
+  payloadPath,
+  "--limit",
+  "1",
+  "--json",
+]);
+const cliPlan = JSON.parse(runnerStdout);
+assert.equal(cliPlan.plannedCount, 1);
+assert.equal(cliPlan.appSendsNetworkRequests, false);
 
 console.log("All logic tests passed.");

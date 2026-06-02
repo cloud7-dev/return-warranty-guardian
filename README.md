@@ -44,6 +44,7 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Exports `.ics` calendar reminders with per-purchase lead-day alarms for purchase deadlines.
 - Supports browser notifications and 3-hour/tomorrow/7-day reminder snooze controls while the app is open, with `.ics` export as the no-server mobile/desktop fallback.
 - Stores optional self-hosted notification draft settings locally and exports payload/dry-run drafts for ntfy, Gotify, or Apprise without sending data from the app.
+- Includes a local self-hosted notification runner dry-run CLI for scheduler planning without storing tokens or sending requests.
 - Exports CSV records for spreadsheet review.
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
 - Switches the interface between Korean, English, Japanese, Chinese, German, French, Italian, and Hindi.
@@ -75,7 +76,7 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, preset bundle export/validation, review checklist generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback notices, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, self-hosted notification payload and dry-run settings, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, scanned PDF fallback, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, preset bundle export/validation, review checklist generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback notices, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, self-hosted notification payload, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, scanned PDF fallback, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
 
 To prepare a privacy-safe fixture from a local sample:
 
@@ -84,6 +85,14 @@ npm run fixture:anonymize -- path/to/private-sample.csv
 ```
 
 Review the generated file before committing it. Do not commit private receipts or real card statements.
+
+To inspect a self-hosted notification payload without sending anything:
+
+```bash
+npm run notify:dry-run -- return-warranty-guardian-self-hosted-alerts.json --json
+```
+
+The runner prints command previews only. Keep provider tokens outside this app and use your own scheduler if you decide to send notifications.
 
 ## Privacy Model
 

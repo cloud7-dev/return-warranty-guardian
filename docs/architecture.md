@@ -81,7 +81,7 @@ Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and 
 
 Notification behavior stays serverless. Each purchase can store `reminderLeadDays`; `.ics` exports include repeated `VALARM` entries using that lead time and a one-day reminder, and browser notifications are only attempted while the app is open and the user grants notification permission. Reminder snooze state is stored separately in `localStorage` under `rwg:snoozed-reminders` and supports 3-hour, tomorrow, and 7-day snoozes.
 
-Self-hosted notification support is export-only. Optional provider/endpoint/topic settings are stored locally under `rwg:self-hosted-alerts`; `selfHostedNotificationPayload` creates reviewed JSON/curl drafts for ntfy, Gotify, and Apprise, and `selfHostedDryRunReport` checks local settings and external-runner requirements. The app does not store tokens or send network requests.
+Self-hosted notification support is export-only in the web app. Optional provider/endpoint/topic settings are stored locally under `rwg:self-hosted-alerts`; `selfHostedNotificationPayload` creates reviewed JSON/curl drafts for ntfy, Gotify, and Apprise, and `selfHostedDryRunReport` checks local settings and external-runner requirements. `scripts/self-hosted-notification-runner.mjs` can read the payload and print scheduler-ready dry-run commands, but it does not store tokens or send notification requests.
 
 Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include PDF save guidance, attachment manifests, starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
 
