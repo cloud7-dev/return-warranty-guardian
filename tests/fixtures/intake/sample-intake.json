@@ -4,14 +4,16 @@
   "coverageTargets": {
     "minByType": {
       "csv": 5,
-      "ocr-text": 1
+      "ocr-text": 1,
+      "ocr-image": 1
     },
     "requiredSourceKinds": [
       "card-statement-shape",
       "marketplace-order-shape",
       "merchant-order-shape",
       "payment-receipt-shape",
-      "local-ocr-text"
+      "local-ocr-text",
+      "bundled-fixture-ocr-image"
     ],
     "requiredFixturePaths": [
       "csv/korean-card-statement.csv",
@@ -19,7 +21,8 @@
       "csv/amazon-style-order.csv",
       "csv/shopify-order-export.csv",
       "csv/stripe-receipt-export.csv",
-      "ocr/scanned-receipt.local-ocr.txt"
+      "ocr/scanned-receipt.local-ocr.txt",
+      "ocr/scanned-receipt.local-ocr.svg"
     ]
   },
   "entries": [
@@ -98,6 +101,19 @@
         "piiChecked": true,
         "parserChecked": true,
         "reviewedAt": "2026-06-02",
+        "reviewer": "fixture-reviewer"
+      }
+    },
+    {
+      "id": "fixture-bundled-ocr-image-2026-06",
+      "type": "ocr-image",
+      "fixturePath": "ocr/scanned-receipt.local-ocr.svg",
+      "sourceKind": "bundled-fixture-ocr-image",
+      "anonymized": true,
+      "review": {
+        "piiChecked": true,
+        "parserChecked": true,
+        "reviewedAt": "2026-06-03",
         "reviewer": "fixture-reviewer"
       }
     }

@@ -1,6 +1,6 @@
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open("return-warranty-guardian-v8").then((cache) =>
+    caches.open("return-warranty-guardian-v9").then((cache) =>
       cache.addAll([
         "./",
         "./index.html",
@@ -12,6 +12,7 @@ self.addEventListener("install", (event) => {
         "./src/i18n.js",
         "./src/importers.js",
         "./src/local-extraction.js",
+        "./src/local-ocr-worker.js",
         "./src/policy-templates.js",
         "./src/receipt-parser.js",
         "./src/sample-data.js",
@@ -26,7 +27,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== "return-warranty-guardian-v8").map((key) => caches.delete(key)))),
+      .then((keys) => Promise.all(keys.filter((key) => key !== "return-warranty-guardian-v9").map((key) => caches.delete(key)))),
   );
 });
 

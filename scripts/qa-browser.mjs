@@ -156,6 +156,13 @@ const rowsAfterParse = await page.locator(".purchase-row").count();
 const ocrImportedTextVisible = await page.locator("text=Desk Lamp").count();
 stages.push("ocr-extract-and-save");
 
+const svgOcrFixturePath = `${root}/tests/fixtures/ocr/scanned-receipt.local-ocr.svg`;
+await page.setInputFiles("#ocr-file", svgOcrFixturePath);
+await page.click("#extract-local-ocr");
+await page.waitForSelector("text=Travel Mug");
+const svgOcrVisible = await page.locator("text=Travel Mug").count();
+stages.push("svg-bundled-ocr-extract");
+
 const pdfOcrFixturePath = `${root}/outputs/qa-ocr-receipt.pdf`;
 await writeFile(
   pdfOcrFixturePath,
@@ -374,6 +381,7 @@ const result = {
   previewItems,
   rowsAfterParse,
   ocrImportedTextVisible,
+  svgOcrVisible,
   pdfOcrVisible,
   scannedPdfFallbackVisible,
   koreanPresetPreviewVisible,
@@ -443,6 +451,7 @@ const failures = [
   previewItems !== 2 && "Expected two parsed receipt items",
   rowsAfterParse < 6 && "Expected parsed items to be saved",
   ocrImportedTextVisible < 1 && "Expected local OCR extracted receipt item to be visible",
+  svgOcrVisible < 1 && "Expected bundled SVG OCR worker preview",
   pdfOcrVisible < 1 && "Expected local PDF text extraction preview",
   scannedPdfFallbackVisible < 1 && "Expected scanned PDF fallback notice",
   koreanPresetPreviewVisible < 1 && "Expected Korean card CSV preset preview",

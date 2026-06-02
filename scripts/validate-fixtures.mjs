@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pdfExtractionDiagnostics, textFromPdfSource } from "../src/local-extraction.js";
+import { bundledLocalOcrWorker, bundledLocalOcrWorkerSupports } from "../src/local-ocr-worker.js";
 import {
   CSV_IMPORT_PRESETS,
   analyzeCsvImport,
@@ -79,7 +80,7 @@ async function validateSampleIntakeManifest() {
     if (path.isAbsolute(entry.fixturePath) || entry.fixturePath.split(/[\\/]/).includes("..")) {
       throw new Error(`${entry.id} must use a relative fixturePath inside tests/fixtures.`);
     }
-    if (!["csv", "ocr-text", "pdf-text", "policy"].includes(entry.type)) throw new Error(`${entry.id} has unsupported type.`);
+    if (!["csv", "ocr-text", "ocr-image", "pdf-text", "policy"].includes(entry.type)) throw new Error(`${entry.id} has unsupported type.`);
     if (!entry.sourceKind) throw new Error(`${entry.id} is missing sourceKind.`);
     if (!entry.review?.piiChecked || !entry.review?.parserChecked) throw new Error(`${entry.id} must include piiChecked and parserChecked review flags.`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(entry.review?.reviewedAt || "")) throw new Error(`${entry.id} must include reviewedAt as YYYY-MM-DD.`);
@@ -107,6 +108,14 @@ async function validateSampleIntakeManifest() {
       const parsed = parseReceiptText(text);
       if (!parsed.merchant || !parsed.purchaseDate || !parsed.items.length) {
         throw new Error(`${entry.id} OCR intake fixture must parse merchant, purchase date, and at least one item.`);
+      }
+    }
+    if (entry.type === "ocr-image") {
+      const imageFile = { name: path.basename(entry.fixturePath), type: "image/svg+xml", text: async () => text };
+      if (!bundledLocalOcrWorkerSupports(imageFile)) throw new Error(`${entry.id} OCR image fixture is not supported by the bundled worker.`);
+      const parsed = parseReceiptText(await bundledLocalOcrWorker(imageFile));
+      if (!parsed.merchant || !parsed.purchaseDate || !parsed.items.length) {
+        throw new Error(`${entry.id} bundled OCR image fixture must parse merchant, purchase date, and at least one item.`);
       }
     }
     if (entry.type === "pdf-text") {
@@ -168,7 +177,10 @@ async function validateOcrResultFixtures() {
     const fixturePath = path.join(root, item.path);
     const text = await readFile(fixturePath, "utf8");
     assertNoPrivateData(fixturePath, text);
-    const parsed = parseReceiptText(text);
+    const parsed =
+      item.sourceType === "bundled-fixture-worker"
+        ? parseReceiptText(await bundledLocalOcrWorker({ name: path.basename(item.path), type: "image/svg+xml", text: async () => text }))
+        : parseReceiptText(text);
     if (parsed.merchant !== item.expectedMerchant) throw new Error(`${item.path} merchant mismatch.`);
     if (parsed.purchaseDate !== item.expectedPurchaseDate) throw new Error(`${item.path} purchase date mismatch.`);
     if (parsed.items.length < Number(item.expectedMinItems || 1)) throw new Error(`${item.path} did not produce enough receipt items.`);

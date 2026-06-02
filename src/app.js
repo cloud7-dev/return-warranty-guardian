@@ -23,6 +23,7 @@ import {
 } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { textFromHtmlSource, textFromImageSource, textFromPdfSource } from "./local-extraction.js";
+import { localOcrEnvironment } from "./local-ocr-worker.js";
 import { POLICY_TEMPLATES, policyTemplateById, policyTemplateReviewNote } from "./policy-templates.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
@@ -100,7 +101,7 @@ async function extractLocalText(file) {
     return textFromPdfSource(await file.text());
   }
   if (/^image\//.test(file.type)) {
-    return textFromImageSource(file);
+    return textFromImageSource(file, localOcrEnvironment(globalThis, file));
   }
   throw new Error("Unsupported local file type.");
 }

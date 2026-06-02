@@ -68,8 +68,9 @@
    - 현재 구현: 브라우저가 이미지 OCR을 지원하지 않을 때 cloud OCR 대신 붙여넣기 fallback을 안내
    - 현재 구현: 사용자가 확인해서 적용하는 정책 템플릿으로 반품/환불/보증 기본값, 증빙 요구사항, source/version/last reviewed, 국가/관할권 면책 메모를 채움
    - 현재 구현: HTML 이메일 영수증, PDF text operator, 압축/스캔 PDF fallback 진단, local OCR text result, 정책 템플릿 source URL/license metadata fixture corpus로 회귀 테스트
-   - 현재 구현: local OCR engine plan adapter: future bundled worker, browser TextDetector, manual fallback을 no-cloud 기준으로 판정
-   - 남은 구현: 실제 번들형 이미지 OCR 엔진 탑재, 실제 스캔 PDF OCR, 실제 판매처 정책 fixture 확대, 실제 출처 URL/라이선스 검토
+   - 현재 구현: local OCR engine plan adapter: bundled SVG fixture worker, browser TextDetector, manual fallback을 no-cloud 기준으로 판정
+   - 현재 구현: synthetic SVG OCR fixture로 bundled worker 이미지 경로와 영수증 파서 연결을 회귀 테스트
+   - 남은 구현: 실제 범용 번들형 이미지 OCR 엔진 탑재, 실제 스캔 PDF OCR, 실제 판매처 정책 fixture 확대, 실제 출처 URL/라이선스 검토
 
 4. **서버 없는 알림 경험 고도화**
    - 현재 구현: 구매별 사전 알림 일수 저장, `.ics` 캘린더 내보내기, `.ics` 반복 `VALARM` 사전 알림, 앱이 열려 있을 때의 브라우저 로컬 알림 버튼

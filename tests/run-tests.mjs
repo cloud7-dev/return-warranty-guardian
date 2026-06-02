@@ -25,6 +25,7 @@ import {
   verifyCsvPresetBundleFingerprint,
 } from "../src/importers.js";
 import { localOcrEnginePlan, pdfExtractionDiagnostics, pdfExtractionStatus, textFromHtmlSource, textFromImageSource, textFromPdfSource } from "../src/local-extraction.js";
+import { bundledLocalOcrWorker, bundledLocalOcrWorkerSupports, localOcrEnvironment } from "../src/local-ocr-worker.js";
 import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
@@ -366,6 +367,13 @@ const bundledOcrText = await textFromImageSource("synthetic-image", {
   ReturnWarrantyGuardianOcrWorker: async () => "Bundled OCR Fixture Store\nReceipt 12.00",
 });
 assert.match(bundledOcrText, /Bundled OCR Fixture Store/);
+const svgOcrFixture = await fixture("ocr/scanned-receipt.local-ocr.svg");
+const svgOcrFile = new File([svgOcrFixture], "scanned-receipt.local-ocr.svg", { type: "image/svg+xml" });
+assert.equal(bundledLocalOcrWorkerSupports(svgOcrFile), true);
+const svgOcrText = await textFromImageSource(svgOcrFile, localOcrEnvironment(globalThis, svgOcrFile));
+assert.match(svgOcrText, /Fixture SVG OCR Market/);
+assert.equal(parseReceiptText(svgOcrText).total, 42.6);
+assert.equal(await bundledLocalOcrWorker(svgOcrFile), svgOcrText);
 
 const policyTemplate = policyTemplateById("extended-60-day-return");
 assert.equal(policyTemplate.returnWindowDays, 60);

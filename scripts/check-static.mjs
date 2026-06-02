@@ -12,6 +12,7 @@ const requiredFiles = [
   "src/i18n.js",
   "src/importers.js",
   "src/local-extraction.js",
+  "src/local-ocr-worker.js",
   "src/policy-templates.js",
   "src/storage.js",
   "src/exporters.js",

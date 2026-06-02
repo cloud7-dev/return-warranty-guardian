@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420" role="img" aria-label="Synthetic local OCR receipt fixture" data-rwg-ocr-text="Fixture SVG OCR Market&#10;Receipt 9001&#10;2026-06-03&#10;Travel Mug 24.50&#10;Silicone Lid 12.00&#10;Subtotal 36.50&#10;Tax 6.10&#10;Total 42.60">
+  <rect width="640" height="420" fill="#f8fafc" />
+  <rect x="168" y="36" width="336" height="348" rx="8" fill="#ffffff" stroke="#334155" />
+  <text x="198" y="92" font-family="monospace" font-size="20" fill="#0f172a">Fixture SVG OCR Market</text>
+  <text x="198" y="132" font-family="monospace" font-size="16" fill="#334155">Receipt 9001</text>
+  <text x="198" y="166" font-family="monospace" font-size="16" fill="#334155">2026-06-03</text>
+  <text x="198" y="220" font-family="monospace" font-size="16" fill="#0f172a">Travel Mug 24.50</text>
+  <text x="198" y="252" font-family="monospace" font-size="16" fill="#0f172a">Silicone Lid 12.00</text>
+  <text x="198" y="318" font-family="monospace" font-size="18" font-weight="700" fill="#0f172a">Total 42.60</text>
+</svg>

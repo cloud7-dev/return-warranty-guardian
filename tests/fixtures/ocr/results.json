@@ -10,6 +10,15 @@
       "expectedItem": "Countertop Filter",
       "expectedMinItems": 2,
       "expectedTotal": 75.87
+    },
+    {
+      "path": "ocr/scanned-receipt.local-ocr.svg",
+      "sourceType": "bundled-fixture-worker",
+      "expectedMerchant": "Fixture SVG OCR Market",
+      "expectedPurchaseDate": "2026-06-03",
+      "expectedItem": "Travel Mug",
+      "expectedMinItems": 2,
+      "expectedTotal": 42.6
     }
   ]
 }

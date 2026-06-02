@@ -23,7 +23,7 @@ The validator checks the intake manifest, PII patterns, coverage targets, parser
 
 ## Coverage Targets
 
-`tests/fixtures/intake/sample-intake.json` defines fixture coverage targets for the importer and local OCR regression set. Keep these targets strict enough that a new card statement, marketplace order, merchant order, payment receipt, or local OCR text sample cannot be added without review metadata and parser validation.
+`tests/fixtures/intake/sample-intake.json` defines fixture coverage targets for the importer and local OCR regression set. Keep these targets strict enough that a new card statement, marketplace order, merchant order, payment receipt, local OCR text sample, or bundled OCR image fixture cannot be added without review metadata and parser validation.
 
 Required intake entries must include:
 
@@ -36,6 +36,8 @@ Required intake entries must include:
 ## OCR Samples
 
 Do not commit scanned receipt images by default. Commit only local OCR text output that has been anonymized and reviewed. Keep the original image as local evidence outside the repo.
+
+The repo also includes synthetic SVG OCR fixtures for the bundled no-cloud worker path. These SVG files must contain only fake receipt text in `data-rwg-ocr-text` metadata and must pass `npm run fixture:validate`.
 
 ## Real Endpoint Smoke Records
 
