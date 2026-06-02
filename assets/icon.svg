@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Return and Warranty Guardian icon">
+  <rect width="128" height="128" rx="28" fill="#0f766e"/>
+  <path d="M37 31h54a6 6 0 0 1 6 6v56a6 6 0 0 1-6 6H37a6 6 0 0 1-6-6V37a6 6 0 0 1 6-6Z" fill="#f8faf7"/>
+  <path d="M45 49h38M45 64h26M45 79h31" stroke="#0f2f2b" stroke-width="8" stroke-linecap="round"/>
+  <path d="M87 73c0 14-10 22-22 27-12-5-22-13-22-27V59l22-9 22 9v14Z" fill="#f59e0b"/>
+  <path d="m55 75 8 8 16-18" fill="none" stroke="#0f2f2b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,23 @@
+{
+  "name": "return-warranty-guardian",
+  "version": "0.1.0",
+  "description": "Local-first purchase memory for receipts, return windows, refund deadlines, and warranties.",
+  "type": "module",
+  "private": false,
+  "scripts": {
+    "dev": "python3 -m http.server 4180 --bind 127.0.0.1",
+    "test": "node tests/run-tests.mjs",
+    "build": "node scripts/check-static.mjs",
+    "qa:browser": "/Users/jstudio/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/qa-browser.mjs"
+  },
+  "keywords": [
+    "local-first",
+    "privacy",
+    "receipt-tracker",
+    "warranty-tracker",
+    "return-tracker",
+    "pwa",
+    "offline-first"
+  ],
+  "license": "Apache-2.0"
+}
