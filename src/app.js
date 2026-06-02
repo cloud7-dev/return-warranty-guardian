@@ -61,7 +61,7 @@ const icons = {
 };
 
 function money(value) {
-  const locales = { ko: "ko-KR", zh: "zh-CN", it: "it-IT" };
+  const locales = { ko: "ko-KR", en: "en-US", zh: "zh-CN", it: "it-IT" };
   return Number(value || 0).toLocaleString(locales[state.language] || "ko-KR", {
     style: "currency",
     currency: "USD",

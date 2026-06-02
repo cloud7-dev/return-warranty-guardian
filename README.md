@@ -3,7 +3,7 @@
 Return & Warranty Guardian is a local-first purchase memory for receipts, return windows, refund deadlines, and warranties. It runs in your browser, stores your purchase data on your device, and helps you see what needs action before money is lost. No account, no server upload, no cloud vault required: just a private deadline desk for the things you buy.
 
 > Never miss a return window or warranty again.
-> 기본 언어는 한국어이며, 중국어와 이탈리아어 UI로 전환할 수 있습니다.
+> 기본 언어는 한국어이며, 영어, 중국어, 이탈리아어 UI로 전환할 수 있습니다.
 
 ## What It Does
 
@@ -15,7 +15,7 @@ Return & Warranty Guardian is a local-first purchase memory for receipts, return
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.
 - Exports `.ics` calendar reminders for purchase deadlines.
-- Switches the interface between Korean, Chinese, and Italian.
+- Switches the interface between Korean, English, Chinese, and Italian.
 - Works as a static web app with a PWA manifest and service worker.
 
 ## Quick Start
@@ -46,6 +46,10 @@ npm run build
 Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use JSON export for backups.
 
 This project is a tracking and evidence-organization tool. It does not guarantee that a merchant will accept a return, refund, or warranty claim.
+
+## Notifications
+
+The current no-server notification path is `.ics` calendar export. Mobile users can import deadlines into iOS, Google, or Samsung Calendar; desktop users can import them into macOS Calendar, Outlook, Google Calendar, or Windows Calendar. See [docs/notification-strategy.ko.md](docs/notification-strategy.ko.md) for the Korean notification plan.
 
 ## MVP Workflow
 

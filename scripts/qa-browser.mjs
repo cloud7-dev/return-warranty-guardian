@@ -61,6 +61,8 @@ page.on("pageerror", (error) => consoleErrors.push(error.message));
 await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
 await page.waitForSelector("text=반품기한과 보증기간을 다시는 놓치지 마세요.");
 const defaultLanguage = await page.locator("#language-select").inputValue();
+await page.selectOption("#language-select", "en");
+await page.waitForSelector("text=Never miss a return window or warranty again.");
 await page.selectOption("#language-select", "zh");
 await page.waitForSelector("text=再也不要错过退货窗口或保修期限。");
 await page.selectOption("#language-select", "it");

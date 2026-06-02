@@ -50,6 +50,7 @@ const requiredUiCopy = [
   "영수증 텍스트 파서",
   "증빙 데스크",
   "계정도, 서버 업로드도 없습니다.",
+  "Never miss a return window or warranty again.",
   "再也不要错过退货窗口或保修期限。",
   "Non perdere piu una finestra di reso o una garanzia.",
 ];
