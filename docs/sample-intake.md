@@ -30,6 +30,11 @@ The validator checks the intake manifest, PII patterns, coverage targets, parser
 Required intake entries must include:
 
 - `sourceKind`: the anonymized sample shape being covered.
+- `provenance.origin`: one of `synthetic-fixture`, `anonymized-community`, or `public-open-license`.
+- `provenance.license`: one of the repository-approved fixture licenses or permission labels.
+- `provenance.permission`: a short non-sensitive note explaining why this fixture can be committed.
+- `provenance.rawSampleRetained`: must be `false`; raw private samples stay outside the repository and should not be retained by maintainers.
+- `provenance.contributorHandle`: a non-sensitive handle, not an email address or real order/customer identifier.
 - `review.piiChecked`: confirms raw private data was removed before commit.
 - `review.parserChecked`: confirms the CSV importer or receipt parser was run.
 - `review.reviewedAt`: review date in `YYYY-MM-DD` format.

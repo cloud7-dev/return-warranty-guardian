@@ -47,6 +47,13 @@ await writeFile(
       type: ext.toLowerCase() === ".csv" ? "csv" : "ocr-text",
       fixturePath: `REPLACE-WITH-FINAL-FIXTURE-PATH/${path.basename(outputPath)}`,
       sourceKind: "REPLACE-WITH-SOURCE-KIND",
+      provenance: {
+        origin: "anonymized-community",
+        license: "permission-to-include-fixture",
+        permission: "REPLACE-WITH-PERMISSION-NOTE",
+        rawSampleRetained: false,
+        contributorHandle: "REPLACE-WITH-NON-SENSITIVE-HANDLE",
+      },
       anonymized: true,
       review: {
         piiChecked: false,

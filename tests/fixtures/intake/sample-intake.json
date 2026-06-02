@@ -31,6 +31,13 @@
       "type": "csv",
       "fixturePath": "csv/korean-card-statement.csv",
       "sourceKind": "card-statement-shape",
+      "provenance": {
+        "origin": "synthetic-fixture",
+        "license": "Apache-2.0",
+        "permission": "repo-owned-synthetic-fixture",
+        "rawSampleRetained": false,
+        "contributorHandle": "fixture-reviewer"
+      },
       "anonymized": true,
       "review": {
         "piiChecked": true,
@@ -44,6 +51,13 @@
       "type": "csv",
       "fixturePath": "csv/korean-shopping-order.csv",
       "sourceKind": "marketplace-order-shape",
+      "provenance": {
+        "origin": "synthetic-fixture",
+        "license": "Apache-2.0",
+        "permission": "repo-owned-synthetic-fixture",
+        "rawSampleRetained": false,
+        "contributorHandle": "fixture-reviewer"
+      },
       "anonymized": true,
       "review": {
         "piiChecked": true,
@@ -57,6 +71,13 @@
       "type": "csv",
       "fixturePath": "csv/amazon-style-order.csv",
       "sourceKind": "marketplace-order-shape",
+      "provenance": {
+        "origin": "synthetic-fixture",
+        "license": "Apache-2.0",
+        "permission": "repo-owned-synthetic-fixture",
+        "rawSampleRetained": false,
+        "contributorHandle": "fixture-reviewer"
+      },
       "anonymized": true,
       "review": {
         "piiChecked": true,
@@ -70,6 +91,13 @@
       "type": "csv",
       "fixturePath": "csv/shopify-order-export.csv",
       "sourceKind": "merchant-order-shape",
+      "provenance": {
+        "origin": "synthetic-fixture",
+        "license": "Apache-2.0",
+        "permission": "repo-owned-synthetic-fixture",
+        "rawSampleRetained": false,
+        "contributorHandle": "fixture-reviewer"
+      },
       "anonymized": true,
       "review": {
         "piiChecked": true,
@@ -83,6 +111,13 @@
       "type": "csv",
       "fixturePath": "csv/stripe-receipt-export.csv",
       "sourceKind": "payment-receipt-shape",
+      "provenance": {
+        "origin": "synthetic-fixture",
+        "license": "Apache-2.0",
+        "permission": "repo-owned-synthetic-fixture",
+        "rawSampleRetained": false,
+        "contributorHandle": "fixture-reviewer"
+      },
       "anonymized": true,
       "review": {
         "piiChecked": true,
@@ -96,6 +131,13 @@
       "type": "ocr-text",
       "fixturePath": "ocr/scanned-receipt.local-ocr.txt",
       "sourceKind": "local-ocr-text",
+      "provenance": {
+        "origin": "synthetic-fixture",
+        "license": "Apache-2.0",
+        "permission": "repo-owned-synthetic-fixture",
+        "rawSampleRetained": false,
+        "contributorHandle": "fixture-reviewer"
+      },
       "anonymized": true,
       "review": {
         "piiChecked": true,
@@ -109,6 +151,13 @@
       "type": "ocr-image",
       "fixturePath": "ocr/scanned-receipt.local-ocr.svg",
       "sourceKind": "bundled-fixture-ocr-image",
+      "provenance": {
+        "origin": "synthetic-fixture",
+        "license": "Apache-2.0",
+        "permission": "repo-owned-synthetic-fixture",
+        "rawSampleRetained": false,
+        "contributorHandle": "fixture-reviewer"
+      },
       "anonymized": true,
       "review": {
         "piiChecked": true,

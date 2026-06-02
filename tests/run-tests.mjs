@@ -583,6 +583,8 @@ assert.equal(anonymizeReport.schema, "return-warranty-guardian.fixture-anonymize
 assert.ok(anonymizeReport.redacted >= 2);
 const intakeDraft = JSON.parse(await readFile(anonymizeResult.intakeDraftPath, "utf8"));
 assert.equal(intakeDraft.anonymized, true);
+assert.equal(intakeDraft.provenance.origin, "anonymized-community");
+assert.equal(intakeDraft.provenance.rawSampleRetained, false);
 assert.equal(intakeDraft.review.piiChecked, false);
 
 console.log("All logic tests passed.");

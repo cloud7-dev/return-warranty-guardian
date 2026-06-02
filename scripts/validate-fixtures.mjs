@@ -22,6 +22,8 @@ const piiPatterns = [
   { name: "card-like number", pattern: /\b(?:\d[ -]?){13,19}\b/ },
   { name: "Korean mobile number", pattern: /\b010[- ]?\d{3,4}[- ]?\d{4}\b/ },
 ];
+const allowedSampleOrigins = new Set(["synthetic-fixture", "anonymized-community", "public-open-license"]);
+const allowedSampleLicenses = new Set(["Apache-2.0", "MIT", "CC0-1.0", "public-domain", "permission-to-include-fixture"]);
 
 async function listFiles(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
@@ -82,6 +84,14 @@ async function validateSampleIntakeManifest() {
     }
     if (!["csv", "ocr-text", "ocr-image", "pdf-text", "policy"].includes(entry.type)) throw new Error(`${entry.id} has unsupported type.`);
     if (!entry.sourceKind) throw new Error(`${entry.id} is missing sourceKind.`);
+    const provenance = entry.provenance || {};
+    if (!allowedSampleOrigins.has(provenance.origin)) throw new Error(`${entry.id} has unsupported provenance origin.`);
+    if (!allowedSampleLicenses.has(provenance.license)) throw new Error(`${entry.id} has unsupported provenance license.`);
+    if (!provenance.permission || /^REPLACE-WITH/i.test(provenance.permission)) throw new Error(`${entry.id} must document sample reuse permission.`);
+    if (provenance.rawSampleRetained !== false) throw new Error(`${entry.id} must confirm raw private sample retention is false.`);
+    if (!provenance.contributorHandle || /@/.test(provenance.contributorHandle) || /^REPLACE-WITH/i.test(provenance.contributorHandle)) {
+      throw new Error(`${entry.id} must include a non-sensitive contributor handle.`);
+    }
     if (!entry.review?.piiChecked || !entry.review?.parserChecked) throw new Error(`${entry.id} must include piiChecked and parserChecked review flags.`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(entry.review?.reviewedAt || "")) throw new Error(`${entry.id} must include reviewedAt as YYYY-MM-DD.`);
     if (!entry.review?.reviewer) throw new Error(`${entry.id} must include reviewer.`);
