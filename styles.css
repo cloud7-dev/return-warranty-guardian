@@ -206,7 +206,8 @@ svg {
 .purchase-form input,
 .purchase-form select,
 .purchase-form textarea,
-.receipt-text {
+.receipt-text,
+.ocr-sidecar textarea {
   width: 100%;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
@@ -226,7 +227,8 @@ svg {
 .purchase-form input:focus,
 .purchase-form select:focus,
 .purchase-form textarea:focus,
-.receipt-text:focus {
+.receipt-text:focus,
+.ocr-sidecar textarea:focus {
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
 }
@@ -695,6 +697,25 @@ svg {
   display: flex;
   gap: 8px;
   margin: 12px 0 0;
+}
+
+.ocr-sidecar {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.ocr-sidecar textarea {
+  min-height: 78px;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: vertical;
 }
 
 .parser-preview {

@@ -193,6 +193,15 @@ await page.waitForSelector("text=PDF local extraction note");
 const scannedPdfFallbackVisible = await page.locator("text=PDF local extraction note").count();
 stages.push("scanned-pdf-fallback");
 
+const scannedSidecarText = await readFile(`${root}/tests/fixtures/ocr/scanned-receipt.local-ocr.txt`, "utf8");
+await page.fill("#ocr-sidecar-text", scannedSidecarText);
+await page.setInputFiles("#ocr-file", scannedPdfFixturePath);
+await page.click("#extract-local-ocr");
+await page.waitForSelector("text=Fixture OCR Market");
+await page.waitForSelector("text=Countertop Filter");
+const scannedPdfSidecarVisible = await page.locator("text=Countertop Filter").count();
+stages.push("scanned-pdf-sidecar-ocr");
+
 const koreanCsvPresetPath = `${root}/outputs/qa-korean-card.csv`;
 await writeFile(
   koreanCsvPresetPath,
@@ -384,6 +393,7 @@ const result = {
   svgOcrVisible,
   pdfOcrVisible,
   scannedPdfFallbackVisible,
+  scannedPdfSidecarVisible,
   koreanPresetPreviewVisible,
   importPreviewVisible,
   importMappingVisible,
@@ -454,6 +464,7 @@ const failures = [
   svgOcrVisible < 1 && "Expected bundled SVG OCR worker preview",
   pdfOcrVisible < 1 && "Expected local PDF text extraction preview",
   scannedPdfFallbackVisible < 1 && "Expected scanned PDF fallback notice",
+  scannedPdfSidecarVisible < 1 && "Expected scanned PDF local OCR sidecar preview",
   koreanPresetPreviewVisible < 1 && "Expected Korean card CSV preset preview",
   importPreviewVisible < 1 && "Expected CSV import preview to appear",
   importMappingVisible < 1 && "Expected CSV mapping controls to appear",

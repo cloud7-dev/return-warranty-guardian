@@ -22,7 +22,7 @@ import {
   validateCsvPresetBundle,
 } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
-import { textFromHtmlSource, textFromImageSource, textFromPdfSource } from "./local-extraction.js";
+import { textFromHtmlSource, textFromImageSource, textFromPdfSource, textFromScannedPdfWithLocalOcr } from "./local-extraction.js";
 import { localOcrEnvironment } from "./local-ocr-worker.js";
 import { POLICY_TEMPLATES, policyTemplateById, policyTemplateReviewNote } from "./policy-templates.js";
 import { parseReceiptText } from "./receipt-parser.js";
@@ -91,14 +91,15 @@ function fileToAttachment(file) {
   });
 }
 
-async function extractLocalText(file) {
+async function extractLocalText(file, ocrSidecarText = "") {
   if (!file) return "";
   if (file.type === "text/html" || /\.html?$/i.test(file.name)) {
     return textFromHtmlSource(await file.text());
   }
   if (/^text\//.test(file.type) || /\.txt$|\.csv$/i.test(file.name)) return file.text();
   if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
-    return textFromPdfSource(await file.text());
+    const pdfText = await file.text();
+    return String(ocrSidecarText || "").trim() ? textFromScannedPdfWithLocalOcr(pdfText, ocrSidecarText) : textFromPdfSource(pdfText);
   }
   if (/^image\//.test(file.type)) {
     return textFromImageSource(file, localOcrEnvironment(globalThis, file));
@@ -795,6 +796,10 @@ Total 166.99</textarea>
         <button class="secondary-action" id="parse-receipt" type="button">${icons.receipt} ${t("parseReceipt")}</button>
         <button class="ghost-action" id="clear-parser" type="button">${t("clear")}</button>
       </div>
+      <label class="ocr-sidecar">
+        <span>${t("localOcrSidecar")}</span>
+        <textarea id="ocr-sidecar-text" rows="3" spellcheck="false" placeholder="${t("localOcrSidecarPlaceholder")}"></textarea>
+      </label>
       ${state.ocrStatus ? `<p class="empty-note">${state.ocrStatus}</p>` : ""}
       ${preview}
     </section>
@@ -1413,7 +1418,8 @@ app.addEventListener("click", async (event) => {
     const [file] = document.querySelector("#ocr-file")?.files || [];
     if (!file) return;
     try {
-      const text = await extractLocalText(file);
+      const sidecarText = document.querySelector("#ocr-sidecar-text")?.value || "";
+      const text = await extractLocalText(file, sidecarText);
       const receiptText = document.querySelector("#receipt-text");
       receiptText.value = text.trim() || receiptText.value;
       state.parsedReceipt = parseReceiptText(receiptText.value);

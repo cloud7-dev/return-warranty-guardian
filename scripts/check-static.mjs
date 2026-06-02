@@ -88,6 +88,7 @@ const requiredUiCopy = [
   "이 행 포함",
   "드라이런",
   "첨부 {saved}개 저장됨",
+  "스캔 PDF용 로컬 OCR 텍스트",
   "증빙 데스크",
   "계정도, 서버 업로드도 없습니다.",
   "Never miss a return window or warranty again.",
