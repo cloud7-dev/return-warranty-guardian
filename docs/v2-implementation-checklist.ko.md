@@ -57,8 +57,8 @@
    - 현재 구현: `npm run fixture:validate`로 개인정보 패턴, CSV fixture importability, 정책 source/license metadata 검증
    - 현재 구현: import review checklist로 필수 매핑/중복/오류/증빙 누락을 확인하고, 정상 행을 포함/제외 선택한 뒤 확정 import
    - 현재 구현: CSV preset bundle JSON 내보내기/가져오기와 schema/version/field 호환성 검증
-   - 현재 구현: preset bundle trust model/source/reviewedAt/fixtureCoverage metadata, SHA-256 fingerprint-ready signing payload, ECDSA P-256 detached signature 검증 helper, review manifest, 대량 row query/proof review filter helper
-   - 남은 구현: 익명화된 실제 사용자 샘플 기반의 카드사/판매처별 fixture 확대, 실제 maintainer/community key registry 운영
+   - 현재 구현: preset bundle trust model/source/reviewedAt/fixtureCoverage metadata, SHA-256 fingerprint-ready signing payload, ECDSA P-256 detached signature 검증 helper, review manifest, trusted public key registry fixture, signed preset bundle fixture, 대량 row query/proof review filter helper
+   - 남은 구현: 익명화된 실제 사용자 샘플 기반의 카드사/판매처별 fixture 확대, 실제 maintainer/community key rotation과 운영 registry governance
 
 ### v0.3: 입력 자동화와 정책 보조
 

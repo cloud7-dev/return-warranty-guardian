@@ -1,0 +1,55 @@
+{
+  "schema": "return-warranty-guardian.csv-preset-bundle.v1",
+  "version": 1,
+  "generatedAt": "2026-06-02T10:00:00.000Z",
+  "privacyNote": "Preset bundles contain column mappings only. Do not include real receipts, card numbers, order IDs, or purchase rows.",
+  "trustModel": "community-reviewed-local-mapping",
+  "signatureStatus": "detached-signature",
+  "signatureAlgorithm": "sha256-fingerprint-detached-signature-ready",
+  "fingerprint": "939e14dbedb19d5db86da905c3d9edb02457dda6f0431a09b22dcd2704718aa7",
+  "signatures": [
+    {
+      "keyId": "fixture-maintainer-p256",
+      "algorithm": "ECDSA-P256-SHA256",
+      "signature": "hytaBjRwpEa8xdx4yZBVBcomJw1qtZjrgUPTWR5yJg-piGH-CqaGzgU3KJyznb2x6ZORpyz4y0cl6JlYsL1zQQ"
+    }
+  ],
+  "supportedFields": [
+    "productName",
+    "merchant",
+    "purchaseDate",
+    "price",
+    "returnWindowDays",
+    "refundWindowDays",
+    "warrantyMonths",
+    "reminderLeadDays",
+    "model",
+    "serial",
+    "category",
+    "room",
+    "supportContact",
+    "documents",
+    "serviceNotes",
+    "hasReceipt",
+    "notes",
+    "status"
+  ],
+  "presets": [
+    {
+      "id": "fixture-reviewed-shopify",
+      "label": "Fixture reviewed Shopify",
+      "mapping": {
+        "productName": "lineitem_name",
+        "merchant": "vendor",
+        "purchaseDate": "created_at",
+        "price": "lineitem_price"
+      },
+      "source": "fixture-review",
+      "reviewedAt": "2026-06-02",
+      "fixtureCoverage": [
+        "tests/fixtures/csv/shopify-order-export.csv",
+        "tests/fixtures/csv/stripe-receipt-export.csv"
+      ]
+    }
+  ]
+}

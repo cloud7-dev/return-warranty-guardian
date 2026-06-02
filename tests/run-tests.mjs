@@ -214,6 +214,15 @@ const signatureCheck = await verifyCsvPresetBundleDetachedSignatures(signedPrese
 assert.equal(signatureCheck.schema, "return-warranty-guardian.csv-preset-signature-verification.v1");
 assert.equal(signatureCheck.ok, true);
 assert.equal(signatureCheck.verifiedCount, 1);
+const trustedKeysFixture = JSON.parse(await fixture("presets/trusted-keys.json"));
+const signedBundleFixture = JSON.parse(await fixture("presets/signed-bundle.json"));
+assert.equal(trustedKeysFixture.schema, "return-warranty-guardian.csv-preset-trusted-keys.v1");
+assert.equal(trustedKeysFixture.keys[0].purpose, "csv-preset-review");
+const signedBundleFingerprintCheck = await verifyCsvPresetBundleFingerprint(signedBundleFixture);
+assert.equal(signedBundleFingerprintCheck.ok, true);
+const signedBundleSignatureCheck = await verifyCsvPresetBundleDetachedSignatures(signedBundleFixture, trustedKeysFixture.keys);
+assert.equal(signedBundleSignatureCheck.ok, true);
+assert.equal(signedBundleSignatureCheck.verifiedCount, 1);
 const reviewManifest = JSON.parse(await fixture("presets/review-manifest.json"));
 const reviewSummary = await csvPresetBundleReviewSummary(fingerprintedPresetBundle, {
   ...reviewManifest,

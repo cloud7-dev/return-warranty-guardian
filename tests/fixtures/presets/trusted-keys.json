@@ -1,0 +1,23 @@
+{
+  "schema": "return-warranty-guardian.csv-preset-trusted-keys.v1",
+  "generatedAt": "2026-06-02T10:00:00.000Z",
+  "privacyNote": "Trusted key fixtures contain public keys only. Do not store private keys, maintainer emails, tokens, or real user data.",
+  "keys": [
+    {
+      "keyId": "fixture-maintainer-p256",
+      "owner": "Fixture Maintainer",
+      "purpose": "csv-preset-review",
+      "trustedSince": "2026-06-02",
+      "publicKeyJwk": {
+        "key_ops": [
+          "verify"
+        ],
+        "ext": true,
+        "kty": "EC",
+        "x": "t5KY0mgiGzo7YnpjJrl9qKmq1sA5U8Z2EgeecYka4Rs",
+        "y": "Bxc6BaRffpxoZzyTOvOLKHrb9v1GXIrug3HyspRNmMo",
+        "crv": "P-256"
+      }
+    }
+  ]
+}

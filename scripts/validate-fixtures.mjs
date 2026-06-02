@@ -1,7 +1,16 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pdfExtractionDiagnostics, textFromPdfSource } from "../src/local-extraction.js";
-import { CSV_IMPORT_PRESETS, analyzeCsvImport, csvMappingForPreset, csvPresetBundle, csvPresetBundleFingerprint, csvPresetBundleReviewSummary } from "../src/importers.js";
+import {
+  CSV_IMPORT_PRESETS,
+  analyzeCsvImport,
+  csvMappingForPreset,
+  csvPresetBundle,
+  csvPresetBundleFingerprint,
+  csvPresetBundleReviewSummary,
+  verifyCsvPresetBundleDetachedSignatures,
+  verifyCsvPresetBundleFingerprint,
+} from "../src/importers.js";
 import { policyTemplateById } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import { buildRunnerPlan } from "./self-hosted-notification-runner.mjs";
@@ -188,6 +197,28 @@ async function validatePresetReviewFixtures() {
   const fingerprint = await csvPresetBundleFingerprint(bundle);
   const summary = await csvPresetBundleReviewSummary({ ...bundle, fingerprint }, { ...manifest, fingerprint });
   if (!summary.ok) throw new Error(`Preset review manifest failed: ${summary.issues.join("; ")}`);
+
+  const trustedKeysPath = path.join(root, "presets/trusted-keys.json");
+  const trustedKeys = JSON.parse(await readFile(trustedKeysPath, "utf8"));
+  if (trustedKeys.schema !== "return-warranty-guardian.csv-preset-trusted-keys.v1") {
+    throw new Error("Trusted key registry fixture has unsupported schema.");
+  }
+  const reviewKeys = (trustedKeys.keys || []).filter((key) => key.purpose === "csv-preset-review");
+  if (!reviewKeys.length) throw new Error("Trusted key registry fixture must include at least one csv-preset-review key.");
+  for (const key of reviewKeys) {
+    if (!key.keyId || !key.trustedSince || key.publicKeyJwk?.kty !== "EC" || key.publicKeyJwk?.crv !== "P-256") {
+      throw new Error(`Trusted key ${key.keyId || "(missing)"} must include P-256 public key metadata.`);
+    }
+  }
+
+  const signedBundlePath = path.join(root, "presets/signed-bundle.json");
+  const signedBundle = JSON.parse(await readFile(signedBundlePath, "utf8"));
+  const signedFingerprintCheck = await verifyCsvPresetBundleFingerprint(signedBundle);
+  if (!signedFingerprintCheck.ok) throw new Error(`Signed preset bundle fingerprint failed: ${signedFingerprintCheck.issues.join("; ")}`);
+  const signatureCheck = await verifyCsvPresetBundleDetachedSignatures(signedBundle, reviewKeys);
+  if (!signatureCheck.ok || signatureCheck.verifiedCount < 1) {
+    throw new Error(`Signed preset bundle signature failed: ${signatureCheck.results.map((result) => result.status).join("; ")}`);
+  }
 }
 
 async function main() {
