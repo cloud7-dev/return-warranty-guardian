@@ -26,6 +26,14 @@ const purchase = {
   room: "Home office",
   supportContact: "support@example.test",
   documents: ["receipt.pdf", "manual.pdf"],
+  attachments: [
+    {
+      name: "warranty-card.pdf",
+      type: "application/pdf",
+      size: 128,
+      dataUrl: "data:application/pdf;base64,JVBERi0x",
+    },
+  ],
   serviceNotes: "No repairs yet.",
 };
 
@@ -63,12 +71,14 @@ assert.match(pack, /Evidence Pack: Wireless Headset/);
 assert.match(pack, /2026-07-02/);
 assert.match(pack, /Claim Checklist/);
 assert.match(pack, /receipt\.pdf/);
+assert.match(pack, /warranty-card\.pdf/);
 assert.match(pack, /Home office/);
 
 const csv = purchasesToCsv([purchase], now);
 assert.match(csv, /product_name/);
 assert.match(csv, /Wireless Headset/);
 assert.match(csv, /manual\.pdf/);
+assert.match(csv, /warranty-card\.pdf/);
 
 const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);

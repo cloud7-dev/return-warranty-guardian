@@ -46,6 +46,7 @@ Confirm:
 - Repository description stays focused on local-first receipts, returns, refunds, and warranties.
 - Topics include `local-first`, `privacy-tools`, `receipt-tracker`, `warranty-tracker`, `return-tracker`, `consumer-tools`, `pwa`, `offline-first`, `i18n`, `multilingual`, `document-management`, `csv-export`, `home-inventory`, and `home-maintenance`.
 - Consolidated historical repositories still point to this repository.
+- GitHub Pages points to `https://cloud7-dev.github.io/return-warranty-guardian/`.
 
 ## Release Notes
 

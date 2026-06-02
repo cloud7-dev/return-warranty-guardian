@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 
@@ -86,11 +86,25 @@ const initialSummary = await page.locator(".summary-card").count();
 await page.screenshot({ path: `${root}/outputs/playwright-desktop.png`, fullPage: true });
 stages.push("desktop-screenshot");
 
+const attachmentFixturePath = `${root}/outputs/qa-receipt.pdf`;
+await mkdir(`${root}/outputs`, { recursive: true });
+await writeFile(attachmentFixturePath, "%PDF-1.4\n% Synthetic QA receipt\n");
+await page.fill('input[name="productName"]', "QA Attachment Purchase");
+await page.fill('input[name="merchant"]', "QA Store");
+await page.fill('input[name="price"]', "42.50");
+await page.setInputFiles('input[name="attachments"]', attachmentFixturePath);
+await page.click("#purchase-form .primary-action");
+await page.waitForFunction(() => document.querySelectorAll(".purchase-row").length >= 4);
+await page.waitForSelector("text=qa-receipt.pdf");
+const rowsAfterManualSave = await page.locator(".purchase-row").count();
+const attachmentVisible = await page.locator("text=qa-receipt.pdf").count();
+stages.push("attachment-save");
+
 await page.click("#parse-receipt");
 await page.waitForSelector(".parser-preview");
 const previewItems = await page.locator(".preview-item").count();
 await page.click("#add-parsed-items");
-await page.waitForFunction(() => document.querySelectorAll(".purchase-row").length >= 5);
+await page.waitForFunction(() => document.querySelectorAll(".purchase-row").length >= 6);
 const rowsAfterParse = await page.locator(".purchase-row").count();
 stages.push("parse-and-save");
 
@@ -143,6 +157,8 @@ const result = {
   languageOptionCount,
   initialRows,
   initialSummary,
+  rowsAfterManualSave,
+  attachmentVisible,
   previewItems,
   rowsAfterParse,
   filteredRows,
@@ -164,8 +180,10 @@ const failures = [
   languageOptionCount !== 8 && "Expected eight language options",
   initialRows < 3 && "Expected seeded purchase rows",
   initialSummary !== 4 && "Expected four dashboard summary cards",
+  rowsAfterManualSave < 4 && "Expected manual purchase with attachment to be saved",
+  attachmentVisible < 1 && "Expected saved local attachment name to be visible",
   previewItems !== 2 && "Expected two parsed receipt items",
-  rowsAfterParse < 5 && "Expected parsed items to be saved",
+  rowsAfterParse < 6 && "Expected parsed items to be saved",
   filteredRows !== 1 && "Expected Coffee Maker search to return one row",
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",

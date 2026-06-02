@@ -17,10 +17,17 @@ Core values:
 - **Privacy-friendly:** no backend, no account, no upload path.
 - **Exportable:** JSON backup, CSV review, `.ics` calendar reminders, and Markdown evidence packs.
 
+## Live Demo
+
+Try the static demo on GitHub Pages:
+
+https://cloud7-dev.github.io/return-warranty-guardian/
+
 ## What It Does
 
 - Tracks return, refund, and warranty deadlines from one local dashboard.
 - Stores purchases in browser storage with JSON export/import.
+- Stores local receipt, PDF, manual, and warranty-card attachments in the browser record.
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.

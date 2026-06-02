@@ -23,6 +23,7 @@ const requiredFiles = [
   ".github/ISSUE_TEMPLATE/receipt_parser_issue.md",
   ".github/ISSUE_TEMPLATE/localization_issue.md",
   ".github/workflows/ci.yml",
+  ".github/workflows/pages.yml",
   "docs/product-boundaries.md",
   "docs/release-checklist.md",
   "docs/v2-implementation-checklist.ko.md",

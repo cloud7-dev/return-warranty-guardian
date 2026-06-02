@@ -13,6 +13,7 @@ export function downloadText(filename, mimeType, content) {
 export function evidencePackMarkdown(purchase, now = new Date()) {
   const item = computeDeadlines(purchase, now);
   const documents = Array.isArray(item.documents) ? item.documents : [];
+  const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
   const deadlineRows = item.deadlines
     .map(
       (deadline) =>
@@ -41,6 +42,10 @@ Generated: ${now.toISOString()}
 ## Local Documents
 
 ${documents.length ? documents.map((name) => `- ${name}`).join("\n") : "- No document names recorded."}
+
+## Local Attachments
+
+${attachments.length ? attachments.map((attachment) => `- ${attachment.name} (${attachment.type || "file"}, ${attachment.size || 0} bytes)`).join("\n") : "- No local files attached."}
 
 ## Service History
 
@@ -94,6 +99,7 @@ export function purchasesToCsv(purchases, now = new Date()) {
   ];
   const rows = purchases.map((purchase) => {
     const item = computeDeadlines(purchase, now);
+    const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
     return [
       item.productName,
       item.merchant,
@@ -107,7 +113,7 @@ export function purchasesToCsv(purchases, now = new Date()) {
       item.model,
       item.serial,
       item.supportContact,
-      item.documents,
+      [...(item.documents || []), ...attachments.map((attachment) => attachment.name)],
       item.hasReceipt ? "yes" : "no",
       item.status,
       item.notes,

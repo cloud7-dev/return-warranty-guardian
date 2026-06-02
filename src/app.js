@@ -6,6 +6,7 @@ import { samplePurchases } from "./sample-data.js";
 import { loadPurchases, savePurchases } from "./storage.js";
 
 const app = document.querySelector("#app");
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
 const state = {
   purchases: [],
@@ -24,6 +25,39 @@ function linesFromText(value) {
     .split(/\r?\n|,/)
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function fileSizeLabel(size) {
+  const amount = Number(size || 0);
+  if (amount < 1024) return `${amount} B`;
+  if (amount < 1024 * 1024) return `${(amount / 1024).toFixed(1)} KB`;
+  return `${(amount / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileToAttachment(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      resolve({
+        name: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size,
+        dataUrl: reader.result,
+        createdAt: new Date().toISOString(),
+      });
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function attachmentsFromForm(formData) {
+  const files = formData.getAll("attachments").filter((file) => file instanceof File && file.name);
+  const accepted = files.filter((file) => file.size <= MAX_ATTACHMENT_BYTES);
+  return Promise.all(accepted.map(fileToAttachment));
+}
+
+function purchaseAttachments(purchase) {
+  return Array.isArray(purchase.attachments) ? purchase.attachments.filter((item) => item?.name && item?.dataUrl) : [];
 }
 
 const filterKeys = {
@@ -87,7 +121,7 @@ function makeId() {
   return `purchase-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function normalizePurchase(formData) {
+async function normalizePurchase(formData) {
   return {
     id: makeId(),
     productName: String(formData.get("productName") || "").trim(),
@@ -103,6 +137,7 @@ function normalizePurchase(formData) {
     room: String(formData.get("room") || "").trim(),
     supportContact: String(formData.get("supportContact") || "").trim(),
     documents: linesFromText(formData.get("documents")),
+    attachments: await attachmentsFromForm(formData),
     serviceNotes: String(formData.get("serviceNotes") || "").trim(),
     source: String(formData.get("source") || "manual"),
     hasReceipt: formData.get("hasReceipt") === "on",
@@ -129,6 +164,7 @@ function getFilteredPurchases() {
         purchase.notes,
         purchase.serviceNotes,
         ...(purchase.documents || []),
+        ...purchaseAttachments(purchase).map((attachment) => attachment.name),
       ]
         .join(" ")
         .toLowerCase()
@@ -258,6 +294,11 @@ function renderPurchaseForm() {
         <label class="full">
           ${t("documents")}
           <textarea name="documents" rows="2" placeholder="${t("documentsPlaceholder")}"></textarea>
+        </label>
+        <label class="full">
+          ${t("attachments")}
+          <input name="attachments" type="file" multiple accept="image/*,application/pdf,.pdf" />
+          <span class="field-help">${t("attachmentsHelp")}</span>
         </label>
         <label class="full">
           ${t("serviceNotes")}
@@ -417,6 +458,8 @@ function renderDetail() {
   }
   const item = computeDeadlines(selected, today());
   const documents = Array.isArray(item.documents) ? item.documents : [];
+  const attachments = purchaseAttachments(item);
+  const hasLocalDocs = documents.length || attachments.length;
   return `
     <section class="panel detail-panel">
       <div class="panel-heading">
@@ -445,7 +488,8 @@ function renderDetail() {
         <label><input type="checkbox" disabled /> ${t("checklistBox")}</label>
         <label><input type="checkbox" ${item.serial ? "checked" : ""} disabled /> ${t("checklistSerial")}</label>
         <label><input type="checkbox" disabled /> ${t("checklistRma")}</label>
-        <label><input type="checkbox" ${documents.length ? "checked" : ""} disabled /> ${t("checklistManuals")}</label>
+        <label><input type="checkbox" ${hasLocalDocs ? "checked" : ""} disabled /> ${t("checklistManuals")}</label>
+        <label><input type="checkbox" ${attachments.length ? "checked" : ""} disabled /> ${t("checklistAttachments")}</label>
         <label><input type="checkbox" ${item.serviceNotes ? "checked" : ""} disabled /> ${t("checklistServiceHistory")}</label>
       </div>
       <div class="home-context">
@@ -456,8 +500,20 @@ function renderDetail() {
       <div class="document-list">
         <h3>${t("localDocs")}</h3>
         ${
-          documents.length
-            ? `<ul>${documents.map((name) => `<li>${name}</li>`).join("")}</ul>`
+          hasLocalDocs
+            ? `<ul>
+                ${documents.map((name) => `<li>${name}</li>`).join("")}
+                ${attachments
+                  .map(
+                    (attachment, index) => `
+                      <li class="attachment-item">
+                        <span>${attachment.name} · ${fileSizeLabel(attachment.size)}</span>
+                        <button class="inline-action" data-attachment-purchase="${item.id}" data-attachment-index="${index}" type="button">${t("downloadAttachment")}</button>
+                      </li>
+                    `,
+                  )
+                  .join("")}
+              </ul>`
             : `<p>${t("noDocuments")}</p>`
         }
       </div>
@@ -569,6 +625,7 @@ function addParsedItems() {
     room: "",
     supportContact: "",
     documents: [`${state.parsedReceipt.merchant} receipt text`],
+    attachments: [],
     serviceNotes: "",
     source: "receipt-text",
     hasReceipt: true,
@@ -589,10 +646,20 @@ function exportEvidence(id) {
   downloadText(`${safeName || "purchase"}-evidence-pack.md`, "text/markdown", evidencePackMarkdown(purchase, today()));
 }
 
-app.addEventListener("submit", (event) => {
+function downloadAttachment(purchaseId, attachmentIndex) {
+  const purchase = state.purchases.find((item) => item.id === purchaseId);
+  const attachment = purchaseAttachments(purchase || {})[Number(attachmentIndex)];
+  if (!attachment) return;
+  const link = document.createElement("a");
+  link.href = attachment.dataUrl;
+  link.download = attachment.name;
+  link.click();
+}
+
+app.addEventListener("submit", async (event) => {
   if (event.target.id !== "purchase-form") return;
   event.preventDefault();
-  const purchase = normalizePurchase(new FormData(event.target));
+  const purchase = await normalizePurchase(new FormData(event.target));
   if (!validatePurchase(purchase)) return;
   state.purchases = [purchase, ...state.purchases];
   state.selectedId = purchase.id;
@@ -647,6 +714,11 @@ app.addEventListener("click", async (event) => {
 
   if (button.dataset.evidence) {
     exportEvidence(button.dataset.evidence);
+    return;
+  }
+
+  if (button.dataset.attachmentPurchase) {
+    downloadAttachment(button.dataset.attachmentPurchase, button.dataset.attachmentIndex);
     return;
   }
 
