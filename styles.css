@@ -175,16 +175,25 @@ svg {
   justify-content: flex-end;
 }
 
-.search-box {
+.search-box,
+.language-select {
   display: grid;
   gap: 5px;
-  min-width: 250px;
   font-size: 12px;
   font-weight: 700;
   color: var(--muted);
 }
 
+.search-box {
+  min-width: 250px;
+}
+
+.language-select {
+  min-width: 128px;
+}
+
 .search-box input,
+.language-select select,
 .purchase-form input,
 .purchase-form select,
 .purchase-form textarea,
@@ -197,12 +206,14 @@ svg {
   outline: none;
 }
 
-.search-box input {
+.search-box input,
+.language-select select {
   height: 42px;
   padding: 0 12px;
 }
 
 .search-box input:focus,
+.language-select select:focus,
 .purchase-form input:focus,
 .purchase-form select:focus,
 .purchase-form textarea:focus,
@@ -719,7 +730,8 @@ svg {
   }
 
   .topbar-tools,
-  .search-box {
+  .search-box,
+  .language-select {
     width: 100%;
     justify-content: stretch;
   }

@@ -8,6 +8,7 @@ const requiredFiles = [
   "src/app.js",
   "src/deadline-engine.js",
   "src/receipt-parser.js",
+  "src/i18n.js",
   "src/storage.js",
   "src/exporters.js",
   "src/sample-data.js",
@@ -23,6 +24,7 @@ for (const file of requiredFiles) {
 const html = await readFile("index.html", "utf8");
 const css = await readFile("styles.css", "utf8");
 const app = await readFile("src/app.js", "utf8");
+const i18n = await readFile("src/i18n.js", "utf8");
 const manifest = JSON.parse(await readFile("manifest.webmanifest", "utf8"));
 const sw = await readFile("sw.js", "utf8");
 
@@ -43,15 +45,19 @@ for (const cached of [...sw.matchAll(/"(\.\/[^"]+)"/g)].map((match) => match[1].
 }
 
 const requiredUiCopy = [
-  "Never miss a return window or warranty again.",
-  "Deadline queue",
-  "Receipt text parser",
-  "Evidence desk",
-  "No account. No server upload.",
+  "반품기한과 보증기간을 다시는 놓치지 마세요.",
+  "마감 큐",
+  "영수증 텍스트 파서",
+  "증빙 데스크",
+  "계정도, 서버 업로드도 없습니다.",
+  "再也不要错过退货窗口或保修期限。",
+  "Non perdere piu una finestra di reso o una garanzia.",
 ];
 
+const uiBundle = `${html}\n${app}\n${i18n}`;
+
 for (const copy of requiredUiCopy) {
-  if (!app.includes(copy) && !html.includes(copy)) {
+  if (!uiBundle.includes(copy)) {
     throw new Error(`Missing required UI copy: ${copy}`);
   }
 }

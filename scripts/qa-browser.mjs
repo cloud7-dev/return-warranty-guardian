@@ -59,8 +59,16 @@ page.on("console", (message) => {
 page.on("pageerror", (error) => consoleErrors.push(error.message));
 
 await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
-await page.waitForSelector("text=Never miss a return window or warranty again.");
+await page.waitForSelector("text=반품기한과 보증기간을 다시는 놓치지 마세요.");
+const defaultLanguage = await page.locator("#language-select").inputValue();
+await page.selectOption("#language-select", "zh");
+await page.waitForSelector("text=再也不要错过退货窗口或保修期限。");
+await page.selectOption("#language-select", "it");
+await page.waitForSelector("text=Non perdere piu una finestra di reso o una garanzia.");
+await page.selectOption("#language-select", "ko");
+await page.waitForSelector("text=반품기한과 보증기간을 다시는 놓치지 마세요.");
 stages.push("loaded");
+stages.push("language-switch");
 
 const initialRows = await page.locator(".purchase-row").count();
 const initialSummary = await page.locator(".summary-card").count();
@@ -101,6 +109,7 @@ await page.setViewportSize({ width: 390, height: 900 });
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${root}/outputs/playwright-mobile.png`, fullPage: true });
 const mobileHasQueue = await page.locator("text=Deadline queue").count();
+const mobileHasKoreanQueue = await page.locator("text=마감 큐").count();
 stages.push("mobile-screenshot");
 
 await browser.close();
@@ -111,6 +120,7 @@ const icsText = await readFile(icsPath, "utf8");
 
 const result = {
   url: `http://127.0.0.1:${port}/`,
+  defaultLanguage,
   initialRows,
   initialSummary,
   previewItems,
@@ -121,13 +131,14 @@ const result = {
   evidenceContainsChecklist: evidenceText.includes("Claim Checklist"),
   icsPath,
   icsContainsCalendar: icsText.includes("BEGIN:VCALENDAR"),
-  mobileHasQueue,
+  mobileHasQueue: mobileHasKoreanQueue || mobileHasQueue,
   stages,
   consoleErrors,
   screenshots: [`${root}/outputs/playwright-desktop.png`, `${root}/outputs/playwright-mobile.png`],
 };
 
 const failures = [
+  defaultLanguage !== "ko" && "Expected Korean default language",
   initialRows < 3 && "Expected seeded purchase rows",
   initialSummary !== 4 && "Expected four dashboard summary cards",
   previewItems !== 2 && "Expected two parsed receipt items",
@@ -136,7 +147,7 @@ const failures = [
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",
   !result.icsContainsCalendar && "Expected ICS calendar export",
-  mobileHasQueue < 1 && "Expected mobile layout to include deadline queue",
+  mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",
   consoleErrors.length > 0 && `Console errors: ${consoleErrors.join(" | ")}`,
 ].filter(Boolean);
 

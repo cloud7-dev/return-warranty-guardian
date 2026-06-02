@@ -9,6 +9,7 @@ self.addEventListener("install", (event) => {
         "./src/app.js",
         "./src/deadline-engine.js",
         "./src/exporters.js",
+        "./src/i18n.js",
         "./src/receipt-parser.js",
         "./src/sample-data.js",
         "./src/storage.js",

@@ -1,5 +1,6 @@
 import { computeDeadlines, formatDate, summarizePurchases } from "./deadline-engine.js";
 import { evidencePackMarkdown, purchasesToIcs, downloadText } from "./exporters.js";
+import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
 import { loadPurchases, savePurchases } from "./storage.js";
@@ -10,11 +11,43 @@ const state = {
   purchases: [],
   search: "",
   filter: "all",
+  language: normalizeLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY) || DEFAULT_LANGUAGE),
   selectedId: "",
   parsedReceipt: null,
 };
 
 const today = () => new Date();
+const t = (key, values) => translate(state.language, key, values);
+
+const filterKeys = {
+  all: "filterAll",
+  "due-soon": "filterDueSoon",
+  return: "filterReturn",
+  refund: "filterRefund",
+  warranty: "filterWarranty",
+  "missing-proof": "filterMissingProof",
+  expired: "filterExpired",
+  resolved: "filterResolved",
+};
+
+const deadlineLabelKeys = {
+  return: "deadlineReturn",
+  refund: "deadlineRefund",
+  warranty: "deadlineWarranty",
+};
+
+const statusLabelKeys = {
+  active: "statusActive",
+  "due-soon": "statusDueSoon",
+  expired: "statusExpired",
+  missing: "statusMissing",
+  resolved: "statusResolved",
+};
+
+const confidenceLabelKeys = {
+  low: "confidenceLow",
+  medium: "confidenceMedium",
+};
 
 const icons = {
   plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
@@ -28,10 +61,19 @@ const icons = {
 };
 
 function money(value) {
-  return Number(value || 0).toLocaleString("en-US", {
+  const locales = { ko: "ko-KR", zh: "zh-CN", it: "it-IT" };
+  return Number(value || 0).toLocaleString(locales[state.language] || "ko-KR", {
     style: "currency",
     currency: "USD",
   });
+}
+
+function deadlineLabel(deadline) {
+  return t(deadlineLabelKeys[deadline.type] || deadline.label);
+}
+
+function statusLabel(status) {
+  return t(statusLabelKeys[status] || status);
 }
 
 function makeId() {
@@ -106,11 +148,11 @@ function summaryCard(label, value, detail, tone) {
 function renderDashboard() {
   const summary = summarizePurchases(state.purchases, today());
   return `
-    <section class="summary-grid" aria-label="Purchase deadline summary">
-      ${summaryCard("Due soon", summary.dueSoon, "Returns or warranties need action", "warning")}
-      ${summaryCard("Open items", summary.open, `${summary.total} total records`, "")}
-      ${summaryCard("Missing proof", summary.missingProof, "Attach or locate receipts", "risk")}
-      ${summaryCard("Return value", money(summary.returnValueAtRisk), "Still inside return windows", "money")}
+    <section class="summary-grid" aria-label="${t("queueTitle")}">
+      ${summaryCard(t("dueSoon"), summary.dueSoon, t("dueSoonDetail"), "warning")}
+      ${summaryCard(t("openItems"), summary.open, t("totalRecords", { count: summary.total }), "")}
+      ${summaryCard(t("missingProof"), summary.missingProof, t("missingProofDetail"), "risk")}
+      ${summaryCard(t("returnValue"), money(summary.returnValueAtRisk), t("returnValueDetail"), "money")}
     </section>
   `;
 }
@@ -120,65 +162,65 @@ function renderPurchaseForm() {
     <section class="panel intake-panel" id="add-purchase">
       <div class="panel-heading">
         <div>
-          <h2>Add purchase</h2>
-          <p>Manual entries stay on this device.</p>
+          <h2>${t("addPurchase")}</h2>
+          <p>${t("manualEntries")}</p>
         </div>
-        <span class="privacy-mark">No upload</span>
+        <span class="privacy-mark">${t("noUpload")}</span>
       </div>
       <form id="purchase-form" class="purchase-form">
         <label>
-          Product
+          ${t("product")}
           <input name="productName" required placeholder="Wireless Headset" />
         </label>
         <label>
-          Merchant
+          ${t("merchant")}
           <input name="merchant" required placeholder="Example Electronics" />
         </label>
         <label>
-          Purchase date
+          ${t("purchaseDate")}
           <input name="purchaseDate" required type="date" value="${formatDate(today())}" />
         </label>
         <label>
-          Price
+          ${t("price")}
           <input name="price" required min="0" step="0.01" type="number" placeholder="129.99" />
         </label>
         <label>
-          Return days
+          ${t("returnDays")}
           <input name="returnWindowDays" min="0" step="1" type="number" value="30" />
         </label>
         <label>
-          Refund days
+          ${t("refundDays")}
           <input name="refundWindowDays" min="0" step="1" type="number" value="14" />
         </label>
         <label>
-          Warranty months
+          ${t("warrantyMonths")}
           <input name="warrantyMonths" min="0" step="1" type="number" value="12" />
         </label>
         <label>
-          Model
+          ${t("model")}
           <input name="model" placeholder="HX-220" />
         </label>
         <label>
-          Serial
-          <input name="serial" placeholder="Optional" />
+          ${t("serial")}
+          <input name="serial" placeholder="${t("optional")}" />
         </label>
         <label>
-          Source
+          ${t("source")}
           <select name="source">
-            <option value="manual">Manual</option>
-            <option value="receipt-text">Receipt text</option>
-            <option value="csv-import">CSV import</option>
+            <option value="manual">${t("sourceManual")}</option>
+            <option value="receipt-text">${t("sourceReceiptText")}</option>
+            <option value="csv-import">${t("sourceCsvImport")}</option>
           </select>
         </label>
         <label class="full checkbox-row">
           <input name="hasReceipt" type="checkbox" checked />
-          Receipt or order proof is available
+          ${t("receiptAvailable")}
         </label>
         <label class="full">
-          Notes
-          <textarea name="notes" rows="3" placeholder="Return policy note, support case, RMA, box/accessories..."></textarea>
+          ${t("notes")}
+          <textarea name="notes" rows="3" placeholder="${t("notesPlaceholder")}"></textarea>
         </label>
-        <button class="primary-action full" type="submit">${icons.plus} Save purchase</button>
+        <button class="primary-action full" type="submit">${icons.plus} ${t("savePurchase")}</button>
       </form>
     </section>
   `;
@@ -191,7 +233,7 @@ function renderParser() {
       <div class="parser-preview">
         <div class="preview-meta">
           <strong>${parsed.merchant}</strong>
-          <span>${parsed.purchaseDate || "Date not found"} · ${money(parsed.total)} · ${parsed.confidence} confidence</span>
+          <span>${parsed.purchaseDate || t("dateNotFound")} · ${money(parsed.total)} · ${t(confidenceLabelKeys[parsed.confidence] || parsed.confidence)} ${t("confidence")}</span>
         </div>
         <div class="preview-items">
           ${
@@ -207,20 +249,20 @@ function renderParser() {
                     `,
                   )
                   .join("")
-              : '<p class="empty-note">No line items found. Add the purchase manually or adjust the pasted text.</p>'
+              : `<p class="empty-note">${t("noLineItems")}</p>`
           }
         </div>
-        <button class="secondary-action" id="add-parsed-items" type="button">${icons.receipt} Add selected items</button>
+        <button class="secondary-action" id="add-parsed-items" type="button">${icons.receipt} ${t("addSelectedItems")}</button>
       </div>
     `
-    : '<p class="empty-note">Paste a receipt, PDF invoice text, or order confirmation. The parser never saves anything until you confirm it.</p>';
+    : `<p class="empty-note">${t("parserEmpty")}</p>`;
 
   return `
     <section class="panel parser-panel">
       <div class="panel-heading">
         <div>
-          <h2>Receipt text parser</h2>
-          <p>Fast path for email receipts and copied invoices.</p>
+          <h2>${t("parserTitle")}</h2>
+          <p>${t("parserSubtitle")}</p>
         </div>
       </div>
       <textarea id="receipt-text" class="receipt-text" rows="9" spellcheck="false">Example Electronics
@@ -232,8 +274,8 @@ Subtotal 154.98
 Tax 12.01
 Total 166.99</textarea>
       <div class="parser-actions">
-        <button class="secondary-action" id="parse-receipt" type="button">${icons.receipt} Parse receipt</button>
-        <button class="ghost-action" id="clear-parser" type="button">Clear</button>
+        <button class="secondary-action" id="parse-receipt" type="button">${icons.receipt} ${t("parseReceipt")}</button>
+        <button class="ghost-action" id="clear-parser" type="button">${t("clear")}</button>
       </div>
       ${preview}
     </section>
@@ -242,10 +284,10 @@ Total 166.99</textarea>
 
 function deadlinePill(deadline) {
   return `
-    <span class="deadline-pill ${deadline.status}">
-      <span>${deadline.label}</span>
+      <span class="deadline-pill ${deadline.status}">
+      <span>${deadlineLabel(deadline)}</span>
       <strong>${deadline.date}</strong>
-      <em>${deadline.daysLeft}d</em>
+      <em>${t("dayShort", { count: deadline.daysLeft })}</em>
     </span>
   `;
 }
@@ -255,8 +297,8 @@ function renderPurchaseRows() {
   if (!purchases.length) {
     return `
       <div class="empty-state">
-        <h3>No matching purchases</h3>
-        <p>Try another filter or add a receipt to start a deadline queue.</p>
+        <h3>${t("noMatchingPurchases")}</h3>
+        <p>${t("noMatchingPurchasesBody")}</p>
       </div>
     `;
   }
@@ -274,19 +316,19 @@ function renderPurchaseRows() {
                 </button>
                 <div class="proof-line">
                   <span class="${purchase.hasReceipt ? "proof-ok" : "proof-missing"}">
-                    ${purchase.hasReceipt ? "Proof ready" : "Proof missing"}
+                    ${purchase.hasReceipt ? t("proofReady") : t("proofMissing")}
                   </span>
-                  <span>${purchase.model || "No model"}</span>
-                  <span>${purchase.serial || "No serial"}</span>
+                  <span>${purchase.model || t("noModel")}</span>
+                  <span>${purchase.serial || t("noSerial")}</span>
                 </div>
               </div>
               <div class="deadline-stack">
                 ${purchase.deadlines.map(deadlinePill).join("")}
               </div>
               <div class="row-actions">
-                <button class="icon-action" title="Export evidence pack" aria-label="Export evidence pack for ${purchase.productName}" data-evidence="${purchase.id}" type="button">${icons.pack}</button>
-                <button class="icon-action" title="Mark resolved" aria-label="Mark ${purchase.productName} resolved" data-resolve="${purchase.id}" type="button">${icons.check}</button>
-                <button class="icon-action danger" title="Delete" aria-label="Delete ${purchase.productName}" data-delete="${purchase.id}" type="button">${icons.trash}</button>
+                <button class="icon-action" title="${t("exportEvidencePack")}" aria-label="${t("exportEvidencePackFor", { product: purchase.productName })}" data-evidence="${purchase.id}" type="button">${icons.pack}</button>
+                <button class="icon-action" title="${t("markResolved")}" aria-label="${t("markResolvedFor", { product: purchase.productName })}" data-resolve="${purchase.id}" type="button">${icons.check}</button>
+                <button class="icon-action danger" title="${t("delete")}" aria-label="${t("deleteFor", { product: purchase.productName })}" data-delete="${purchase.id}" type="button">${icons.trash}</button>
               </div>
             </article>
           `,
@@ -301,14 +343,14 @@ function renderQueue() {
     <section class="panel queue-panel" id="deadline-queue">
       <div class="panel-heading queue-heading">
         <div>
-          <h2>Deadline queue</h2>
-          <p>Sorted by the closest return, refund, or warranty date.</p>
+          <h2>${t("queueTitle")}</h2>
+          <p>${t("queueSubtitle")}</p>
         </div>
-        <div class="filter-tabs" role="tablist" aria-label="Deadline filters">
+        <div class="filter-tabs" role="tablist" aria-label="${t("queueTitle")}">
           ${["all", "due-soon", "return", "refund", "warranty", "missing-proof", "expired", "resolved"]
             .map(
               (filter) =>
-                `<button class="${state.filter === filter ? "active" : ""}" data-filter="${filter}" type="button">${filter.replace("-", " ")}</button>`,
+                `<button class="${state.filter === filter ? "active" : ""}" data-filter="${filter}" type="button">${t(filterKeys[filter])}</button>`,
             )
             .join("")}
         </div>
@@ -323,8 +365,8 @@ function renderDetail() {
   if (!selected) {
     return `
       <section class="panel detail-panel">
-        <h2>Evidence desk</h2>
-        <p class="empty-note">Select or create a purchase to see deadline math and claim checklist.</p>
+        <h2>${t("evidenceDesk")}</h2>
+        <p class="empty-note">${t("evidenceEmpty")}</p>
       </section>
     `;
   }
@@ -333,32 +375,32 @@ function renderDetail() {
     <section class="panel detail-panel">
       <div class="panel-heading">
         <div>
-          <h2>Evidence desk</h2>
+          <h2>${t("evidenceDesk")}</h2>
           <p>${item.productName} · ${item.merchant}</p>
         </div>
-        <button class="secondary-action" data-evidence="${item.id}" type="button">${icons.pack} Export pack</button>
+        <button class="secondary-action" data-evidence="${item.id}" type="button">${icons.pack} ${t("exportPack")}</button>
       </div>
       <div class="deadline-math">
         ${item.deadlines
           .map(
             (deadline) => `
               <div>
-                <span>${deadline.label}</span>
+                <span>${deadlineLabel(deadline)}</span>
                 <strong>${deadline.date}</strong>
-                <small>${deadline.daysLeft} days left · ${deadline.status}</small>
+                <small>${t("daysLeft", { count: deadline.daysLeft })} · ${statusLabel(deadline.status)}</small>
               </div>
             `,
           )
           .join("")}
       </div>
       <div class="claim-checklist">
-        <label><input type="checkbox" ${item.hasReceipt ? "checked" : ""} disabled /> Receipt or order confirmation</label>
-        <label><input type="checkbox" disabled /> Product photos</label>
-        <label><input type="checkbox" disabled /> Box and accessories</label>
-        <label><input type="checkbox" ${item.serial ? "checked" : ""} disabled /> Serial/model number</label>
-        <label><input type="checkbox" disabled /> Return label or RMA</label>
+        <label><input type="checkbox" ${item.hasReceipt ? "checked" : ""} disabled /> ${t("checklistReceipt")}</label>
+        <label><input type="checkbox" disabled /> ${t("checklistPhotos")}</label>
+        <label><input type="checkbox" disabled /> ${t("checklistBox")}</label>
+        <label><input type="checkbox" ${item.serial ? "checked" : ""} disabled /> ${t("checklistSerial")}</label>
+        <label><input type="checkbox" disabled /> ${t("checklistRma")}</label>
       </div>
-      <p class="notes-block">${item.notes || "No notes yet."}</p>
+      <p class="notes-block">${item.notes || t("noNotes")}</p>
     </section>
   `;
 }
@@ -366,40 +408,51 @@ function renderDetail() {
 function renderShell() {
   return `
     <aside class="sidebar">
-      <a class="brand" href="#deadline-queue" aria-label="Return & Warranty Guardian home">
+      <a class="brand" href="#deadline-queue" aria-label="${t("appName")} home">
         <span class="brand-mark">${icons.check}</span>
         <span>
-          <strong>Return & Warranty Guardian</strong>
-          <small>Local purchase memory</small>
+          <strong>${t("appName")}</strong>
+          <small>${t("brandSubtitle")}</small>
         </span>
       </a>
-      <nav class="side-nav" aria-label="Primary navigation">
-        <a href="#deadline-queue" class="active">Deadline queue</a>
-        <a href="#add-purchase">Add purchase</a>
-        <a href="#privacy">Privacy</a>
+      <nav class="side-nav" aria-label="${t("navDeadlineQueue")}">
+        <a href="#deadline-queue" class="active">${t("navDeadlineQueue")}</a>
+        <a href="#add-purchase">${t("navAddPurchase")}</a>
+        <a href="#privacy">${t("navPrivacy")}</a>
       </nav>
       <div class="sidebar-note" id="privacy">
-        <strong>Private by default</strong>
-        <span>Purchases stay in browser storage. Export a JSON backup before clearing site data.</span>
+        <strong>${t("sidebarPrivateTitle")}</strong>
+        <span>${t("sidebarPrivateBody")}</span>
       </div>
     </aside>
     <main class="main-panel">
       <header class="topbar">
         <div>
-          <h1>Never miss a return window or warranty again.</h1>
-          <p>No account. No server upload. A local deadline desk for the things you buy.</p>
+          <h1>${t("heroTitle")}</h1>
+          <p>${t("heroSubtitle")}</p>
         </div>
         <div class="topbar-tools">
-          <label class="search-box">
-            <span>Search</span>
-            <input id="search-input" value="${state.search}" placeholder="Merchant, product, model..." />
+          <label class="language-select">
+            <span>${t("languageLabel")}</span>
+            <select id="language-select">
+              ${languages
+                .map(
+                  (language) =>
+                    `<option value="${language.code}" ${state.language === language.code ? "selected" : ""}>${language.label}</option>`,
+                )
+                .join("")}
+            </select>
           </label>
-          <button class="tool-button" id="export-json" type="button">${icons.export} JSON</button>
+          <label class="search-box">
+            <span>${t("searchLabel")}</span>
+            <input id="search-input" value="${state.search}" placeholder="${t("searchPlaceholder")}" />
+          </label>
+          <button class="tool-button" id="export-json" type="button">${icons.export} ${t("json")}</button>
           <label class="tool-button file-button">
-            ${icons.import} Import
+            ${icons.import} ${t("import")}
             <input id="import-json" type="file" accept="application/json" />
           </label>
-          <button class="tool-button" id="export-ics" type="button">${icons.calendar} ICS</button>
+          <button class="tool-button" id="export-ics" type="button">${icons.calendar} ${t("ics")}</button>
         </div>
       </header>
       ${renderDashboard()}
@@ -416,6 +469,8 @@ function renderShell() {
 }
 
 function render() {
+  document.documentElement.lang = languageMeta(state.language).htmlLang;
+  document.title = t("appName");
   app.innerHTML = renderShell();
 }
 
@@ -449,7 +504,7 @@ function addParsedItems() {
     serial: "",
     source: "receipt-text",
     hasReceipt: true,
-    notes: "Created from pasted receipt text. Verify merchant policy before relying on deadlines.",
+    notes: t("createdFromReceipt"),
     status: "active",
     createdAt,
   }));
@@ -486,6 +541,13 @@ app.addEventListener("input", (event) => {
 });
 
 app.addEventListener("change", async (event) => {
+  if (event.target.id === "language-select") {
+    state.language = normalizeLanguage(event.target.value);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, state.language);
+    render();
+    return;
+  }
+
   if (event.target.id !== "import-json") return;
   const [file] = event.target.files;
   if (!file) return;
@@ -495,7 +557,7 @@ app.addEventListener("change", async (event) => {
     state.selectedId = imported[0]?.id || "";
     await persistAndRender();
   } catch (error) {
-    alert(`Import failed: ${error.message}`);
+    alert(t("importFailed", { message: error.message }));
   }
 });
 

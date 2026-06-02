@@ -3,6 +3,7 @@
 Return & Warranty Guardian is a local-first purchase memory for receipts, return windows, refund deadlines, and warranties. It runs in your browser, stores your purchase data on your device, and helps you see what needs action before money is lost. No account, no server upload, no cloud vault required: just a private deadline desk for the things you buy.
 
 > Never miss a return window or warranty again.
+> 기본 언어는 한국어이며, 중국어와 이탈리아어 UI로 전환할 수 있습니다.
 
 ## What It Does
 
@@ -14,6 +15,7 @@ Return & Warranty Guardian is a local-first purchase memory for receipts, return
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.
 - Exports `.ics` calendar reminders for purchase deadlines.
+- Switches the interface between Korean, Chinese, and Italian.
 - Works as a static web app with a PWA manifest and service worker.
 
 ## Quick Start
