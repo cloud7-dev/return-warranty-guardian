@@ -203,12 +203,13 @@ const scannedPdfSidecarVisible = await page.locator("text=Countertop Filter").co
 stages.push("scanned-pdf-sidecar-ocr");
 
 const scannedSidecarFilePath = `${root}/outputs/qa-scanned-receipt.ocr.txt`;
-await writeFile(scannedSidecarFilePath, scannedSidecarText);
+await writeFile(scannedSidecarFilePath, scannedSidecarText.replace("Fixture OCR Market", "Fixture OCR File Market"));
+await page.fill("#receipt-text", "");
 await page.fill("#ocr-sidecar-text", "");
 await page.setInputFiles("#ocr-sidecar-file", scannedSidecarFilePath);
 await page.setInputFiles("#ocr-file", scannedPdfFixturePath);
 await page.click("#extract-local-ocr");
-await page.waitForSelector("text=Fixture OCR Market");
+await page.waitForSelector("text=Fixture OCR File Market");
 const scannedPdfSidecarFileVisible = await page.locator("text=Countertop Filter").count();
 stages.push("scanned-pdf-sidecar-file-ocr");
 

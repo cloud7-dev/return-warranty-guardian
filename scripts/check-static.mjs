@@ -21,6 +21,7 @@ const requiredFiles = [
   "scripts/review-sample-intake.mjs",
   "scripts/validate-fixtures.mjs",
   "scripts/self-hosted-notification-runner.mjs",
+  "scripts/notification-smoke-readiness.mjs",
   "scripts/smoke-notifications.mjs",
   "scripts/record-notification-smoke-result.mjs",
   "scripts/validate-notification-smoke-record.mjs",

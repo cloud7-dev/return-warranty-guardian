@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { sanitizeFixtureFilename, sanitizeFixtureReport, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
+import { notificationSmokeReadiness } from "../scripts/notification-smoke-readiness.mjs";
 import { notificationSmokeRecord } from "../scripts/record-notification-smoke-result.mjs";
 import { validateNotificationSmokeRecord } from "../scripts/validate-notification-smoke-record.mjs";
 import {
@@ -548,6 +549,22 @@ const smokePolicy = JSON.parse(await fixture("notifications/smoke-policy.json"))
 assert.equal(smokePolicy.schema, "return-warranty-guardian.notification-smoke-policy.v1");
 assert.ok(smokePolicy.maxRecordAgeDays >= 30);
 assert.ok(smokePolicy.requiredProviders.includes("ntfy"));
+const workflowText = await readFile(new URL("../.github/workflows/notification-smoke.yml", import.meta.url), "utf8");
+const readiness = notificationSmokeReadiness({
+  env: {
+    RWG_NOTIFY_PUBLIC_SMOKE: "1",
+    RWG_NOTIFY_PUBLIC_PROVIDER: "ntfy",
+    RWG_NOTIFY_PUBLIC_ENDPOINT: "https://ntfy.example.test",
+    RWG_NOTIFY_PUBLIC_TOPIC: "returns",
+  },
+  workflowText,
+  policy: smokePolicy,
+  now,
+});
+assert.equal(readiness.schema, "return-warranty-guardian.notification-smoke-readiness.v1");
+assert.equal(readiness.ok, true);
+assert.match(readiness.endpoint.hostHash, /^[a-f0-9]{64}$/);
+assert.equal(JSON.stringify(readiness).includes("ntfy.example.test"), false);
 const smokeValidation = validateNotificationSmokeRecord(smokeRecord, smokePolicy, { now });
 assert.equal(smokeValidation.ok, true);
 for (const provider of ["ntfy", "gotify", "apprise"]) {
@@ -568,6 +585,18 @@ const { stdout: smokeRecordValidationStdout } = await execFileAsync(process.exec
   tempSmokeRecordPath,
 ]);
 assert.match(smokeRecordValidationStdout, /notification-smoke-record-validation/);
+const { stdout: readinessStdout } = await execFileAsync(process.execPath, ["scripts/notification-smoke-readiness.mjs", "--strict"], {
+  env: {
+    ...process.env,
+    RWG_NOTIFY_PUBLIC_SMOKE: "1",
+    RWG_NOTIFY_PUBLIC_PROVIDER: "ntfy",
+    RWG_NOTIFY_PUBLIC_ENDPOINT: "https://ntfy.example.test",
+    RWG_NOTIFY_PUBLIC_TOPIC: "returns",
+  },
+});
+const readinessCli = JSON.parse(readinessStdout);
+assert.equal(readinessCli.ok, true);
+assert.equal(JSON.stringify(readinessCli).includes("ntfy.example.test"), false);
 const anonymizeDir = await mkdtemp(join(tmpdir(), "rwg-anonymize-"));
 const privateSamplePath = join(anonymizeDir, "private-sample.csv");
 await writeFile(
