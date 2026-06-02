@@ -51,8 +51,14 @@ const requiredUiCopy = [
   "증빙 데스크",
   "계정도, 서버 업로드도 없습니다.",
   "Never miss a return window or warranty again.",
+  "返品期限や保証期限をもう逃さない。",
   "再也不要错过退货窗口或保修期限。",
+  "Verpasse nie wieder eine Rueckgabe- oder Garantiefrist.",
+  "Ne manquez plus jamais une fenetre de retour ou une garantie.",
   "Non perdere piu una finestra di reso o una garanzia.",
+  "रिटर्न विंडो या वारंटी फिर कभी न चूकें।",
+  "수리 또는 서비스 이력",
+  "supportContact",
 ];
 
 const uiBundle = `${html}\n${app}\n${i18n}`;

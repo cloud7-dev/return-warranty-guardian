@@ -1,5 +1,5 @@
 import { computeDeadlines, formatDate, summarizePurchases } from "./deadline-engine.js";
-import { evidencePackMarkdown, purchasesToIcs, downloadText } from "./exporters.js";
+import { evidencePackMarkdown, purchasesToCsv, purchasesToIcs, downloadText } from "./exporters.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
@@ -18,6 +18,13 @@ const state = {
 
 const today = () => new Date();
 const t = (key, values) => translate(state.language, key, values);
+
+function linesFromText(value) {
+  return String(value || "")
+    .split(/\r?\n|,/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
 const filterKeys = {
   all: "filterAll",
@@ -61,7 +68,7 @@ const icons = {
 };
 
 function money(value) {
-  const locales = { ko: "ko-KR", en: "en-US", zh: "zh-CN", it: "it-IT" };
+  const locales = { ko: "ko-KR", en: "en-US", ja: "ja-JP", zh: "zh-CN", de: "de-DE", fr: "fr-FR", it: "it-IT", hi: "hi-IN" };
   return Number(value || 0).toLocaleString(locales[state.language] || "ko-KR", {
     style: "currency",
     currency: "USD",
@@ -92,6 +99,11 @@ function normalizePurchase(formData) {
     warrantyMonths: Number(formData.get("warrantyMonths") || 0),
     model: String(formData.get("model") || "").trim(),
     serial: String(formData.get("serial") || "").trim(),
+    category: String(formData.get("category") || "").trim(),
+    room: String(formData.get("room") || "").trim(),
+    supportContact: String(formData.get("supportContact") || "").trim(),
+    documents: linesFromText(formData.get("documents")),
+    serviceNotes: String(formData.get("serviceNotes") || "").trim(),
     source: String(formData.get("source") || "manual"),
     hasReceipt: formData.get("hasReceipt") === "on",
     notes: String(formData.get("notes") || "").trim(),
@@ -106,7 +118,18 @@ function getFilteredPurchases() {
     .map((purchase) => computeDeadlines(purchase, today()))
     .filter((purchase) => {
       if (!query) return true;
-      return [purchase.productName, purchase.merchant, purchase.model, purchase.serial, purchase.notes]
+      return [
+        purchase.productName,
+        purchase.merchant,
+        purchase.model,
+        purchase.serial,
+        purchase.category,
+        purchase.room,
+        purchase.supportContact,
+        purchase.notes,
+        purchase.serviceNotes,
+        ...(purchase.documents || []),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(query);
@@ -205,6 +228,18 @@ function renderPurchaseForm() {
           <input name="serial" placeholder="${t("optional")}" />
         </label>
         <label>
+          ${t("category")}
+          <input name="category" placeholder="Appliance" />
+        </label>
+        <label>
+          ${t("room")}
+          <input name="room" placeholder="Kitchen" />
+        </label>
+        <label class="full">
+          ${t("supportContact")}
+          <input name="supportContact" placeholder="support@example.com / contractor name" />
+        </label>
+        <label>
           ${t("source")}
           <select name="source">
             <option value="manual">${t("sourceManual")}</option>
@@ -219,6 +254,14 @@ function renderPurchaseForm() {
         <label class="full">
           ${t("notes")}
           <textarea name="notes" rows="3" placeholder="${t("notesPlaceholder")}"></textarea>
+        </label>
+        <label class="full">
+          ${t("documents")}
+          <textarea name="documents" rows="2" placeholder="${t("documentsPlaceholder")}"></textarea>
+        </label>
+        <label class="full">
+          ${t("serviceNotes")}
+          <textarea name="serviceNotes" rows="2" placeholder="${t("serviceNotesPlaceholder")}"></textarea>
         </label>
         <button class="primary-action full" type="submit">${icons.plus} ${t("savePurchase")}</button>
       </form>
@@ -320,6 +363,8 @@ function renderPurchaseRows() {
                   </span>
                   <span>${purchase.model || t("noModel")}</span>
                   <span>${purchase.serial || t("noSerial")}</span>
+                  <span>${purchase.category || t("noCategory")}</span>
+                  <span>${purchase.room || t("noRoom")}</span>
                 </div>
               </div>
               <div class="deadline-stack">
@@ -371,6 +416,7 @@ function renderDetail() {
     `;
   }
   const item = computeDeadlines(selected, today());
+  const documents = Array.isArray(item.documents) ? item.documents : [];
   return `
     <section class="panel detail-panel">
       <div class="panel-heading">
@@ -399,8 +445,24 @@ function renderDetail() {
         <label><input type="checkbox" disabled /> ${t("checklistBox")}</label>
         <label><input type="checkbox" ${item.serial ? "checked" : ""} disabled /> ${t("checklistSerial")}</label>
         <label><input type="checkbox" disabled /> ${t("checklistRma")}</label>
+        <label><input type="checkbox" ${documents.length ? "checked" : ""} disabled /> ${t("checklistManuals")}</label>
+        <label><input type="checkbox" ${item.serviceNotes ? "checked" : ""} disabled /> ${t("checklistServiceHistory")}</label>
+      </div>
+      <div class="home-context">
+        <h3>${t("homeContext")}</h3>
+        <p>${item.category || t("noCategory")} · ${item.room || t("noRoom")}</p>
+        <p>${item.supportContact || t("optional")}</p>
+      </div>
+      <div class="document-list">
+        <h3>${t("localDocs")}</h3>
+        ${
+          documents.length
+            ? `<ul>${documents.map((name) => `<li>${name}</li>`).join("")}</ul>`
+            : `<p>${t("noDocuments")}</p>`
+        }
       </div>
       <p class="notes-block">${item.notes || t("noNotes")}</p>
+      <p class="notes-block service-note">${item.serviceNotes || t("noNotes")}</p>
     </section>
   `;
 }
@@ -448,6 +510,7 @@ function renderShell() {
             <input id="search-input" value="${state.search}" placeholder="${t("searchPlaceholder")}" />
           </label>
           <button class="tool-button" id="export-json" type="button">${icons.export} ${t("json")}</button>
+          <button class="tool-button" id="export-csv" type="button">${icons.export} ${t("csv")}</button>
           <label class="tool-button file-button">
             ${icons.import} ${t("import")}
             <input id="import-json" type="file" accept="application/json" />
@@ -502,6 +565,11 @@ function addParsedItems() {
     warrantyMonths: item.warrantyMonths,
     model: "",
     serial: "",
+    category: "Receipt import",
+    room: "",
+    supportContact: "",
+    documents: [`${state.parsedReceipt.merchant} receipt text`],
+    serviceNotes: "",
     source: "receipt-text",
     hasReceipt: true,
     notes: t("createdFromReceipt"),
@@ -617,6 +685,11 @@ app.addEventListener("click", async (event) => {
 
   if (button.id === "export-json") {
     downloadText("return-warranty-guardian-backup.json", "application/json", JSON.stringify(state.purchases, null, 2));
+    return;
+  }
+
+  if (button.id === "export-csv") {
+    downloadText("return-warranty-guardian-export.csv", "text/csv", purchasesToCsv(state.purchases, today()));
     return;
   }
 

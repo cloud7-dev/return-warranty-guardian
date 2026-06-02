@@ -16,6 +16,11 @@
     "receipt-tracker",
     "warranty-tracker",
     "return-tracker",
+    "home-inventory",
+    "home-maintenance",
+    "csv-export",
+    "i18n",
+    "multilingual",
     "pwa",
     "offline-first"
   ],

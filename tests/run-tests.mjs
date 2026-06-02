@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
-import { evidencePackMarkdown, purchasesToIcs } from "../src/exporters.js";
+import { evidencePackMarkdown, purchasesToCsv, purchasesToIcs } from "../src/exporters.js";
 
 const now = new Date("2026-06-02T10:00:00Z");
 
@@ -22,6 +22,11 @@ const purchase = {
   warrantyMonths: 12,
   hasReceipt: true,
   status: "active",
+  category: "Electronics",
+  room: "Home office",
+  supportContact: "support@example.test",
+  documents: ["receipt.pdf", "manual.pdf"],
+  serviceNotes: "No repairs yet.",
 };
 
 const enriched = computeDeadlines(purchase, now);
@@ -57,6 +62,13 @@ const pack = evidencePackMarkdown(purchase, now);
 assert.match(pack, /Evidence Pack: Wireless Headset/);
 assert.match(pack, /2026-07-02/);
 assert.match(pack, /Claim Checklist/);
+assert.match(pack, /receipt\.pdf/);
+assert.match(pack, /Home office/);
+
+const csv = purchasesToCsv([purchase], now);
+assert.match(csv, /product_name/);
+assert.match(csv, /Wireless Headset/);
+assert.match(csv, /manual\.pdf/);
 
 const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);

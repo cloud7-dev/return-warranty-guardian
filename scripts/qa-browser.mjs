@@ -61,12 +61,21 @@ page.on("pageerror", (error) => consoleErrors.push(error.message));
 await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
 await page.waitForSelector("text=반품기한과 보증기간을 다시는 놓치지 마세요.");
 const defaultLanguage = await page.locator("#language-select").inputValue();
+const languageOptionCount = await page.locator("#language-select option").count();
 await page.selectOption("#language-select", "en");
 await page.waitForSelector("text=Never miss a return window or warranty again.");
+await page.selectOption("#language-select", "ja");
+await page.waitForSelector("text=返品期限や保証期限をもう逃さない。");
 await page.selectOption("#language-select", "zh");
 await page.waitForSelector("text=再也不要错过退货窗口或保修期限。");
+await page.selectOption("#language-select", "de");
+await page.waitForSelector("text=Verpasse nie wieder eine Rueckgabe- oder Garantiefrist.");
+await page.selectOption("#language-select", "fr");
+await page.waitForSelector("text=Ne manquez plus jamais une fenetre de retour ou une garantie.");
 await page.selectOption("#language-select", "it");
 await page.waitForSelector("text=Non perdere piu una finestra di reso o una garanzia.");
+await page.selectOption("#language-select", "hi");
+await page.waitForSelector("text=रिटर्न विंडो या वारंटी फिर कभी न चूकें।");
 await page.selectOption("#language-select", "ko");
 await page.waitForSelector("text=반품기한과 보증기간을 다시는 놓치지 마세요.");
 stages.push("loaded");
@@ -107,6 +116,13 @@ const icsPath = `${root}/outputs/${icsDownload.suggestedFilename()}`;
 await icsDownload.saveAs(icsPath);
 stages.push("ics-download");
 
+const csvDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
+await page.click("#export-csv");
+const csvDownload = await csvDownloadPromise;
+const csvPath = `${root}/outputs/${csvDownload.suggestedFilename()}`;
+await csvDownload.saveAs(csvPath);
+stages.push("csv-download");
+
 await page.setViewportSize({ width: 390, height: 900 });
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${root}/outputs/playwright-mobile.png`, fullPage: true });
@@ -119,10 +135,12 @@ server.close();
 
 const evidenceText = await readFile(evidencePath, "utf8");
 const icsText = await readFile(icsPath, "utf8");
+const csvText = await readFile(csvPath, "utf8");
 
 const result = {
   url: `http://127.0.0.1:${port}/`,
   defaultLanguage,
+  languageOptionCount,
   initialRows,
   initialSummary,
   previewItems,
@@ -133,6 +151,8 @@ const result = {
   evidenceContainsChecklist: evidenceText.includes("Claim Checklist"),
   icsPath,
   icsContainsCalendar: icsText.includes("BEGIN:VCALENDAR"),
+  csvPath,
+  csvContainsHomeFields: csvText.includes("support_contact") && csvText.includes("documents"),
   mobileHasQueue: mobileHasKoreanQueue || mobileHasQueue,
   stages,
   consoleErrors,
@@ -141,6 +161,7 @@ const result = {
 
 const failures = [
   defaultLanguage !== "ko" && "Expected Korean default language",
+  languageOptionCount !== 8 && "Expected eight language options",
   initialRows < 3 && "Expected seeded purchase rows",
   initialSummary !== 4 && "Expected four dashboard summary cards",
   previewItems !== 2 && "Expected two parsed receipt items",
@@ -149,6 +170,7 @@ const failures = [
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",
   !result.icsContainsCalendar && "Expected ICS calendar export",
+  !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",
   consoleErrors.length > 0 && `Console errors: ${consoleErrors.join(" | ")}`,
 ].filter(Boolean);

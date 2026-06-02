@@ -23,8 +23,9 @@ There is no API server and no account system. All purchase data remains in brows
 - `src/deadline-engine.js`: date math, deadline status, dashboard summaries.
 - `src/receipt-parser.js`: deterministic pasted-text parser for receipts and invoices.
 - `src/storage.js`: IndexedDB persistence with localStorage fallback.
-- `src/exporters.js`: Markdown evidence pack and `.ics` calendar export.
+- `src/exporters.js`: Markdown evidence pack, CSV export, and `.ics` calendar export.
 - `src/app.js`: UI composition, local state, event handling, import/export.
+- `src/i18n.js`: Korean-default multilingual UI dictionary.
 
 ## Data Model
 
@@ -40,6 +41,11 @@ There is no API server and no account system. All purchase data remains in brows
   "warrantyMonths": 12,
   "model": "HX-220",
   "serial": "DEMO-HX220-001",
+  "category": "Electronics",
+  "room": "Home office",
+  "supportContact": "support@example.test",
+  "documents": ["receipt.pdf", "manual.pdf"],
+  "serviceNotes": "No repairs yet.",
   "source": "manual",
   "hasReceipt": true,
   "notes": "Box and accessories required for return.",

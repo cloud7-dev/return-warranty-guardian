@@ -2,6 +2,32 @@
 
 This list separates high-leverage additions from features that could distract the MVP.
 
+## V2: Still Underserved User Pain
+
+1. **Reliable notifications without a server**
+   - Users want mobile and PC reminders even when the web app is closed.
+   - Calendar export works today, but true background push conflicts with the no-server promise unless it is opt-in or self-hosted.
+
+2. **Durable local attachments**
+   - Receipt images, PDFs, manuals, warranty cards, and construction photos should survive browser cleanup better than ordinary site data.
+   - OPFS, encrypted export bundles, or a desktop wrapper are stronger V2 candidates than a hosted file vault.
+
+3. **Messy receipt and policy extraction**
+   - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
+   - Local OCR and user-confirmed merchant policy templates are still needed before the app can reduce manual entry enough.
+
+4. **Warranty claim packet quality**
+   - Users need a clean support packet with receipt, serial/model, photos, repair history, manuals, and merchant conversation notes.
+   - Markdown export is useful, but V2 should add printable HTML/PDF claim packets.
+
+5. **Home appliance and repair history**
+   - Warranty issues often depend on where an item is installed, who repaired it, which manual applies, and what service happened before.
+   - V2 should absorb the useful parts of Home Memory Ledger without becoming a generic home ERP.
+
+6. **Cross-device continuity without cloud lock-in**
+   - Users buy on mobile, search on desktop, and need the same records later.
+   - JSON export is safe but manual. V2 needs encrypted backup, local network sync, or self-hosted sync options.
+
 ## High-Leverage Next Features
 
 1. **Synthetic receipt fixture corpus**
@@ -13,7 +39,7 @@ This list separates high-leverage additions from features that could distract th
    - Must stay user-confirmed because policies vary by item and season.
 
 3. **Attachment handling**
-   - Receipt image/PDF storage, image compression, and warning for large files.
+   - Receipt image/PDF storage, manuals, warranty cards, image compression, and warning for large files.
    - Export bundle should include evidence pack plus attachments.
 
 4. **Encrypted backup**
