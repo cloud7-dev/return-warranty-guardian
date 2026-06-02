@@ -584,6 +584,9 @@ assert.equal(smokePolicy.schema, "return-warranty-guardian.notification-smoke-po
 assert.ok(smokePolicy.maxRecordAgeDays >= 30);
 assert.ok(smokePolicy.requiredProviders.includes("ntfy"));
 const workflowText = await readFile(new URL("../.github/workflows/notification-smoke.yml", import.meta.url), "utf8");
+assert.match(workflowText, /rwg-notification-smoke\/raw\/raw-smoke\.json/);
+assert.match(workflowText, /rwg-notification-smoke\/records\/sanitized-smoke-record\.json/);
+assert.match(workflowText, /notify:ops-report -- "\$RUNNER_TEMP\/rwg-notification-smoke\/records"/);
 const readiness = notificationSmokeReadiness({
   env: {
     RWG_NOTIFY_PUBLIC_SMOKE: "1",
@@ -764,20 +767,23 @@ const { stdout: requestPackStdout } = await execFileAsync(process.execPath, [
 ]);
 assert.match(requestPackStdout, /Sample Request Pack/);
 assert.match(requestPackStdout, /Maintainer Gate/);
-const releaseReport = releaseReadinessReport(sampleManifest, now);
+const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit });
 assert.equal(releaseReport.schema, "return-warranty-guardian.release-readiness-report.v1");
-assert.equal(releaseReport.remainingItems.length, 3);
+assert.equal(releaseReport.remainingItems.length, 2);
 assert.match(releaseReport.remainingItems.join("\n"), /Actual bundled cross-browser OCR engine/);
+assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /recurring public\/self-hosted endpoint smoke/);
 const releaseMarkdown = releaseReadinessMarkdown(releaseReport);
 assert.match(releaseMarkdown, /Release Readiness Report/);
-assert.match(releaseMarkdown, /2, 3, 4 remain/);
+assert.match(releaseMarkdown, /Recurring public smoke configured/);
 assert.match(releaseMarkdown, /Needs accepted community\/public sample/);
+assert.match(releaseMarkdown, /2, 3 remain/);
 const { stdout: releaseStdout } = await execFileAsync(process.execPath, [
   "scripts/release-readiness-report.mjs",
   "tests/fixtures/intake/sample-intake.json",
 ]);
 assert.match(releaseStdout, /Release Readiness Report/);
-assert.match(releaseStdout, /2, 3, 4 remain/);
+assert.match(releaseStdout, /Recurring public smoke configured/);
+assert.match(releaseStdout, /2, 3 remain/);
 await assert.rejects(
   execFileAsync(process.execPath, [
     "scripts/sample-intake-coverage-report.mjs",

@@ -48,11 +48,11 @@ jobs:
           RWG_NOTIFY_PUBLIC_TOPIC: ${{ inputs.topic || vars.RWG_NOTIFY_PUBLIC_TOPIC || 'returns' }}
           GOTIFY_TOKEN: ${{ secrets.GOTIFY_TOKEN }}
         run: |
-          mkdir -p "$RUNNER_TEMP/rwg-notification-smoke"
-          npm --silent run notify:smoke > "$RUNNER_TEMP/rwg-notification-smoke/raw-smoke.json"
-          npm --silent run notify:record -- "$RUNNER_TEMP/rwg-notification-smoke/raw-smoke.json" > "$RUNNER_TEMP/rwg-notification-smoke/sanitized-smoke-record.json"
-          npm --silent run notify:validate-record -- "$RUNNER_TEMP/rwg-notification-smoke/sanitized-smoke-record.json"
-          npm --silent run notify:ops-report -- "$RUNNER_TEMP/rwg-notification-smoke" > "$RUNNER_TEMP/rwg-notification-smoke/ops-report.md"
+          mkdir -p "$RUNNER_TEMP/rwg-notification-smoke/raw" "$RUNNER_TEMP/rwg-notification-smoke/records"
+          npm --silent run notify:smoke > "$RUNNER_TEMP/rwg-notification-smoke/raw/raw-smoke.json"
+          npm --silent run notify:record -- "$RUNNER_TEMP/rwg-notification-smoke/raw/raw-smoke.json" > "$RUNNER_TEMP/rwg-notification-smoke/records/sanitized-smoke-record.json"
+          npm --silent run notify:validate-record -- "$RUNNER_TEMP/rwg-notification-smoke/records/sanitized-smoke-record.json"
+          npm --silent run notify:ops-report -- "$RUNNER_TEMP/rwg-notification-smoke/records" > "$RUNNER_TEMP/rwg-notification-smoke/records/ops-report.md"
 
       - name: Upload sanitized smoke record
         if: ${{ steps.public-smoke.outcome == 'success' }}
@@ -60,8 +60,8 @@ jobs:
         with:
           name: sanitized-notification-smoke-record
           path: |
-            ${{ runner.temp }}/rwg-notification-smoke/sanitized-smoke-record.json
-            ${{ runner.temp }}/rwg-notification-smoke/ops-report.md
+            ${{ runner.temp }}/rwg-notification-smoke/records/sanitized-smoke-record.json
+            ${{ runner.temp }}/rwg-notification-smoke/records/ops-report.md
           if-no-files-found: error
           retention-days: 30
 

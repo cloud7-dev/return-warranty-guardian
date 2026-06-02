@@ -1,6 +1,6 @@
 {
   "schema": "return-warranty-guardian.notification-smoke-record.v1",
-  "generatedAt": "2026-06-02T10:00:00.000Z",
+  "generatedAt": "2026-06-02T22:22:30.996Z",
   "privacyNote": "Sanitized smoke record. Raw endpoint URLs, topics, tokens, and reminder bodies are not stored.",
   "loopback": {
     "requestCount": 2,
@@ -11,7 +11,7 @@
   "publicSmoke": {
     "skipped": false,
     "provider": "ntfy",
-    "endpointHostHash": "1fb50b02a5a1bc656f0a1fcf5c62abb6fcf14fb994170b3a9d832fef9daac231",
+    "endpointHostHash": "052ae30c4489a9ffbe4c317f6b3c687d34ecf528101849f4a9d3b2f0f3781c11",
     "ok": true,
     "status": 200
   }

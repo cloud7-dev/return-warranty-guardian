@@ -86,7 +86,8 @@
    - 현재 구현: `npm run notify:dry-run` CLI로 payload JSON을 읽고 provider별 명령 미리보기와 endpoint-only check 계획을 생성
    - 현재 구현: CLI opt-in send mode는 `--send --yes`와 `RWG_NOTIFY_SEND=1`을 요구하고, Gotify token은 환경변수로만 받음
    - 현재 구현: ntfy/Gotify/Apprise provider별 synthetic payload fixture, endpoint-only dry-run plan 검증, send mode 운영 문서, macOS/Linux/Windows scheduler recipe 생성, ntfy/Gotify loopback endpoint smoke test, opt-in public endpoint smoke mode, raw endpoint를 출력하지 않는 public smoke readiness report, scheduled/manual GitHub Actions smoke workflow, sanitized smoke result record, smoke freshness/coverage policy, 여러 sanitized smoke record의 freshness/provider coverage를 점검하는 audit CLI, sanitized smoke record를 Markdown 운영 리포트로 요약하는 `notify:ops-report`, GitHub Actions sanitized smoke artifact와 ops report 검증/업로드, 모바일/PC fallback guide
-   - 남은 구현: 실제 public/self-hosted endpoint smoke 설정과 기록을 유지관리자가 별도 환경에서 지속 관리
+   - 현재 구현: 실제 ntfy public endpoint smoke를 실행해 sanitized record fixture로 반영했고, GitHub repository variables로 weekly Notification Smoke workflow가 실제 public endpoint를 사용하도록 설정
+   - 남은 구현: 릴리스 주기마다 weekly smoke artifact 확인, 공개 topic 오염 시 topic rotation
 
 ### v0.4: 클레임/홈 히스토리 출력
 
@@ -111,9 +112,9 @@
 
 9. **Polished PWA release**
    - 현재 구현: manifest와 service worker 기본 구조
-   - 현재 구현: `npm run release:readiness`로 OSS 릴리스 준비 상태와 2/3/4 잔여 항목을 Markdown으로 요약
+   - 현재 구현: `npm run release:readiness`로 OSS 릴리스 준비 상태와 남은 번호 항목을 Markdown으로 요약
    - 남은 구현: install QA, offline fallback UX, release screenshots, accessibility pass
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration까지 보강되었으며, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 남은 2,3,4는 익명화된 실제 사용자/커뮤니티 샘플 기반 import fixture 확대, 실제 범용 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화, 유지관리자 별도 환경의 recurring public/self-hosted endpoint smoke 운영입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration까지 보강되었으며, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 남은 2,3은 익명화된 실제 사용자/커뮤니티 샘플 기반 import fixture 확대, 실제 범용 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화입니다.

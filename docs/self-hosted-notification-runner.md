@@ -39,6 +39,8 @@ The script starts a loopback HTTP server, rewrites the ntfy/Gotify fixture paylo
 To smoke-test a real endpoint you control, set `RWG_NOTIFY_PUBLIC_SMOKE=1` plus provider-specific endpoint variables. This is deliberately excluded by default so CI and local tests do not contact public services.
 
 Maintainers can also run the manual GitHub Actions workflow `Notification Smoke` with provider, endpoint, and topic inputs. Gotify runs require the repository secret `GOTIFY_TOKEN`.
+
+The canonical repository also has public ntfy smoke repository variables configured for the scheduled workflow. The committed fixture record stores only the generated timestamp, loopback statuses, public status, provider name, and endpoint host hash.
 The same workflow is scheduled weekly and skips safely unless `RWG_NOTIFY_PUBLIC_ENDPOINT` is configured as a repository variable.
 
 To keep an auditable result without leaking endpoint URLs or tokens, save the smoke JSON output and convert it to a sanitized record:

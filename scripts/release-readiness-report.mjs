@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { auditNotificationSmokeRecords } from "./audit-notification-smoke-records.mjs";
 import { sampleIntakeCoverageReport } from "./sample-intake-coverage-report.mjs";
 
 function markdownTable(rows, columns) {
@@ -12,8 +13,11 @@ function markdownTable(rows, columns) {
   return [header, divider, body].join("\n");
 }
 
-export function releaseReadinessReport(sampleManifest, now = new Date()) {
+export function releaseReadinessReport(sampleManifest, now = new Date(), options = {}) {
   const sampleCoverage = sampleIntakeCoverageReport(sampleManifest, now);
+  const notificationSmokeAudit = options.notificationSmokeAudit || null;
+  const notificationSmokeReady =
+    Boolean(notificationSmokeAudit?.ok) && Boolean(notificationSmokeAudit?.freshSuccessfulProviders?.includes("ntfy"));
   const gates = [
     {
       area: "Core local-first app",
@@ -32,8 +36,10 @@ export function releaseReadinessReport(sampleManifest, now = new Date()) {
     },
     {
       area: "Notification operations",
-      status: "Partial",
-      evidence: "Calendar fallback, open-app notifications, self-hosted dry-runs, loopback smoke tests, sanitized records, and ops reports exist.",
+      status: notificationSmokeReady ? "Recurring public smoke configured" : "Partial",
+      evidence: notificationSmokeReady
+        ? `Calendar fallback, open-app notifications, self-hosted dry-runs, loopback smoke tests, scheduled workflow, and fresh sanitized public smoke records cover ${notificationSmokeAudit.freshSuccessfulProviders.join(", ")}.`
+        : "Calendar fallback, open-app notifications, self-hosted dry-runs, loopback smoke tests, sanitized records, and ops reports exist.",
     },
     {
       area: "Claim evidence export",
@@ -49,7 +55,9 @@ export function releaseReadinessReport(sampleManifest, now = new Date()) {
     remainingItems: [
       "2. Actual anonymized-community or public-open-license user/community samples accepted into the fixture corpus.",
       "3. Actual bundled cross-browser OCR engine and automated scanned PDF OCR path beyond sidecars/adapters.",
-      "4. Actual recurring public/self-hosted endpoint smoke records operated by the maintainer environment.",
+      ...(!notificationSmokeReady
+        ? ["4. Actual recurring public/self-hosted endpoint smoke records operated by the maintainer environment."]
+        : []),
     ],
     recommendedCommands: [
       "node --check src/*.js scripts/*.mjs tests/*.mjs",
@@ -65,6 +73,8 @@ export function releaseReadinessReport(sampleManifest, now = new Date()) {
 }
 
 export function releaseReadinessMarkdown(report) {
+  const remainingNumbers = report.remainingItems.map((item) => item.match(/^(\d+)\./)?.[1]).filter(Boolean);
+  const remainingLabel = remainingNumbers.length ? `${remainingNumbers.join(", ")} remain.` : "No numbered follow-up items remain.";
   return `# Release Readiness Report
 
 Generated: ${report.generatedAt}
@@ -85,14 +95,16 @@ ${report.recommendedCommands.map((command) => `- \`${command}\``).join("\n")}
 
 ${report.remainingItems.map((item) => `- ${item}`).join("\n")}
 
-2, 3, 4 remain.
+${remainingLabel}
 `;
 }
 
 async function main() {
   const manifestPath = process.argv.find((item, index) => index > 1 && !item.startsWith("--")) || "tests/fixtures/intake/sample-intake.json";
   const sampleManifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  console.log(releaseReadinessMarkdown(releaseReadinessReport(sampleManifest)));
+  const policy = JSON.parse(await readFile("tests/fixtures/notifications/smoke-policy.json", "utf8"));
+  const notificationSmokeAudit = await auditNotificationSmokeRecords("tests/fixtures/notifications/smoke-records", policy);
+  console.log(releaseReadinessMarkdown(releaseReadinessReport(sampleManifest, new Date(), { notificationSmokeAudit })));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
