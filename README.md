@@ -34,9 +34,9 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.
-- Exports printable HTML claim packets with local attachment links/previews that can be saved as PDF from the browser print dialog.
-- Exports claim bundle JSON with the purchase record, deadline math, evidence pack Markdown, claim HTML, and local attachment data URLs.
-- Exports a ZIP claim bundle with HTML, Markdown, JSON, and attached local files.
+- Exports printable HTML claim packets with local attachment links/previews and submission templates that can be saved as PDF from the browser print dialog.
+- Exports claim bundle JSON with the purchase record, deadline math, evidence pack Markdown, claim HTML, submission templates, and local attachment data URLs.
+- Exports a ZIP claim bundle with HTML, Markdown, JSON, submission template files, and attached local files.
 - Exports `.ics` calendar reminders for purchase deadlines.
 - Exports CSV records for spreadsheet review.
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
@@ -69,7 +69,7 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, CSV export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML receipt extraction, CSV preview/manual mapping/deduplication/report export, claim packet JSON/ZIP bundle download, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, CSV export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML receipt extraction, CSV preview/manual mapping/deduplication/report export, claim packet template/JSON/ZIP bundle download, exports, search, and mobile screenshots.
 
 ## Privacy Model
 

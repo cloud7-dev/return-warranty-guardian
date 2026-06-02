@@ -37,6 +37,36 @@ function attachmentEvidenceHtml(attachment) {
   return `<li>${name} (${type}, ${escapeHtml(sizeLabel)})</li>`;
 }
 
+export function claimSubmissionTemplates(purchase, now = new Date()) {
+  const item = computeDeadlines(purchase, now);
+  const deadlineSummary = item.deadlines.map((deadline) => `${deadline.label}: ${deadline.date} (${deadline.status})`).join("; ");
+  const identity = `${item.productName} purchased from ${item.merchant} on ${item.purchaseDate}`;
+  const documents = Array.isArray(item.documents) && item.documents.length ? item.documents.join(", ") : "No document names recorded";
+  const support = item.supportContact || "Not recorded";
+  return [
+    {
+      id: "merchant-return",
+      title: "Merchant Return Request",
+      body: `Hello,\n\nI would like to request return support for ${identity}.\n\nOrder/product details:\n- Product: ${item.productName}\n- Purchase date: ${item.purchaseDate}\n- Price: ${Number(item.price || 0).toFixed(2)}\n- Model/serial: ${item.model || "Not recorded"} / ${item.serial || "Not recorded"}\n- Deadline summary: ${deadlineSummary || "No deadlines recorded"}\n- Documents included: ${documents}\n\nI have included the receipt/order proof and supporting documents in this packet. Please confirm the next return step, RMA number, or label instructions.\n\nThank you.`,
+    },
+    {
+      id: "warranty-support",
+      title: "Warranty Support Request",
+      body: `Hello,\n\nI am requesting warranty support for ${identity}.\n\nWarranty evidence:\n- Product: ${item.productName}\n- Model: ${item.model || "Not recorded"}\n- Serial: ${item.serial || "Not recorded"}\n- Warranty deadline: ${item.warrantyDeadline || "Not calculated"}\n- Support/contact: ${support}\n- Service history: ${item.serviceNotes || "No service history recorded"}\n- Documents included: ${documents}\n\nPlease review the attached proof and advise the repair, replacement, or claim process.`,
+    },
+    {
+      id: "chargeback-summary",
+      title: "Chargeback Evidence Summary",
+      body: `Transaction evidence summary:\n\n${identity}\nAmount: ${Number(item.price || 0).toFixed(2)}\nSupport/contact: ${support}\nDeadline summary: ${deadlineSummary || "No deadlines recorded"}\nDocuments included: ${documents}\n\nEvidence included:\n- Receipt or order confirmation\n- Deadline math\n- Local documents and attachments listed in this packet\n- Service or support notes when recorded\n\nReview merchant policy and dispute requirements before submitting this summary.`,
+    },
+    {
+      id: "repair-intake",
+      title: "Repair Intake Note",
+      body: `Repair intake note:\n\nProduct: ${item.productName}\nLocation/category: ${item.room || "Not recorded"} / ${item.category || "Not recorded"}\nModel/serial: ${item.model || "Not recorded"} / ${item.serial || "Not recorded"}\nPurchase date: ${item.purchaseDate}\nWarranty deadline: ${item.warrantyDeadline || "Not calculated"}\nSupport/contact: ${support}\nPrevious service notes: ${item.serviceNotes || "No service history recorded"}\nDocuments included: ${documents}\n\nUse this note when contacting a repair desk, contractor, or manufacturer support team.`,
+    },
+  ];
+}
+
 export function evidencePackMarkdown(purchase, now = new Date()) {
   const item = computeDeadlines(purchase, now);
   const documents = Array.isArray(item.documents) ? item.documents : [];
@@ -168,6 +198,7 @@ export function claimPacketHtml(purchase, now = new Date()) {
     .join("");
   const imageAttachments = attachments.filter((attachment) => String(attachment.type || "").startsWith("image/"));
   const fileAttachments = attachments.filter((attachment) => !String(attachment.type || "").startsWith("image/"));
+  const templates = claimSubmissionTemplates(purchase, now);
 
   return `<!doctype html>
 <html lang="en">
@@ -187,6 +218,7 @@ export function claimPacketHtml(purchase, now = new Date()) {
     .attachment-card img{max-width:100%;max-height:260px;object-fit:contain;display:block;margin:auto}
     .attachment-card figcaption{margin-top:8px;color:#64716d;font-size:12px}
     .submission-note{border-left:4px solid #0f766e;background:#e6f4ef;padding:12px}
+    pre{white-space:pre-wrap;font-family:inherit;font-size:13px;margin:0;color:#14211f}
     @media print{.print{display:none}body{margin:18px}a{color:#14211f}}
   </style>
 </head>
@@ -228,6 +260,17 @@ export function claimPacketHtml(purchase, now = new Date()) {
   </ul>
   <h2>Submission Note</h2>
   <p class="submission-note">This packet is generated locally from browser storage. Review deadlines, merchant policy, and attachment contents before submitting a return, warranty, chargeback, or repair claim.</p>
+  <h2>Submission Templates</h2>
+  ${templates
+    .map(
+      (template) => `
+        <section class="box">
+          <h3>${escapeHtml(template.title)}</h3>
+          <pre>${escapeHtml(template.body)}</pre>
+        </section>
+      `,
+    )
+    .join("")}
 </body>
 </html>`;
 }
@@ -245,6 +288,7 @@ export function claimPacketBundleJson(purchase, now = new Date()) {
       deadlines: item.deadlines,
       evidencePackMarkdown: evidencePackMarkdown(purchase, now),
       claimPacketHtml: claimPacketHtml(purchase, now),
+      submissionTemplates: claimSubmissionTemplates(purchase, now),
       attachments: attachments.map((attachment) => ({
         name: attachment.name,
         type: attachment.type || "application/octet-stream",
@@ -415,6 +459,10 @@ export function claimPacketZipBytes(purchase, now = new Date()) {
     { name: `${root}/claim-packet.html`, content: claimPacketHtml(purchase, now) },
     { name: `${root}/evidence-pack.md`, content: evidencePackMarkdown(purchase, now) },
     { name: `${root}/claim-bundle.json`, content: claimPacketBundleJson(purchase, now) },
+    ...claimSubmissionTemplates(purchase, now).map((template) => ({
+      name: `${root}/templates/${safePathSegment(template.id)}.txt`,
+      content: template.body,
+    })),
   ];
   attachments.forEach((attachment, index) => {
     files.push({

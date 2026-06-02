@@ -18,7 +18,8 @@ This list separates high-leverage additions from features that could distract th
 
 4. **Warranty claim packet quality**
    - Users need a clean support packet with receipt, serial/model, photos, repair history, manuals, and merchant conversation notes.
-   - Printable HTML claim packets now include local attachment links and image previews, and claim bundle JSON/ZIP preserves the generated packet plus local attachment evidence. V2 still needs merchant-specific submission templates.
+   - Printable HTML claim packets now include local attachment links, image previews, and starter submission templates for merchant return, warranty support, chargeback evidence, and repair intake.
+   - Claim bundle JSON/ZIP preserves the generated packet, submission templates, and local attachment evidence. V2 still needs merchant/country-specific template customization.
 
 5. **Home appliance and repair history**
    - Warranty issues often depend on where an item is installed, who repaired it, which manual applies, and what service happened before.
@@ -60,8 +61,8 @@ This list separates high-leverage additions from features that could distract th
    - Calendar export should remain available because browser notifications are inconsistent.
 
 8. **Claim packet HTML/PDF**
-   - Printable HTML claim packet exists with attachment links and image previews, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.
-   - Remaining work: richer merchant templates and chargeback-oriented variants.
+   - Printable HTML claim packet exists with attachment links, image previews, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.
+   - Remaining work: richer merchant/country templates, localized template text, and attachment-size optimization.
 
 9. **Price-protection watcher**
    - Manual or optional watch entries for price drops within refund/price-adjustment periods.

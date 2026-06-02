@@ -25,7 +25,7 @@ There is no API server and no account system. All purchase data remains in brows
 - `src/receipt-parser.js`: deterministic pasted-text parser for receipts and invoices.
 - `src/importers.js`: CSV parsing, preset/manual field mapping, purchase-row normalization, duplicate detection, invalid-row reporting, and import report generation.
 - `src/storage.js`: IndexedDB persistence with localStorage fallback.
-- `src/exporters.js`: Markdown evidence pack, printable claim packet HTML with attachment evidence, claim bundle JSON/ZIP, CSV export, and `.ics` calendar export.
+- `src/exporters.js`: Markdown evidence pack, printable claim packet HTML with attachment evidence and submission templates, claim bundle JSON/ZIP, CSV export, and `.ics` calendar export.
 - `src/app.js`: UI composition, local state, event handling, import/export.
 - `src/i18n.js`: Korean-default multilingual UI dictionary.
 
@@ -70,3 +70,5 @@ Deadlines are derived, not stored. This keeps deadline math transparent and repr
 CSV imports are staged in an in-memory preview before they are saved. The app imports valid new rows, supports auto-detected, built-in preset, saved user preset, and manual field mapping, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file. User CSV presets are stored in browser `localStorage`.
 
 Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and simple PDF text paths are file reads; image OCR uses browser-local `TextDetector` only when the current browser supports it.
+
+Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.

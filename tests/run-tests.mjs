@@ -6,6 +6,7 @@ import {
   claimPacketBundleJson,
   claimPacketHtml,
   claimPacketZipBytes,
+  claimSubmissionTemplates,
   evidencePackMarkdown,
   purchasesToCsv,
   purchasesToIcs,
@@ -136,15 +137,25 @@ assert.match(claimPacket, /Print or save PDF/);
 assert.match(claimPacket, /warranty-card\.pdf/);
 assert.match(claimPacket, /data:image\/png/);
 assert.match(claimPacket, /Submission Note/);
+assert.match(claimPacket, /Submission Templates/);
+assert.match(claimPacket, /Merchant Return Request/);
+
+const templates = claimSubmissionTemplates(purchase, now);
+assert.equal(templates.length, 4);
+assert.equal(templates.map((template) => template.id).join(","), "merchant-return,warranty-support,chargeback-summary,repair-intake");
+assert.match(templates[1].body, /support@example\.test/);
+assert.match(templates[3].body, /Home office/);
 
 const claimBundle = JSON.parse(claimPacketBundleJson(purchase, now));
 assert.equal(claimBundle.schema, "return-warranty-guardian.claim-bundle.v1");
 assert.match(claimBundle.claimPacketHtml, /Claim Packet: Wireless Headset/);
+assert.equal(claimBundle.submissionTemplates.length, 4);
 assert.equal(claimBundle.attachments.length, 2);
 const claimZip = claimPacketZipBytes(purchase, now);
 assert.deepEqual([...claimZip.slice(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
 assert.match(new TextDecoder().decode(claimZip), /claim-packet\.html/);
 assert.match(new TextDecoder().decode(claimZip), /claim-bundle\.json/);
+assert.match(new TextDecoder().decode(claimZip), /templates\/merchant-return\.txt/);
 
 const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);
