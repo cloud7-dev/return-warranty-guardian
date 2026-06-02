@@ -75,6 +75,8 @@ Recommended GitHub topics:
 
 See [docs/feature-backlog.md](docs/feature-backlog.md).
 
+V2 open pain has been reflected into the product direction, but not all V2 features are implemented yet. See [docs/v2-implementation-checklist.ko.md](docs/v2-implementation-checklist.ko.md) for the implementation status.
+
 ## License
 
 Apache-2.0
