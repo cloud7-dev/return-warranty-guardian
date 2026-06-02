@@ -28,9 +28,12 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Tracks return, refund, and warranty deadlines from one local dashboard.
 - Stores purchases in browser storage with JSON export/import.
 - Stores local receipt, PDF, manual, and warranty-card attachments in the browser record.
+- Imports CSV purchase rows for card statements, order exports, or spreadsheet cleanup.
+- Extracts local text, CSV, and simple PDF text into the receipt parser without upload.
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.
+- Exports printable HTML claim packets that can be saved as PDF from the browser print dialog.
 - Exports `.ics` calendar reminders for purchase deadlines.
 - Exports CSV records for spreadsheet review.
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
@@ -63,11 +66,13 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, evidence pack export, CSV export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks and refreshes local QA screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import, evidence pack export, claim packet HTML export, CSV export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local text extraction, CSV import, claim packet download, exports, search, and mobile screenshots.
 
 ## Privacy Model
 
 Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use JSON export for backups.
+
+Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, and basic PDF text extraction in the browser. Image OCR remains a future local-engine upgrade.
 
 This project is a tracking and evidence-organization tool. It does not guarantee that a merchant will accept a return, refund, or warranty claim.
 

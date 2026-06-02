@@ -14,7 +14,7 @@ Expected result:
 
 - Logic tests pass.
 - Static file and PWA checks pass.
-- Browser QA confirms default Korean language, eight language options, receipt parsing, search, evidence pack export, ICS export, CSV export, mobile layout, and no console errors.
+- Browser QA confirms default Korean language, eight language options, local attachment save/download visibility, local text extraction, CSV import, receipt parsing, search, evidence pack export, claim packet HTML download, ICS export, CSV export, mobile layout, and no console errors.
 
 ## Screenshots
 
@@ -54,6 +54,7 @@ Release notes should include:
 
 - User-facing changes.
 - Privacy/storage/export changes.
+- Import/OCR/claim packet behavior changes.
 - Migration or compatibility notes.
 - Test evidence.
 - Known limitations and V2 backlog items.

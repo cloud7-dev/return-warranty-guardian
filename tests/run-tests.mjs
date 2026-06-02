@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
+import { purchasesFromCsv } from "../src/importers.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
-import { evidencePackMarkdown, purchasesToCsv, purchasesToIcs } from "../src/exporters.js";
+import { claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs } from "../src/exporters.js";
 
 const now = new Date("2026-06-02T10:00:00Z");
 
@@ -79,6 +80,17 @@ assert.match(csv, /product_name/);
 assert.match(csv, /Wireless Headset/);
 assert.match(csv, /manual\.pdf/);
 assert.match(csv, /warranty-card\.pdf/);
+
+const imported = purchasesFromCsv(`product_name,merchant,purchase_date,price,return_days,refund_days,warranty_months,documents
+"Imported Lamp","Home Store","2026-06-01","59.99","30","14","24","lamp-receipt.pdf; lamp-manual.pdf"`, now);
+assert.equal(imported.length, 1);
+assert.equal(imported[0].productName, "Imported Lamp");
+assert.equal(imported[0].documents.length, 2);
+
+const claimPacket = claimPacketHtml(purchase, now);
+assert.match(claimPacket, /Claim Packet: Wireless Headset/);
+assert.match(claimPacket, /Print or save PDF/);
+assert.match(claimPacket, /warranty-card\.pdf/);
 
 const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);

@@ -9,6 +9,7 @@ const requiredFiles = [
   "src/deadline-engine.js",
   "src/receipt-parser.js",
   "src/i18n.js",
+  "src/importers.js",
   "src/storage.js",
   "src/exporters.js",
   "src/sample-data.js",

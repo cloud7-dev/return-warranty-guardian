@@ -351,6 +351,13 @@ svg {
   margin-bottom: 16px;
 }
 
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .panel-heading h2 {
   margin: 0 0 5px;
   font-size: 17px;

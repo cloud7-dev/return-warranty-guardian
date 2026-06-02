@@ -8,17 +8,17 @@ This list separates high-leverage additions from features that could distract th
    - Users want mobile and PC reminders even when the web app is closed.
    - Calendar export works today, but true background push conflicts with the no-server promise unless it is opt-in or self-hosted.
 
-2. **Durable local attachments**
-   - Receipt images, PDFs, manuals, warranty cards, and construction photos should survive browser cleanup better than ordinary site data.
-   - OPFS, encrypted export bundles, or a desktop wrapper are stronger V2 candidates than a hosted file vault.
+2. **More durable local attachments**
+   - Receipt images, PDFs, manuals, and warranty cards can now be stored in the browser record.
+   - Remaining pain: attachments still depend on browser site data. OPFS, encrypted export bundles, or a desktop wrapper are stronger V2 candidates than a hosted file vault.
 
 3. **Messy receipt and policy extraction**
    - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
-   - Local OCR and user-confirmed merchant policy templates are still needed before the app can reduce manual entry enough.
+   - Local text/PDF extraction is now connected to the parser. Image OCR and user-confirmed merchant policy templates are still needed before the app can reduce manual entry enough.
 
 4. **Warranty claim packet quality**
    - Users need a clean support packet with receipt, serial/model, photos, repair history, manuals, and merchant conversation notes.
-   - Markdown export is useful, but V2 should add printable HTML/PDF claim packets.
+   - Printable HTML claim packets now exist. V2 still needs embedded evidence, attachment bundles, and merchant-specific submission templates.
 
 5. **Home appliance and repair history**
    - Warranty issues often depend on where an item is installed, who repaired it, which manual applies, and what service happened before.
@@ -47,11 +47,12 @@ This list separates high-leverage additions from features that could distract th
    - Keeps local-first story while reducing data-loss risk.
 
 5. **Importers**
-   - CSV import for card statements or order exports.
-   - Gmail/Outlook instructions should stay manual unless a privacy-safe connector exists.
+   - CSV import now covers a basic purchase-row format.
+   - Remaining work: card statement presets, retailer order export presets, import preview, duplicate detection, and row-level error reporting.
 
 6. **Optional OCR**
-   - Browser-based OCR with no upload if practical.
+   - Text, CSV, and simple PDF text extraction now run locally in the browser.
+   - Browser-based image OCR with no upload is still needed if practical.
    - Cloud OCR should be explicitly opt-in and disabled by default.
 
 7. **Local notification upgrade**
@@ -59,8 +60,8 @@ This list separates high-leverage additions from features that could distract th
    - Calendar export should remain available because browser notifications are inconsistent.
 
 8. **Claim packet HTML/PDF**
-   - Printable evidence pack with receipt, photos, serial/model, deadlines, and checklist.
-   - Useful for customer support, warranty claims, and chargeback preparation.
+   - Printable HTML claim packet exists and can be saved as PDF from the browser print dialog.
+   - Remaining work: richer templates with embedded receipt/photos, attachment bundling, and chargeback-oriented variants.
 
 9. **Price-protection watcher**
    - Manual or optional watch entries for price drops within refund/price-adjustment periods.

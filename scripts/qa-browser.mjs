@@ -100,13 +100,36 @@ const rowsAfterManualSave = await page.locator(".purchase-row").count();
 const attachmentVisible = await page.locator("text=qa-receipt.pdf").count();
 stages.push("attachment-save");
 
-await page.click("#parse-receipt");
+const ocrFixturePath = `${root}/outputs/qa-ocr-receipt.txt`;
+await writeFile(
+  ocrFixturePath,
+  `OCR Demo Store
+Receipt 9001
+2026-06-02
+Desk Lamp 39.99
+Cable Clips 6.99
+Total 46.98`,
+);
+await page.setInputFiles("#ocr-file", ocrFixturePath);
+await page.click("#extract-local-ocr");
 await page.waitForSelector(".parser-preview");
 const previewItems = await page.locator(".preview-item").count();
 await page.click("#add-parsed-items");
 await page.waitForFunction(() => document.querySelectorAll(".purchase-row").length >= 6);
 const rowsAfterParse = await page.locator(".purchase-row").count();
-stages.push("parse-and-save");
+const ocrImportedTextVisible = await page.locator("text=Desk Lamp").count();
+stages.push("ocr-extract-and-save");
+
+const csvImportPath = `${root}/outputs/qa-import.csv`;
+await writeFile(
+  csvImportPath,
+  `product_name,merchant,purchase_date,price,return_days,refund_days,warranty_months,documents
+"CSV Import Toaster","CSV Home","2026-06-01","49.99","30","14","24","toaster-receipt.pdf; toaster-manual.pdf"`,
+);
+await page.setInputFiles("#import-json", csvImportPath);
+await page.waitForSelector("text=CSV Import Toaster");
+const rowsAfterCsvImport = await page.locator(".purchase-row").count();
+stages.push("csv-import");
 
 await page.fill("#search-input", "Coffee Maker");
 await page.waitForTimeout(150);
@@ -122,6 +145,13 @@ const evidenceDownload = await evidenceDownloadPromise;
 const evidencePath = `${root}/outputs/${evidenceDownload.suggestedFilename()}`;
 await evidenceDownload.saveAs(evidencePath);
 stages.push("evidence-download");
+
+const claimDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
+await page.locator("[data-claim-packet]").first().click();
+const claimDownload = await claimDownloadPromise;
+const claimPath = `${root}/outputs/${claimDownload.suggestedFilename()}`;
+await claimDownload.saveAs(claimPath);
+stages.push("claim-packet-download");
 
 const icsDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
 await page.click("#export-ics");
@@ -148,6 +178,7 @@ await browser.close();
 server.close();
 
 const evidenceText = await readFile(evidencePath, "utf8");
+const claimText = await readFile(claimPath, "utf8");
 const icsText = await readFile(icsPath, "utf8");
 const csvText = await readFile(csvPath, "utf8");
 
@@ -161,10 +192,14 @@ const result = {
   attachmentVisible,
   previewItems,
   rowsAfterParse,
+  ocrImportedTextVisible,
+  rowsAfterCsvImport,
   filteredRows,
   filteredTextContainsCoffeeMaker: filteredText.includes("Coffee Maker"),
   evidencePath,
   evidenceContainsChecklist: evidenceText.includes("Claim Checklist"),
+  claimPath,
+  claimContainsPrintPdf: claimText.includes("Print or save PDF") && claimText.includes("Claim Packet"),
   icsPath,
   icsContainsCalendar: icsText.includes("BEGIN:VCALENDAR"),
   csvPath,
@@ -184,9 +219,12 @@ const failures = [
   attachmentVisible < 1 && "Expected saved local attachment name to be visible",
   previewItems !== 2 && "Expected two parsed receipt items",
   rowsAfterParse < 6 && "Expected parsed items to be saved",
+  ocrImportedTextVisible < 1 && "Expected local OCR extracted receipt item to be visible",
+  rowsAfterCsvImport < 7 && "Expected CSV import to add a purchase",
   filteredRows !== 1 && "Expected Coffee Maker search to return one row",
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",
+  !result.claimContainsPrintPdf && "Expected printable claim packet HTML",
   !result.icsContainsCalendar && "Expected ICS calendar export",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",

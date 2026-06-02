@@ -10,6 +10,14 @@ export function downloadText(filename, mimeType, content) {
   URL.revokeObjectURL(url);
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 export function evidencePackMarkdown(purchase, now = new Date()) {
   const item = computeDeadlines(purchase, now);
   const documents = Array.isArray(item.documents) ? item.documents : [];
@@ -121,6 +129,73 @@ export function purchasesToCsv(purchases, now = new Date()) {
     ].map(csvCell);
   });
   return [columns.map(csvCell), ...rows].map((row) => row.join(",")).join("\n");
+}
+
+export function claimPacketHtml(purchase, now = new Date()) {
+  const item = computeDeadlines(purchase, now);
+  const documents = Array.isArray(item.documents) ? item.documents : [];
+  const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
+  const deadlineRows = item.deadlines
+    .map(
+      (deadline) => `
+        <tr>
+          <td>${escapeHtml(deadline.label)}</td>
+          <td>${escapeHtml(deadline.date)}</td>
+          <td>${escapeHtml(deadline.daysLeft)}</td>
+          <td>${escapeHtml(deadline.status)}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claim Packet - ${escapeHtml(item.productName)}</title>
+  <style>
+    body{font-family:Inter,Arial,sans-serif;margin:32px;color:#14211f;line-height:1.5}
+    h1{font-size:26px;margin:0 0 6px} h2{font-size:17px;margin:24px 0 8px}
+    .meta{color:#64716d;margin:0 0 20px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .box{border:1px solid #dfe6e1;border-radius:8px;padding:12px;background:#f9faf7}
+    table{width:100%;border-collapse:collapse}td,th{border:1px solid #dfe6e1;padding:8px;text-align:left}
+    ul{padding-left:20px}.print{margin-bottom:18px}@media print{.print{display:none}body{margin:18px}}
+  </style>
+</head>
+<body>
+  <button class="print" onclick="window.print()">Print or save PDF</button>
+  <h1>Claim Packet: ${escapeHtml(item.productName)}</h1>
+  <p class="meta">Generated ${escapeHtml(now.toISOString())}</p>
+  <section class="grid">
+    <div class="box"><strong>Merchant</strong><br>${escapeHtml(item.merchant)}</div>
+    <div class="box"><strong>Purchase date</strong><br>${escapeHtml(item.purchaseDate)}</div>
+    <div class="box"><strong>Price</strong><br>${escapeHtml(Number(item.price || 0).toFixed(2))}</div>
+    <div class="box"><strong>Model / serial</strong><br>${escapeHtml(item.model || "Not recorded")} / ${escapeHtml(item.serial || "Not recorded")}</div>
+    <div class="box"><strong>Category / location</strong><br>${escapeHtml(item.category || "Not recorded")} / ${escapeHtml(item.room || "Not recorded")}</div>
+    <div class="box"><strong>Support contact</strong><br>${escapeHtml(item.supportContact || "Not recorded")}</div>
+  </section>
+  <h2>Deadline Math</h2>
+  <table><thead><tr><th>Type</th><th>Date</th><th>Days left</th><th>Status</th></tr></thead><tbody>${deadlineRows}</tbody></table>
+  <h2>Documents</h2>
+  <ul>${documents.length ? documents.map((name) => `<li>${escapeHtml(name)}</li>`).join("") : "<li>No document names recorded.</li>"}</ul>
+  <h2>Local Attachments</h2>
+  <ul>${attachments.length ? attachments.map((attachment) => `<li>${escapeHtml(attachment.name)} (${escapeHtml(attachment.type || "file")})</li>`).join("") : "<li>No local files attached.</li>"}</ul>
+  <h2>Service History</h2>
+  <p>${escapeHtml(item.serviceNotes || "No service history recorded.")}</p>
+  <h2>Notes</h2>
+  <p>${escapeHtml(item.notes || "No notes recorded.")}</p>
+  <h2>Claim Checklist</h2>
+  <ul>
+    <li>Receipt or order confirmation</li>
+    <li>Product photos</li>
+    <li>Box and accessories</li>
+    <li>Serial/model number</li>
+    <li>Merchant support contact</li>
+    <li>Return label or RMA number</li>
+  </ul>
+</body>
+</html>`;
 }
 
 export function purchasesToIcs(purchases, now = new Date()) {

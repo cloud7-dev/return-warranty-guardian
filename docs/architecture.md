@@ -11,6 +11,7 @@ Browser
   src/app.js
     deadline-engine.js
     receipt-parser.js
+    importers.js
     storage.js
     exporters.js
 IndexedDB or localStorage fallback
@@ -22,8 +23,9 @@ There is no API server and no account system. All purchase data remains in brows
 
 - `src/deadline-engine.js`: date math, deadline status, dashboard summaries.
 - `src/receipt-parser.js`: deterministic pasted-text parser for receipts and invoices.
+- `src/importers.js`: CSV parsing and purchase-row normalization.
 - `src/storage.js`: IndexedDB persistence with localStorage fallback.
-- `src/exporters.js`: Markdown evidence pack, CSV export, and `.ics` calendar export.
+- `src/exporters.js`: Markdown evidence pack, printable claim packet HTML, CSV export, and `.ics` calendar export.
 - `src/app.js`: UI composition, local state, event handling, import/export.
 - `src/i18n.js`: Korean-default multilingual UI dictionary.
 
@@ -45,6 +47,15 @@ There is no API server and no account system. All purchase data remains in brows
   "room": "Home office",
   "supportContact": "support@example.test",
   "documents": ["receipt.pdf", "manual.pdf"],
+  "attachments": [
+    {
+      "name": "warranty-card.pdf",
+      "type": "application/pdf",
+      "size": 128,
+      "dataUrl": "data:application/pdf;base64,...",
+      "createdAt": "2026-06-02T00:00:00.000Z"
+    }
+  ],
   "serviceNotes": "No repairs yet.",
   "source": "manual",
   "hasReceipt": true,

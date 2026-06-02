@@ -1,5 +1,6 @@
 import { computeDeadlines, formatDate, summarizePurchases } from "./deadline-engine.js";
-import { evidencePackMarkdown, purchasesToCsv, purchasesToIcs, downloadText } from "./exporters.js";
+import { claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs, downloadText } from "./exporters.js";
+import { purchasesFromCsv } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
@@ -15,6 +16,7 @@ const state = {
   language: normalizeLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY) || DEFAULT_LANGUAGE),
   selectedId: "",
   parsedReceipt: null,
+  ocrStatus: "",
 };
 
 const today = () => new Date();
@@ -48,6 +50,16 @@ function fileToAttachment(file) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+async function extractLocalText(file) {
+  if (!file) return "";
+  if (/^text\//.test(file.type) || /\.txt$|\.csv$/i.test(file.name)) return file.text();
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+    const raw = await file.text();
+    return raw.replace(/[^\x09\x0a\x0d\x20-\x7e가-힣一-龥ぁ-ゔァ-ヴー]/g, " ");
+  }
+  throw new Error("Image OCR needs browser OCR support or a future local OCR engine.");
 }
 
 async function attachmentsFromForm(formData) {
@@ -358,9 +370,15 @@ Subtotal 154.98
 Tax 12.01
 Total 166.99</textarea>
       <div class="parser-actions">
+        <label class="tool-button file-button">
+          ${icons.import} ${t("localOcr")}
+          <input id="ocr-file" type="file" accept="text/plain,text/csv,application/pdf,.txt,.csv,.pdf,image/*" />
+        </label>
+        <button class="ghost-action" id="extract-local-ocr" type="button">${t("extractText")}</button>
         <button class="secondary-action" id="parse-receipt" type="button">${icons.receipt} ${t("parseReceipt")}</button>
         <button class="ghost-action" id="clear-parser" type="button">${t("clear")}</button>
       </div>
+      ${state.ocrStatus ? `<p class="empty-note">${state.ocrStatus}</p>` : ""}
       ${preview}
     </section>
   `;
@@ -467,7 +485,10 @@ function renderDetail() {
           <h2>${t("evidenceDesk")}</h2>
           <p>${item.productName} · ${item.merchant}</p>
         </div>
-        <button class="secondary-action" data-evidence="${item.id}" type="button">${icons.pack} ${t("exportPack")}</button>
+        <div class="detail-actions">
+          <button class="secondary-action" data-evidence="${item.id}" type="button">${icons.pack} ${t("exportPack")}</button>
+          <button class="secondary-action" data-claim-packet="${item.id}" type="button">${icons.pack} ${t("claimPacket")}</button>
+        </div>
       </div>
       <div class="deadline-math">
         ${item.deadlines
@@ -569,7 +590,7 @@ function renderShell() {
           <button class="tool-button" id="export-csv" type="button">${icons.export} ${t("csv")}</button>
           <label class="tool-button file-button">
             ${icons.import} ${t("import")}
-            <input id="import-json" type="file" accept="application/json" />
+            <input id="import-json" type="file" accept="application/json,text/csv,.json,.csv" />
           </label>
           <button class="tool-button" id="export-ics" type="button">${icons.calendar} ${t("ics")}</button>
         </div>
@@ -597,6 +618,14 @@ function parseImportedJson(text) {
   const parsed = JSON.parse(text);
   if (!Array.isArray(parsed)) throw new Error("Expected an array of purchases");
   return parsed;
+}
+
+async function parseImportedFile(file) {
+  const text = await file.text();
+  if (/\.csv$/i.test(file.name) || file.type === "text/csv") {
+    return { mode: "append", purchases: purchasesFromCsv(text, today()) };
+  }
+  return { mode: "replace", purchases: parseImportedJson(text) };
 }
 
 function validatePurchase(purchase) {
@@ -646,6 +675,13 @@ function exportEvidence(id) {
   downloadText(`${safeName || "purchase"}-evidence-pack.md`, "text/markdown", evidencePackMarkdown(purchase, today()));
 }
 
+function exportClaimPacket(id) {
+  const purchase = state.purchases.find((item) => item.id === id);
+  if (!purchase) return;
+  const safeName = purchase.productName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  downloadText(`${safeName || "purchase"}-claim-packet.html`, "text/html", claimPacketHtml(purchase, today()));
+}
+
 function downloadAttachment(purchaseId, attachmentIndex) {
   const purchase = state.purchases.find((item) => item.id === purchaseId);
   const attachment = purchaseAttachments(purchase || {})[Number(attachmentIndex)];
@@ -687,9 +723,10 @@ app.addEventListener("change", async (event) => {
   const [file] = event.target.files;
   if (!file) return;
   try {
-    const imported = parseImportedJson(await file.text());
-    state.purchases = imported;
-    state.selectedId = imported[0]?.id || "";
+    const imported = await parseImportedFile(file);
+    state.purchases =
+      imported.mode === "append" ? [...imported.purchases, ...state.purchases] : imported.purchases;
+    state.selectedId = imported.purchases[0]?.id || "";
     await persistAndRender();
   } catch (error) {
     alert(t("importFailed", { message: error.message }));
@@ -717,6 +754,11 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.claimPacket) {
+    exportClaimPacket(button.dataset.claimPacket);
+    return;
+  }
+
   if (button.dataset.attachmentPurchase) {
     downloadAttachment(button.dataset.attachmentPurchase, button.dataset.attachmentIndex);
     return;
@@ -741,6 +783,23 @@ app.addEventListener("click", async (event) => {
     const text = document.querySelector("#receipt-text").value;
     state.parsedReceipt = parseReceiptText(text);
     render();
+    return;
+  }
+
+  if (button.id === "extract-local-ocr") {
+    const [file] = document.querySelector("#ocr-file")?.files || [];
+    if (!file) return;
+    try {
+      const text = await extractLocalText(file);
+      const receiptText = document.querySelector("#receipt-text");
+      receiptText.value = text.trim() || receiptText.value;
+      state.parsedReceipt = parseReceiptText(receiptText.value);
+      state.ocrStatus = t("ocrDone");
+      render();
+    } catch (error) {
+      state.ocrStatus = t("ocrFailed", { message: error.message });
+      render();
+    }
     return;
   }
 
