@@ -17,6 +17,7 @@ const requiredFiles = [
   "src/exporters.js",
   "src/sample-data.js",
   "scripts/anonymize-fixture.mjs",
+  "scripts/validate-fixtures.mjs",
   "scripts/self-hosted-notification-runner.mjs",
   "assets/icon.svg",
   "README.md",

@@ -269,6 +269,8 @@ for (const item of policyFixtures) {
   assert.equal(template.warrantyMonths, item.expectedWarrantyMonths);
   assert.equal(template.country, item.expectedCountry);
   assert.equal(template.sourceType, item.expectedSourceType);
+  assert.equal(template.sourceLicense, item.expectedSourceLicense);
+  assert.match(template.sourceUrl, /^https:\/\/example\.test\//);
   assert.equal(template.version, item.expectedVersion);
   assert.match(template.lastReviewed, /^\d{4}-\d{2}-\d{2}$/);
   assert.ok(template.evidenceRequired.length >= 3);
@@ -356,6 +358,10 @@ assert.equal(runnerPlan.schema, "return-warranty-guardian.self-hosted-runner-pla
 assert.equal(runnerPlan.plannedCount, 2);
 assert.equal(runnerPlan.endpointCheck.sendsPurchaseData, false);
 assert.match(runnerPlan.commands[0].command, /alerts\.example\.test\/returns/);
+const refusedSendPlan = buildRunnerPlan(runnerPayload, { limit: 1, send: true, yes: false });
+assert.equal(refusedSendPlan.sendRequested, true);
+assert.equal(refusedSendPlan.sendAllowed, false);
+assert.match(refusedSendPlan.warnings.join(" "), /Sending requires --yes/);
 const tempDir = await mkdtemp(join(tmpdir(), "rwg-runner-"));
 const payloadPath = join(tempDir, "payload.json");
 await writeFile(payloadPath, JSON.stringify(runnerPayload, null, 2));
@@ -369,5 +375,7 @@ const { stdout: runnerStdout } = await execFileAsync(process.execPath, [
 const cliPlan = JSON.parse(runnerStdout);
 assert.equal(cliPlan.plannedCount, 1);
 assert.equal(cliPlan.appSendsNetworkRequests, false);
+const { stdout: fixtureStdout } = await execFileAsync(process.execPath, ["scripts/validate-fixtures.mjs"]);
+assert.match(fixtureStdout, /Fixture validation passed/);
 
 console.log("All logic tests passed.");

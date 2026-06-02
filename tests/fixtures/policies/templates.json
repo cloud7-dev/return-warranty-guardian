@@ -6,6 +6,7 @@
     "expectedWarrantyMonths": 12,
     "expectedCountry": "generic",
     "expectedSourceType": "community-template",
+    "expectedSourceLicense": "CC0-1.0",
     "expectedVersion": "2026.06"
   },
   {
@@ -15,6 +16,7 @@
     "expectedWarrantyMonths": 12,
     "expectedCountry": "generic",
     "expectedSourceType": "community-template",
+    "expectedSourceLicense": "CC0-1.0",
     "expectedVersion": "2026.06"
   },
   {
@@ -24,6 +26,7 @@
     "expectedWarrantyMonths": 12,
     "expectedCountry": "generic",
     "expectedSourceType": "community-template",
+    "expectedSourceLicense": "CC0-1.0",
     "expectedVersion": "2026.06"
   },
   {
@@ -33,6 +36,7 @@
     "expectedWarrantyMonths": 0,
     "expectedCountry": "generic",
     "expectedSourceType": "community-template",
+    "expectedSourceLicense": "CC0-1.0",
     "expectedVersion": "2026.06"
   },
   {
@@ -42,6 +46,7 @@
     "expectedWarrantyMonths": 12,
     "expectedCountry": "KR",
     "expectedSourceType": "jurisdiction-template",
+    "expectedSourceLicense": "CC0-1.0",
     "expectedVersion": "2026.06"
   }
 ]

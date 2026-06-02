@@ -86,6 +86,12 @@ npm run fixture:anonymize -- path/to/private-sample.csv
 
 Review the generated file before committing it. Do not commit private receipts or real card statements.
 
+To verify the synthetic fixture corpus:
+
+```bash
+npm run fixture:validate
+```
+
 To inspect a self-hosted notification payload without sending anything:
 
 ```bash
@@ -93,6 +99,7 @@ npm run notify:dry-run -- return-warranty-guardian-self-hosted-alerts.json --jso
 ```
 
 The runner prints command previews only. Keep provider tokens outside this app and use your own scheduler if you decide to send notifications.
+Actual sending is opt-in and requires `--send --yes` plus `RWG_NOTIFY_SEND=1`; Gotify also requires `GOTIFY_TOKEN` in the runner environment.
 
 ## Privacy Model
 

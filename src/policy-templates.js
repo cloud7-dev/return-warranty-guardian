@@ -4,6 +4,8 @@ export const POLICY_TEMPLATES = [
     label: "Standard 30-day return",
     country: "generic",
     sourceType: "community-template",
+    sourceUrl: "https://example.test/return-warranty-guardian/policies/standard-30-day-return",
+    sourceLicense: "CC0-1.0",
     version: "2026.06",
     lastReviewed: "2026-06-02",
     returnWindowDays: 30,
@@ -18,6 +20,8 @@ export const POLICY_TEMPLATES = [
     label: "Extended 60-day retailer return",
     country: "generic",
     sourceType: "community-template",
+    sourceUrl: "https://example.test/return-warranty-guardian/policies/extended-60-day-return",
+    sourceLicense: "CC0-1.0",
     version: "2026.06",
     lastReviewed: "2026-06-02",
     returnWindowDays: 60,
@@ -32,6 +36,8 @@ export const POLICY_TEMPLATES = [
     label: "Warranty-only support",
     country: "generic",
     sourceType: "community-template",
+    sourceUrl: "https://example.test/return-warranty-guardian/policies/warranty-only",
+    sourceLicense: "CC0-1.0",
     version: "2026.06",
     lastReviewed: "2026-06-02",
     returnWindowDays: 0,
@@ -46,6 +52,8 @@ export const POLICY_TEMPLATES = [
     label: "Final sale or no return",
     country: "generic",
     sourceType: "community-template",
+    sourceUrl: "https://example.test/return-warranty-guardian/policies/final-sale",
+    sourceLicense: "CC0-1.0",
     version: "2026.06",
     lastReviewed: "2026-06-02",
     returnWindowDays: 0,
@@ -60,6 +68,8 @@ export const POLICY_TEMPLATES = [
     label: "Korea online purchase review",
     country: "KR",
     sourceType: "jurisdiction-template",
+    sourceUrl: "https://example.test/return-warranty-guardian/policies/korea-online-purchase",
+    sourceLicense: "CC0-1.0",
     version: "2026.06",
     lastReviewed: "2026-06-02",
     returnWindowDays: 7,
@@ -78,5 +88,5 @@ export function policyTemplateById(id) {
 export function policyTemplateReviewNote(template) {
   if (!template) return "";
   const evidence = (template.evidenceRequired || []).join(", ") || "Not specified";
-  return `Policy review scope: ${template.country || "generic"}. Source type: ${template.sourceType || "community-template"}. Version: ${template.version || "unversioned"}. Last reviewed: ${template.lastReviewed || "unknown"}. Evidence to verify: ${evidence}. Disclaimer: ${template.disclaimer || "Confirm current merchant and local rules."}`;
+  return `Policy review scope: ${template.country || "generic"}. Source type: ${template.sourceType || "community-template"}. Source: ${template.sourceUrl || "not recorded"}. License: ${template.sourceLicense || "not recorded"}. Version: ${template.version || "unversioned"}. Last reviewed: ${template.lastReviewed || "unknown"}. Evidence to verify: ${evidence}. Disclaimer: ${template.disclaimer || "Confirm current merchant and local rules."}`;
 }
