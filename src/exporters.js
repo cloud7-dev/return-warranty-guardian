@@ -228,6 +228,32 @@ export function claimPacketHtml(purchase, now = new Date()) {
 </html>`;
 }
 
+export function claimPacketBundleJson(purchase, now = new Date()) {
+  const item = computeDeadlines(purchase, now);
+  const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
+  return JSON.stringify(
+    {
+      schema: "return-warranty-guardian.claim-bundle.v1",
+      generatedAt: now.toISOString(),
+      productName: item.productName,
+      merchant: item.merchant,
+      purchase,
+      deadlines: item.deadlines,
+      evidencePackMarkdown: evidencePackMarkdown(purchase, now),
+      claimPacketHtml: claimPacketHtml(purchase, now),
+      attachments: attachments.map((attachment) => ({
+        name: attachment.name,
+        type: attachment.type || "application/octet-stream",
+        size: attachment.size || 0,
+        createdAt: attachment.createdAt || "",
+        dataUrl: attachment.dataUrl || "",
+      })),
+    },
+    null,
+    2,
+  );
+}
+
 export function purchasesToIcs(purchases, now = new Date()) {
   const stamp = now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const events = purchases.flatMap((purchase) => {

@@ -14,11 +14,11 @@ This list separates high-leverage additions from features that could distract th
 
 3. **Messy receipt and policy extraction**
    - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
-   - Local text/PDF extraction is now connected to the parser, and image OCR works when the browser exposes local `TextDetector` support. A bundled cross-browser OCR engine and user-confirmed merchant policy templates are still needed before the app can reduce manual entry enough.
+   - Local text/PDF/HTML extraction is now connected to the parser, and image OCR works when the browser exposes local `TextDetector` support. A bundled cross-browser OCR engine and user-confirmed merchant policy templates are still needed before the app can reduce manual entry enough.
 
 4. **Warranty claim packet quality**
    - Users need a clean support packet with receipt, serial/model, photos, repair history, manuals, and merchant conversation notes.
-   - Printable HTML claim packets now include local attachment links and image previews. V2 still needs export bundles and merchant-specific submission templates.
+   - Printable HTML claim packets now include local attachment links and image previews, and claim bundle JSON preserves the generated packet plus local attachment data URLs. V2 still needs ZIP bundles and merchant-specific submission templates.
 
 5. **Home appliance and repair history**
    - Warranty issues often depend on where an item is installed, who repaired it, which manual applies, and what service happened before.
@@ -47,11 +47,11 @@ This list separates high-leverage additions from features that could distract th
    - Keeps local-first story while reducing data-loss risk.
 
 5. **Importers**
-   - CSV import now covers a basic purchase-row format with preview, duplicate detection, and row-level error reporting.
-   - Remaining work: card statement presets, retailer order export presets, user-editable field mapping, and import report export.
+   - CSV import now covers preview, duplicate detection, row-level error reporting, preset mapping, and user-editable field mapping.
+   - Remaining work: real card-statement/retailer preset expansion, user-saved presets, and import report export.
 
 6. **Optional OCR**
-   - Text, CSV, simple PDF text extraction, and supported browser-local image OCR now run locally in the browser.
+   - Text, CSV, HTML/email, simple PDF text extraction, and supported browser-local image OCR now run locally in the browser.
    - A bundled cross-browser image OCR engine is still needed if practical.
    - Cloud OCR should be explicitly opt-in and disabled by default.
 
@@ -60,8 +60,8 @@ This list separates high-leverage additions from features that could distract th
    - Calendar export should remain available because browser notifications are inconsistent.
 
 8. **Claim packet HTML/PDF**
-   - Printable HTML claim packet exists with attachment links and image previews, and can be saved as PDF from the browser print dialog.
-   - Remaining work: ZIP/HTML export bundles, richer merchant templates, and chargeback-oriented variants.
+   - Printable HTML claim packet exists with attachment links and image previews, can be saved as PDF from the browser print dialog, and can be exported as a claim bundle JSON.
+   - Remaining work: ZIP export bundles, richer merchant templates, and chargeback-oriented variants.
 
 9. **Price-protection watcher**
    - Manual or optional watch entries for price drops within refund/price-adjustment periods.

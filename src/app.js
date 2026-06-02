@@ -1,6 +1,6 @@
 import { computeDeadlines, formatDate, summarizePurchases } from "./deadline-engine.js";
-import { claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs, downloadText } from "./exporters.js";
-import { analyzeCsvImport } from "./importers.js";
+import { claimPacketBundleJson, claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs, downloadText } from "./exporters.js";
+import { CSV_IMPORT_FIELDS, CSV_IMPORT_PRESETS, analyzeCsvImport, csvMappingForPreset } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
@@ -61,6 +61,16 @@ function fileToAttachment(file) {
 
 async function extractLocalText(file) {
   if (!file) return "";
+  if (file.type === "text/html" || /\.html?$/i.test(file.name)) {
+    const doc = new DOMParser().parseFromString(await file.text(), "text/html");
+    doc.querySelectorAll("script,style,noscript").forEach((node) => node.remove());
+    doc.querySelectorAll("br,p,div,li,tr,h1,h2,h3,h4,h5,h6").forEach((node) => node.append("\n"));
+    return doc.body.textContent
+      .split(/\r?\n/)
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n");
+  }
   if (/^text\//.test(file.type) || /\.txt$|\.csv$/i.test(file.name)) return file.text();
   if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
     const raw = await file.text();
@@ -255,6 +265,8 @@ function renderImportPreview() {
   const duplicates = preview.duplicates || [];
   const invalid = preview.invalid || [];
   const previewRows = valid.slice(0, 4);
+  const headers = preview.headers || [];
+  const mapping = preview.mapping || {};
 
   return `
     <section class="panel import-preview" aria-live="polite">
@@ -273,6 +285,39 @@ function renderImportPreview() {
         <span>${t("importDuplicateCount", { count: duplicates.length })}</span>
         <span>${t("importInvalidCount", { count: invalid.length })}</span>
       </div>
+      ${
+        headers.length
+          ? `<div class="import-mapping">
+              <label>
+                ${t("importPreset")}
+                <select id="csv-preset">
+                  ${CSV_IMPORT_PRESETS.map(
+                    (preset) =>
+                      `<option value="${preset.id}" ${preview.presetId === preset.id ? "selected" : ""}>${h(preset.label)}</option>`,
+                  ).join("")}
+                </select>
+              </label>
+              <div class="mapping-grid">
+                ${CSV_IMPORT_FIELDS.map(
+                  (field) => `
+                    <label>
+                      ${h(field.label)}${field.required ? " *" : ""}
+                      <select data-import-map="${field.key}">
+                        <option value="">${t("ignoreColumn")}</option>
+                        ${headers
+                          .map(
+                            (header) =>
+                              `<option value="${h(header)}" ${mapping[field.key] === header ? "selected" : ""}>${h(header)}</option>`,
+                          )
+                          .join("")}
+                      </select>
+                    </label>
+                  `,
+                ).join("")}
+              </div>
+            </div>`
+          : ""
+      }
       ${
         previewRows.length
           ? `<div class="import-row-list">
@@ -451,7 +496,7 @@ Total 166.99</textarea>
       <div class="parser-actions">
         <label class="tool-button file-button">
           ${icons.import} ${t("localOcr")}
-          <input id="ocr-file" type="file" accept="text/plain,text/csv,application/pdf,.txt,.csv,.pdf,image/*" />
+          <input id="ocr-file" type="file" accept="text/plain,text/csv,text/html,application/pdf,.txt,.csv,.html,.htm,.pdf,image/*" />
         </label>
         <button class="ghost-action" id="extract-local-ocr" type="button">${t("extractText")}</button>
         <button class="secondary-action" id="parse-receipt" type="button">${icons.receipt} ${t("parseReceipt")}</button>
@@ -567,6 +612,7 @@ function renderDetail() {
         <div class="detail-actions">
           <button class="secondary-action" data-evidence="${item.id}" type="button">${icons.pack} ${t("exportPack")}</button>
           <button class="secondary-action" data-claim-packet="${item.id}" type="button">${icons.pack} ${t("claimPacket")}</button>
+          <button class="secondary-action" data-claim-bundle="${item.id}" type="button">${icons.export} ${t("claimBundle")}</button>
         </div>
       </div>
       <div class="deadline-math">
@@ -703,9 +749,31 @@ function parseImportedJson(text) {
 async function parseImportedFile(file) {
   const text = await file.text();
   if (/\.csv$/i.test(file.name) || file.type === "text/csv") {
-    return { mode: "preview", preview: { ...analyzeCsvImport(text, state.purchases, today()), fileName: file.name } };
+    return {
+      mode: "preview",
+      preview: {
+        ...analyzeCsvImport(text, state.purchases, today()),
+        sourceText: text,
+        fileName: file.name,
+      },
+    };
   }
   return { mode: "replace", purchases: parseImportedJson(text) };
+}
+
+function reanalyzeImportPreview({ presetId, mapping } = {}) {
+  if (!state.importPreview?.sourceText) return;
+  const headers = state.importPreview.headers || [];
+  const nextPresetId = presetId || state.importPreview.presetId || "auto";
+  const nextMapping = mapping || (presetId ? csvMappingForPreset(headers, nextPresetId) : state.importPreview.mapping);
+  state.importPreview = {
+    ...analyzeCsvImport(state.importPreview.sourceText, state.purchases, today(), {
+      presetId: nextPresetId,
+      mapping: nextMapping,
+    }),
+    sourceText: state.importPreview.sourceText,
+    fileName: state.importPreview.fileName,
+  };
 }
 
 function validatePurchase(purchase) {
@@ -762,6 +830,17 @@ function exportClaimPacket(id) {
   downloadText(`${safeName || "purchase"}-claim-packet.html`, "text/html", claimPacketHtml(purchase, today()));
 }
 
+function exportClaimBundle(id) {
+  const purchase = state.purchases.find((item) => item.id === id);
+  if (!purchase) return;
+  const safeName = purchase.productName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  downloadText(
+    `${safeName || "purchase"}-claim-bundle.json`,
+    "application/json",
+    claimPacketBundleJson(purchase, today()),
+  );
+}
+
 function downloadAttachment(purchaseId, attachmentIndex) {
   const purchase = state.purchases.find((item) => item.id === purchaseId);
   const attachment = purchaseAttachments(purchase || {})[Number(attachmentIndex)];
@@ -795,6 +874,23 @@ app.addEventListener("change", async (event) => {
   if (event.target.id === "language-select") {
     state.language = normalizeLanguage(event.target.value);
     localStorage.setItem(LANGUAGE_STORAGE_KEY, state.language);
+    render();
+    return;
+  }
+
+  if (event.target.id === "csv-preset") {
+    reanalyzeImportPreview({ presetId: event.target.value });
+    render();
+    return;
+  }
+
+  if (event.target.dataset.importMap) {
+    reanalyzeImportPreview({
+      mapping: {
+        ...(state.importPreview?.mapping || {}),
+        [event.target.dataset.importMap]: event.target.value,
+      },
+    });
     render();
     return;
   }
@@ -840,6 +936,11 @@ app.addEventListener("click", async (event) => {
 
   if (button.dataset.claimPacket) {
     exportClaimPacket(button.dataset.claimPacket);
+    return;
+  }
+
+  if (button.dataset.claimBundle) {
+    exportClaimBundle(button.dataset.claimBundle);
     return;
   }
 

@@ -28,12 +28,13 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Tracks return, refund, and warranty deadlines from one local dashboard.
 - Stores purchases in browser storage with JSON export/import.
 - Stores local receipt, PDF, manual, and warranty-card attachments in the browser record.
-- Previews CSV purchase rows before import, skips duplicates, and reports invalid rows locally.
-- Extracts local text, CSV, simple PDF text, and supported browser-local image OCR into the receipt parser without upload.
+- Previews CSV purchase rows before import, supports presets and manual column mapping, skips duplicates, and reports invalid rows locally.
+- Extracts local text, CSV, HTML/email receipts, simple PDF text, and supported browser-local image OCR into the receipt parser without upload.
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.
 - Exports printable HTML claim packets with local attachment links/previews that can be saved as PDF from the browser print dialog.
+- Exports claim bundle JSON with the purchase record, deadline math, evidence pack Markdown, claim HTML, and local attachment data URLs.
 - Exports `.ics` calendar reminders for purchase deadlines.
 - Exports CSV records for spreadsheet review.
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
@@ -66,13 +67,13 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, CSV import analysis, evidence pack export, claim packet HTML export, CSV export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local text extraction, CSV preview/deduplication, claim packet download, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, evidence pack export, claim packet HTML/bundle export, CSV export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML receipt extraction, CSV preview/manual mapping/deduplication, claim packet and claim bundle download, exports, search, and mobile screenshots.
 
 ## Privacy Model
 
 Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use JSON export for backups.
 
-Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, basic PDF text extraction, and image OCR when the browser exposes a local `TextDetector` API. If image OCR is not available in the current browser, users can still paste receipt text into the parser.
+Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, HTML/email receipts, basic PDF text extraction, and image OCR when the browser exposes a local `TextDetector` API. If image OCR is not available in the current browser, users can still paste receipt text into the parser.
 
 This project is a tracking and evidence-organization tool. It does not guarantee that a merchant will accept a return, refund, or warranty claim.
 

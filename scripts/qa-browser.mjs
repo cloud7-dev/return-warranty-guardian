@@ -100,15 +100,17 @@ const rowsAfterManualSave = await page.locator(".purchase-row").count();
 const attachmentVisible = await page.locator("text=qa-receipt.pdf").count();
 stages.push("attachment-save");
 
-const ocrFixturePath = `${root}/outputs/qa-ocr-receipt.txt`;
+const ocrFixturePath = `${root}/outputs/qa-ocr-receipt.html`;
 await writeFile(
   ocrFixturePath,
-  `OCR Demo Store
-Receipt 9001
-2026-06-02
-Desk Lamp 39.99
-Cable Clips 6.99
-Total 46.98`,
+  `<!doctype html><html><body>
+    <h1>OCR Demo Store</h1>
+    <p>Receipt 9001</p>
+    <p>2026-06-02</p>
+    <p>Desk Lamp 39.99</p>
+    <p>Cable Clips 6.99</p>
+    <p>Total 46.98</p>
+  </body></html>`,
 );
 await page.setInputFiles("#ocr-file", ocrFixturePath);
 await page.click("#extract-local-ocr");
@@ -123,16 +125,24 @@ stages.push("ocr-extract-and-save");
 const csvImportPath = `${root}/outputs/qa-import.csv`;
 await writeFile(
   csvImportPath,
-  `product_name,merchant,purchase_date,price,return_days,refund_days,warranty_months,documents
+  `thing,shop_name,bought_on,cost,return_days,refund_days,warranty_months,docs
 "CSV Import Toaster","CSV Home","2026-06-01","49.99","30","14","24","toaster-receipt.pdf; toaster-manual.pdf"
 "Coffee Maker","Kitchen Corner","2026-05-14","84.50","60","30","24","duplicate.pdf"
 "Broken Row","","2026-06-01","12.00","30","14","12","missing-merchant.pdf"`,
 );
 await page.setInputFiles("#import-json", csvImportPath);
 await page.waitForSelector("text=가져오기 미리보기");
+await page.waitForSelector("text=CSV 프리셋");
+await page.locator('[data-import-map="productName"]').selectOption("thing");
+await page.locator('[data-import-map="merchant"]').selectOption("shop_name");
+await page.locator('[data-import-map="purchaseDate"]').selectOption("bought_on");
+await page.locator('[data-import-map="price"]').selectOption("cost");
+await page.locator('[data-import-map="documents"]').selectOption("docs");
+await page.waitForSelector("text=1개 준비됨");
 await page.waitForSelector("text=중복 1개");
 await page.waitForSelector("text=오류 1개");
 const importPreviewVisible = await page.locator("text=가져오기 미리보기").count();
+const importMappingVisible = await page.locator("text=CSV 프리셋").count();
 const importDuplicateVisible = await page.locator("text=중복 1개").count();
 const importInvalidVisible = await page.locator("text=오류 1개").count();
 await page.click("#confirm-import");
@@ -163,6 +173,13 @@ const claimPath = `${root}/outputs/${claimDownload.suggestedFilename()}`;
 await claimDownload.saveAs(claimPath);
 stages.push("claim-packet-download");
 
+const claimBundleDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
+await page.locator("[data-claim-bundle]").first().click();
+const claimBundleDownload = await claimBundleDownloadPromise;
+const claimBundlePath = `${root}/outputs/${claimBundleDownload.suggestedFilename()}`;
+await claimBundleDownload.saveAs(claimBundlePath);
+stages.push("claim-bundle-download");
+
 const icsDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
 await page.click("#export-ics");
 const icsDownload = await icsDownloadPromise;
@@ -189,6 +206,7 @@ server.close();
 
 const evidenceText = await readFile(evidencePath, "utf8");
 const claimText = await readFile(claimPath, "utf8");
+const claimBundleText = await readFile(claimBundlePath, "utf8");
 const icsText = await readFile(icsPath, "utf8");
 const csvText = await readFile(csvPath, "utf8");
 
@@ -204,6 +222,7 @@ const result = {
   rowsAfterParse,
   ocrImportedTextVisible,
   importPreviewVisible,
+  importMappingVisible,
   importDuplicateVisible,
   importInvalidVisible,
   rowsAfterCsvImport,
@@ -213,6 +232,8 @@ const result = {
   evidenceContainsChecklist: evidenceText.includes("Claim Checklist"),
   claimPath,
   claimContainsPrintPdf: claimText.includes("Print or save PDF") && claimText.includes("Claim Packet"),
+  claimBundlePath,
+  claimBundleContainsEvidence: claimBundleText.includes("return-warranty-guardian.claim-bundle.v1") && claimBundleText.includes("claimPacketHtml"),
   icsPath,
   icsContainsCalendar: icsText.includes("BEGIN:VCALENDAR"),
   csvPath,
@@ -234,6 +255,7 @@ const failures = [
   rowsAfterParse < 6 && "Expected parsed items to be saved",
   ocrImportedTextVisible < 1 && "Expected local OCR extracted receipt item to be visible",
   importPreviewVisible < 1 && "Expected CSV import preview to appear",
+  importMappingVisible < 1 && "Expected CSV mapping controls to appear",
   importDuplicateVisible < 1 && "Expected CSV duplicate count to appear",
   importInvalidVisible < 1 && "Expected CSV invalid row count to appear",
   rowsAfterCsvImport < 7 && "Expected CSV import to add a purchase",
@@ -241,6 +263,7 @@ const failures = [
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",
   !result.claimContainsPrintPdf && "Expected printable claim packet HTML",
+  !result.claimBundleContainsEvidence && "Expected claim bundle JSON export",
   !result.icsContainsCalendar && "Expected ICS calendar export",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",

@@ -1,6 +1,6 @@
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open("return-warranty-guardian-v1").then((cache) =>
+    caches.open("return-warranty-guardian-v2").then((cache) =>
       cache.addAll([
         "./",
         "./index.html",
@@ -17,6 +17,14 @@ self.addEventListener("install", (event) => {
         "./assets/icon.svg",
       ]),
     ),
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== "return-warranty-guardian-v2").map((key) => caches.delete(key)))),
   );
 });
 

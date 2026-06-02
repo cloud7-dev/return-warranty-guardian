@@ -21,6 +21,76 @@ function splitCsvLine(line) {
   return cells.map((value) => value.trim());
 }
 
+export const CSV_IMPORT_FIELDS = [
+  { key: "productName", label: "Product name", required: true },
+  { key: "merchant", label: "Merchant", required: true },
+  { key: "purchaseDate", label: "Purchase date", required: true },
+  { key: "price", label: "Price", required: false },
+  { key: "returnWindowDays", label: "Return days", required: false },
+  { key: "refundWindowDays", label: "Refund days", required: false },
+  { key: "warrantyMonths", label: "Warranty months", required: false },
+  { key: "model", label: "Model", required: false },
+  { key: "serial", label: "Serial", required: false },
+  { key: "category", label: "Category", required: false },
+  { key: "room", label: "Room or location", required: false },
+  { key: "supportContact", label: "Support contact", required: false },
+  { key: "documents", label: "Documents", required: false },
+  { key: "serviceNotes", label: "Service notes", required: false },
+  { key: "hasReceipt", label: "Has receipt", required: false },
+  { key: "notes", label: "Notes", required: false },
+  { key: "status", label: "Status", required: false },
+];
+
+const CSV_FIELD_ALIASES = {
+  productName: ["product_name", "product", "name", "item", "description", "item_name", "title"],
+  merchant: ["merchant", "merchant_name", "store", "vendor", "seller", "payee", "shop"],
+  purchaseDate: ["purchase_date", "date", "order_date", "transaction_date", "purchased_at"],
+  price: ["price", "amount", "total", "line_total", "transaction_amount"],
+  returnWindowDays: ["return_days", "return_window_days"],
+  refundWindowDays: ["refund_days", "refund_window_days"],
+  warrantyMonths: ["warranty_months", "warranty"],
+  model: ["model", "model_number"],
+  serial: ["serial", "serial_number"],
+  category: ["category"],
+  room: ["room", "location"],
+  supportContact: ["support_contact", "support", "contact"],
+  documents: ["documents", "document_names", "receipt", "receipt_file"],
+  serviceNotes: ["service_notes", "service_history"],
+  hasReceipt: ["has_receipt", "receipt_available", "proof"],
+  notes: ["notes", "memo"],
+  status: ["status"],
+};
+
+export const CSV_IMPORT_PRESETS = [
+  { id: "auto", label: "Auto detect", aliases: {} },
+  {
+    id: "card-statement",
+    label: "Card statement",
+    aliases: {
+      merchant: ["description", "merchant", "payee"],
+      purchaseDate: ["transaction_date", "date"],
+      price: ["amount", "transaction_amount"],
+      productName: ["description", "merchant", "payee"],
+      notes: ["memo", "notes"],
+    },
+  },
+  {
+    id: "order-export",
+    label: "Order export",
+    aliases: {
+      productName: ["item_name", "product", "title", "description"],
+      merchant: ["seller", "store", "merchant"],
+      purchaseDate: ["order_date", "purchased_at", "date"],
+      price: ["line_total", "total", "price"],
+      documents: ["receipt", "receipt_file", "documents"],
+    },
+  },
+];
+
+function normalizeHeader(header) {
+  return String(header || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
 export function parseCsv(text) {
   const rows = String(text || "")
     .split(/\r?\n/)
@@ -28,10 +98,15 @@ export function parseCsv(text) {
     .filter(Boolean)
     .map(splitCsvLine);
   if (!rows.length) return [];
-  const headers = rows[0].map((header) => header.trim().toLowerCase().replace(/[\s-]+/g, "_"));
+  const headers = rows[0].map(normalizeHeader);
   return rows.slice(1).map((row) =>
     Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])),
   );
+}
+
+export function csvHeaders(text) {
+  const [firstLine] = String(text || "").split(/\r?\n/).filter(Boolean);
+  return firstLine ? splitCsvLine(firstLine).map(normalizeHeader) : [];
 }
 
 function numberFrom(value, fallback = 0) {
@@ -46,8 +121,10 @@ function splitList(value) {
     .filter(Boolean);
 }
 
-function valueFrom(row, aliases) {
-  return aliases.map((alias) => row[alias]).find((value) => String(value || "").trim()) || "";
+function valueFrom(row, field, mapping = {}) {
+  const mappedHeader = mapping[field];
+  if (mappedHeader && row[mappedHeader]) return row[mappedHeader];
+  return (CSV_FIELD_ALIASES[field] || []).map((alias) => row[alias]).find((value) => String(value || "").trim()) || "";
 }
 
 function importKey(purchase) {
@@ -56,10 +133,22 @@ function importKey(purchase) {
     .join("|");
 }
 
-function normalizeCsvRow(row, index, now) {
-  const productName = valueFrom(row, ["product_name", "product", "name", "item", "description"]);
-  const merchant = valueFrom(row, ["merchant", "merchant_name", "store", "vendor", "seller"]);
-  const purchaseDate = valueFrom(row, ["purchase_date", "date", "order_date", "transaction_date"]);
+export function csvMappingForPreset(headers, presetId = "auto") {
+  const available = new Set(headers);
+  const preset = CSV_IMPORT_PRESETS.find((item) => item.id === presetId) || CSV_IMPORT_PRESETS[0];
+  return Object.fromEntries(
+    CSV_IMPORT_FIELDS.map((field) => {
+      const aliases = [...(preset.aliases[field.key] || []), ...(CSV_FIELD_ALIASES[field.key] || [])];
+      const match = aliases.map(normalizeHeader).find((alias) => available.has(alias));
+      return [field.key, match || ""];
+    }),
+  );
+}
+
+function normalizeCsvRow(row, index, now, mapping = {}) {
+  const productName = valueFrom(row, "productName", mapping);
+  const merchant = valueFrom(row, "merchant", mapping);
+  const purchaseDate = valueFrom(row, "purchaseDate", mapping);
   const issues = [];
   if (!productName) issues.push("missing product_name");
   if (!merchant) issues.push("missing merchant");
@@ -74,29 +163,31 @@ function normalizeCsvRow(row, index, now) {
       productName,
       merchant,
       purchaseDate,
-      price: numberFrom(valueFrom(row, ["price", "amount", "total"])),
-      returnWindowDays: numberFrom(valueFrom(row, ["return_days", "return_window_days"]), 30),
-      refundWindowDays: numberFrom(valueFrom(row, ["refund_days", "refund_window_days"]), 14),
-      warrantyMonths: numberFrom(valueFrom(row, ["warranty_months", "warranty"]), 12),
-      model: valueFrom(row, ["model", "model_number"]),
-      serial: valueFrom(row, ["serial", "serial_number"]),
-      category: row.category || "",
-      room: row.room || row.location || "",
-      supportContact: row.support_contact || row.support || "",
-      documents: splitList(row.documents),
+      price: numberFrom(valueFrom(row, "price", mapping)),
+      returnWindowDays: numberFrom(valueFrom(row, "returnWindowDays", mapping), 30),
+      refundWindowDays: numberFrom(valueFrom(row, "refundWindowDays", mapping), 14),
+      warrantyMonths: numberFrom(valueFrom(row, "warrantyMonths", mapping), 12),
+      model: valueFrom(row, "model", mapping),
+      serial: valueFrom(row, "serial", mapping),
+      category: valueFrom(row, "category", mapping),
+      room: valueFrom(row, "room", mapping),
+      supportContact: valueFrom(row, "supportContact", mapping),
+      documents: splitList(valueFrom(row, "documents", mapping)),
       attachments: [],
-      serviceNotes: row.service_notes || "",
+      serviceNotes: valueFrom(row, "serviceNotes", mapping),
       source: "csv-import",
-      hasReceipt: /^(yes|true|1)$/i.test(row.has_receipt || row.receipt || ""),
-      notes: row.notes || "",
-      status: row.status || "active",
+      hasReceipt: /^(yes|true|1)$/i.test(valueFrom(row, "hasReceipt", mapping)),
+      notes: valueFrom(row, "notes", mapping),
+      status: valueFrom(row, "status", mapping) || "active",
       createdAt: now.toISOString(),
     },
   };
 }
 
-export function analyzeCsvImport(text, existingPurchases = [], now = new Date()) {
+export function analyzeCsvImport(text, existingPurchases = [], now = new Date(), options = {}) {
   const rows = parseCsv(text);
+  const headers = csvHeaders(text);
+  const mapping = options.mapping || csvMappingForPreset(headers, options.presetId || "auto");
   const existingKeys = new Set(existingPurchases.map(importKey));
   const seenKeys = new Set();
   const valid = [];
@@ -104,7 +195,7 @@ export function analyzeCsvImport(text, existingPurchases = [], now = new Date())
   const invalid = [];
 
   rows.forEach((row, index) => {
-    const result = normalizeCsvRow(row, index, now);
+    const result = normalizeCsvRow(row, index, now, mapping);
     if (!result.purchase) {
       invalid.push(result);
       return;
@@ -121,6 +212,9 @@ export function analyzeCsvImport(text, existingPurchases = [], now = new Date())
   });
 
   return {
+    headers,
+    mapping,
+    presetId: options.presetId || "auto",
     rowCount: rows.length,
     valid,
     duplicates,

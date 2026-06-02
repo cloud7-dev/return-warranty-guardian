@@ -351,6 +351,40 @@ svg {
   gap: 8px;
 }
 
+.import-mapping {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+}
+
+.import-mapping label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.import-mapping select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: white;
+  color: var(--ink);
+  padding: 0 9px;
+}
+
+.mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .import-row {
   display: grid;
   gap: 4px;
@@ -863,6 +897,7 @@ svg {
 
   .summary-grid,
   .purchase-form,
+  .mapping-grid,
   .purchase-row,
   .deadline-stack {
     grid-template-columns: 1fr;

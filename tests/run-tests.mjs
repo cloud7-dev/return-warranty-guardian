@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
-import { analyzeCsvImport, purchasesFromCsv } from "../src/importers.js";
+import { analyzeCsvImport, csvMappingForPreset, purchasesFromCsv } from "../src/importers.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
-import { claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs } from "../src/exporters.js";
+import { claimPacketBundleJson, claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs } from "../src/exporters.js";
 
 const now = new Date("2026-06-02T10:00:00Z");
 
@@ -105,12 +105,31 @@ assert.equal(analyzed.valid.length, 1);
 assert.equal(analyzed.duplicates.length, 1);
 assert.equal(analyzed.invalid.length, 1);
 
+const cardMapping = csvMappingForPreset(["transaction_date", "description", "amount"], "card-statement");
+assert.equal(cardMapping.merchant, "description");
+assert.equal(cardMapping.purchaseDate, "transaction_date");
+assert.equal(cardMapping.price, "amount");
+const mapped = analyzeCsvImport(
+  `transaction_date,description,amount
+"2026-06-01","Mapped Card Store","19.95"`,
+  [],
+  now,
+  { presetId: "card-statement", mapping: cardMapping },
+);
+assert.equal(mapped.valid[0].purchase.productName, "Mapped Card Store");
+assert.equal(mapped.valid[0].purchase.price, 19.95);
+
 const claimPacket = claimPacketHtml(purchase, now);
 assert.match(claimPacket, /Claim Packet: Wireless Headset/);
 assert.match(claimPacket, /Print or save PDF/);
 assert.match(claimPacket, /warranty-card\.pdf/);
 assert.match(claimPacket, /data:image\/png/);
 assert.match(claimPacket, /Submission Note/);
+
+const claimBundle = JSON.parse(claimPacketBundleJson(purchase, now));
+assert.equal(claimBundle.schema, "return-warranty-guardian.claim-bundle.v1");
+assert.match(claimBundle.claimPacketHtml, /Claim Packet: Wireless Headset/);
+assert.equal(claimBundle.attachments.length, 2);
 
 const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);
