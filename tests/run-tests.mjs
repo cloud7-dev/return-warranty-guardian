@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -586,5 +586,46 @@ assert.equal(intakeDraft.anonymized, true);
 assert.equal(intakeDraft.provenance.origin, "anonymized-community");
 assert.equal(intakeDraft.provenance.rawSampleRetained, false);
 assert.equal(intakeDraft.review.piiChecked, false);
+const reviewedFixturePath = join(anonymizeDir, "csv", "reviewed-sample.csv");
+await mkdir(join(anonymizeDir, "csv"), { recursive: true });
+await writeFile(
+  reviewedFixturePath,
+  `date,merchant,amount
+2026-06-02,Reviewed Sample Store,42.00`,
+);
+const reviewedEntryPath = join(anonymizeDir, "reviewed-entry.json");
+await writeFile(
+  reviewedEntryPath,
+  JSON.stringify(
+    {
+      ...intakeDraft,
+      id: "reviewed-community-sample",
+      fixturePath: "csv/reviewed-sample.csv",
+      sourceKind: "payment-receipt-shape",
+      provenance: {
+        ...intakeDraft.provenance,
+        permission: "sanitized sample shared for parser regression",
+        contributorHandle: "community-reviewer",
+      },
+      review: {
+        piiChecked: true,
+        parserChecked: true,
+        reviewedAt: "2026-06-02",
+        reviewer: "fixture-reviewer",
+      },
+    },
+    null,
+    2,
+  ),
+);
+const { stdout: reviewSampleStdout } = await execFileAsync(process.execPath, [
+  "scripts/review-sample-intake.mjs",
+  reviewedEntryPath,
+  anonymizeDir,
+]);
+const reviewSampleResult = JSON.parse(reviewSampleStdout);
+assert.equal(reviewSampleResult.schema, "return-warranty-guardian.sample-intake-review.v1");
+assert.equal(reviewSampleResult.ok, true);
+assert.equal(reviewSampleResult.parserResult.validRows, 1);
 
 console.log("All logic tests passed.");

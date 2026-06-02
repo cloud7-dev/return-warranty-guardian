@@ -36,7 +36,7 @@ This list separates high-leverage additions from features that could distract th
 
 1. **Synthetic receipt fixture corpus**
    - Initial synthetic CSV, HTML receipt, PDF text-operator, and policy-template fixtures exist under `tests/fixtures`.
-   - A local anonymizer script helps turn private samples into reviewable fixture drafts before contribution, and sample intake now requires provenance, reuse permission, raw-sample non-retention, non-sensitive contributor handles, PII review, and parser review before a fixture can pass validation.
+   - A local anonymizer script helps turn private samples into reviewable fixture drafts before contribution, `npm run fixture:review` checks a single incoming sample candidate before merge, and sample intake now requires provenance, reuse permission, raw-sample non-retention, non-sensitive contributor handles, PII review, and parser review before a fixture can pass validation.
    - Sample intake manifests now record anonymization and parser-review status before accepting community-shaped CSV/OCR fixtures.
    - Good for GitHub stars because it makes the project hackable.
 
