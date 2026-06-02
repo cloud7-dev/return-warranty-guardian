@@ -11,6 +11,24 @@ export function sanitizeFixtureText(input) {
   return replacements.reduce((text, item) => text.replace(item.pattern, item.value), String(input || ""));
 }
 
+export function sanitizeFixtureReport(input) {
+  let text = String(input || "");
+  const replacementsMade = [];
+  for (const item of replacements) {
+    const matches = [...text.matchAll(new RegExp(item.pattern.source, item.pattern.flags))];
+    if (matches.length) {
+      replacementsMade.push({ replacement: item.value, count: matches.length });
+      text = text.replace(item.pattern, item.value);
+    }
+  }
+  return {
+    schema: "return-warranty-guardian.fixture-anonymize-report.v1",
+    redacted: replacementsMade.reduce((sum, item) => sum + item.count, 0),
+    replacements: replacementsMade,
+    sanitizedText: text,
+  };
+}
+
 export function sanitizeFixtureFilename(filename) {
   return String(filename || "fixture")
     .toLowerCase()

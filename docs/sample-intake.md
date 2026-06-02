@@ -10,9 +10,11 @@ Community samples must be synthetic or anonymized before they enter the reposito
 npm run fixture:anonymize -- path/to/private-sample.csv
 ```
 
-2. Manually inspect the generated draft.
-3. Move only the anonymized fixture into `tests/fixtures`.
-4. Add an entry to `tests/fixtures/intake/sample-intake.json`.
+The command writes three local review artifacts: a sanitized fixture draft, an anonymization report, and an intake entry draft. The report and draft are review aids; do not commit them until paths and review flags are finalized.
+
+2. Manually inspect the generated sanitized fixture and report.
+3. Move only the reviewed anonymized fixture into `tests/fixtures`.
+4. Copy the finalized intake entry into `tests/fixtures/intake/sample-intake.json` and set `piiChecked` / `parserChecked` to `true` only after review.
 5. Run:
 
 ```bash

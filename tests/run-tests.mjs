@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
-import { sanitizeFixtureFilename, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
+import { sanitizeFixtureFilename, sanitizeFixtureReport, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
 import { notificationSmokeRecord } from "../scripts/record-notification-smoke-result.mjs";
 import {
@@ -64,6 +64,13 @@ assert.doesNotMatch(sanitizedFixture, /010-1234-5678/);
 assert.doesNotMatch(sanitizedFixture, /4111-1111-1111-1111/);
 assert.match(sanitizedFixture, /user@example\.test/);
 assert.equal(sanitizeFixtureFilename("Real Receipt 2026.pdf"), "real-receipt-2026");
+const fixtureReport = sanitizeFixtureReport(`buyer@example.com
+ORDER XYZA1234
+4111-1111-1111-1111`);
+assert.equal(fixtureReport.schema, "return-warranty-guardian.fixture-anonymize-report.v1");
+assert.equal(fixtureReport.redacted, 3);
+assert.match(fixtureReport.sanitizedText, /user@example\.test/);
+assert.doesNotMatch(fixtureReport.sanitizedText, /4111-1111-1111-1111/);
 
 assert.equal(addDays("2026-06-02", 30), "2026-07-02");
 assert.equal(addDays("2026-06-02", 14), "2026-06-16");
@@ -547,5 +554,21 @@ for (const provider of ["ntfy", "gotify", "apprise"]) {
 }
 const { stdout: fixtureStdout } = await execFileAsync(process.execPath, ["scripts/validate-fixtures.mjs"]);
 assert.match(fixtureStdout, /Fixture validation passed/);
+const anonymizeDir = await mkdtemp(join(tmpdir(), "rwg-anonymize-"));
+const privateSamplePath = join(anonymizeDir, "private-sample.csv");
+await writeFile(
+  privateSamplePath,
+  `date,merchant,amount,email,order
+2026-06-02,Private Store,42.00,buyer@example.com,ORDER ABCD1234`,
+);
+const { stdout: anonymizeStdout } = await execFileAsync(process.execPath, ["scripts/anonymize-fixture.mjs", privateSamplePath, anonymizeDir]);
+const anonymizeResult = JSON.parse(anonymizeStdout);
+assert.match(await readFile(anonymizeResult.sanitizedFixturePath, "utf8"), /user@example\.test/);
+const anonymizeReport = JSON.parse(await readFile(anonymizeResult.reportPath, "utf8"));
+assert.equal(anonymizeReport.schema, "return-warranty-guardian.fixture-anonymize-report.v1");
+assert.ok(anonymizeReport.redacted >= 2);
+const intakeDraft = JSON.parse(await readFile(anonymizeResult.intakeDraftPath, "utf8"));
+assert.equal(intakeDraft.anonymized, true);
+assert.equal(intakeDraft.review.piiChecked, false);
 
 console.log("All logic tests passed.");
