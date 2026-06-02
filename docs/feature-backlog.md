@@ -11,8 +11,8 @@ This list separates high-leverage additions from features that could distract th
 
 2. **More durable local attachments**
    - Receipt images, PDFs, manuals, and warranty cards can now be stored in the browser record.
-   - Current flow saves local attachment data in the browser record, shows save/skipped status for files over 5 MB, and includes attachments plus a manifest in claim bundles.
-   - Remaining pain: attachments still depend on browser site data. OPFS, encrypted export bundles, or a desktop wrapper are stronger V2 candidates than a hosted file vault.
+   - Current flow stores local attachment Blobs in OPFS when supported, falls back to data URLs otherwise, shows save/skipped status for files over 5 MB, hydrates OPFS files for download/export, and includes attachments plus a manifest in claim bundles.
+   - Remaining pain: attachments still depend on browser site data. Encrypted export bundles, recovery UX, or a desktop wrapper are stronger V2 candidates than a hosted file vault.
 
 3. **Messy receipt and policy extraction**
    - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
@@ -21,8 +21,8 @@ This list separates high-leverage additions from features that could distract th
 
 4. **Warranty claim packet quality**
    - Users need a clean support packet with receipt, serial/model, photos, repair history, manuals, and merchant conversation notes.
-   - Printable HTML claim packets now include local attachment links, image previews, PDF save guidance, attachment manifests, and starter submission templates for merchant return, warranty support, chargeback evidence, and repair intake.
-   - Claim bundle JSON/ZIP preserves the generated packet, submission templates, attachment manifests, and local attachment evidence. V2 still needs merchant/country-specific template customization.
+   - Printable HTML claim packets now include local attachment links, image previews, browser-specific PDF save guidance, claim profile/jurisdiction hints, attachment export review, attachment manifests, and starter submission templates for merchant return, warranty support, chargeback evidence, and repair intake.
+   - Claim bundle JSON/ZIP preserves the generated packet, claim profile, attachment export review, submission templates, attachment manifests, and local attachment evidence.
 
 5. **Home appliance and repair history**
    - Warranty issues often depend on where an item is installed, who repaired it, which manual applies, and what service happened before.
@@ -46,7 +46,7 @@ This list separates high-leverage additions from features that could distract th
 
 3. **Attachment handling**
    - Receipt image/PDF storage, manuals, warranty cards, image compression, and warning for large files.
-   - Claim bundle exports now include evidence pack, attachment manifest, and attached local files.
+   - Claim bundle exports now include evidence pack, attachment manifest, attachment export review, and attached local files.
 
 4. **Encrypted backup**
    - User-chosen passphrase for JSON export.
@@ -69,8 +69,8 @@ This list separates high-leverage additions from features that could distract th
    - Remaining work: maintaining real public/self-hosted endpoint smoke configuration and records outside the default CI environment.
 
 8. **Claim packet HTML/PDF**
-   - Printable HTML claim packet exists with attachment links, image previews, PDF save guidance, attachment manifests, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.
-   - Remaining work: richer merchant/country templates, localized template text, and attachment-size optimization.
+   - Printable HTML claim packet exists with attachment links, image previews, browser-specific PDF save guidance, claim profile/jurisdiction hints, attachment export review, attachment manifests, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.
+   - Remaining work: richer merchant/country templates and localized template text.
 
 9. **Price-protection watcher**
    - Manual or optional watch entries for price drops within refund/price-adjustment periods.

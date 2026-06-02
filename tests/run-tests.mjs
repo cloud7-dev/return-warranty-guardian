@@ -5,6 +5,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
+import {
+  attachmentToDataUrl,
+  fileToLocalAttachment,
+  hydratePurchaseAttachments,
+  localAttachmentStorageMode,
+} from "../src/attachment-storage.js";
 import { sanitizeFixtureFilename, sanitizeFixtureReport, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
 import { auditNotificationSmokeRecords } from "../scripts/audit-notification-smoke-records.mjs";
@@ -40,9 +46,12 @@ import { bundledLocalOcrWorker, bundledLocalOcrWorkerSupports, localOcrEnvironme
 import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
+  attachmentExportReview,
+  browserPdfSaveGuide,
   claimPacketBundleJson,
   claimPacketHtml,
   claimPacketZipBytes,
+  claimPacketProfile,
   claimSubmissionTemplates,
   evidencePackMarkdown,
   purchasesToCsv,
@@ -125,6 +134,16 @@ assert.equal(summary.total, 1);
 assert.equal(summary.dueSoon, 1);
 assert.equal(summary.missingProof, 0);
 assert.equal(summary.returnValueAtRisk, 129.99);
+
+const fallbackAttachmentFile = new Blob(["%PDF-1.4\n% Local fallback attachment"], { type: "application/pdf" });
+Object.defineProperty(fallbackAttachmentFile, "name", { value: "fallback-receipt.pdf" });
+const fallbackAttachment = await fileToLocalAttachment(fallbackAttachmentFile, "purchase-test");
+assert.equal(localAttachmentStorageMode(), "data-url");
+assert.equal(fallbackAttachment.storage, "data-url");
+assert.match(fallbackAttachment.dataUrl, /^data:application\/pdf;base64,/);
+assert.equal(await attachmentToDataUrl(fallbackAttachment), fallbackAttachment.dataUrl);
+const hydratedFallbackPurchase = await hydratePurchaseAttachments({ ...purchase, attachments: [fallbackAttachment] });
+assert.equal(hydratedFallbackPurchase.attachments[0].dataUrl, fallbackAttachment.dataUrl);
 
 const parsed = parseReceiptText(`Example Electronics
 Receipt 7142
@@ -432,6 +451,9 @@ const claimPacket = claimPacketHtml(purchase, now);
 assert.match(claimPacket, /Claim Packet: Wireless Headset/);
 assert.match(claimPacket, /Print or save PDF/);
 assert.match(claimPacket, /PDF Save Guide/);
+assert.match(claimPacket, /Chrome\/Chromium/);
+assert.match(claimPacket, /Claim Profile/);
+assert.match(claimPacket, /Attachment Export Review/);
 assert.match(claimPacket, /Attachment Manifest/);
 assert.match(claimPacket, /warranty-card\.pdf/);
 assert.match(claimPacket, /data:image\/png/);
@@ -443,12 +465,18 @@ const templates = claimSubmissionTemplates(purchase, now);
 assert.equal(templates.length, 4);
 assert.equal(templates.map((template) => template.id).join(","), "merchant-return,warranty-support,chargeback-summary,repair-intake");
 assert.match(templates[1].body, /support@example\.test/);
+assert.match(templates[1].body, /Claim profile/);
 assert.match(templates[3].body, /Home office/);
+assert.equal(claimPacketProfile(purchase).templateProfile, "custom-user-reviewed");
+assert.match(browserPdfSaveGuide("Firefox"), /Firefox/);
+assert.equal(attachmentExportReview(purchase.attachments).largeFileCount, 0);
 
 const claimBundle = JSON.parse(claimPacketBundleJson(purchase, now));
 assert.equal(claimBundle.schema, "return-warranty-guardian.claim-bundle.v1");
 assert.match(claimBundle.claimPacketHtml, /Claim Packet: Wireless Headset/);
 assert.equal(claimBundle.submissionTemplates.length, 4);
+assert.equal(claimBundle.claimProfile.templateProfile, "custom-user-reviewed");
+assert.equal(claimBundle.attachmentExportReview.totalFiles, 2);
 assert.equal(claimBundle.attachmentManifest.length, 2);
 assert.equal(claimBundle.attachmentManifest[0].exportPath, "attachments/01-warranty-card.pdf");
 assert.equal(claimBundle.attachments.length, 2);
@@ -457,6 +485,7 @@ assert.deepEqual([...claimZip.slice(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
 assert.match(new TextDecoder().decode(claimZip), /claim-packet\.html/);
 assert.match(new TextDecoder().decode(claimZip), /claim-bundle\.json/);
 assert.match(new TextDecoder().decode(claimZip), /attachment-manifest\.json/);
+assert.match(new TextDecoder().decode(claimZip), /attachment-export-review\.json/);
 assert.match(new TextDecoder().decode(claimZip), /templates\/merchant-return\.txt/);
 
 const ics = purchasesToIcs([purchase], now);

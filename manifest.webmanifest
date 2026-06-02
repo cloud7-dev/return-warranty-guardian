@@ -2,10 +2,15 @@
   "name": "Return & Warranty Guardian",
   "short_name": "Warranty Guardian",
   "description": "Never miss a return window or warranty again.",
-  "start_url": ".",
+  "id": "/return-warranty-guardian/",
+  "start_url": "./",
+  "scope": "./",
+  "lang": "ko",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#f4f6f3",
   "theme_color": "#0f766e",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
       "src": "assets/icon.svg",

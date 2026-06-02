@@ -44,12 +44,60 @@ function attachmentManifest(attachments) {
     type: attachment.type || "application/octet-stream",
     size: attachment.size || 0,
     included: Boolean(attachment.dataUrl),
+    storage: attachment.storage || (attachment.dataUrl ? "data-url" : "local-reference"),
     exportPath: `attachments/${String(index + 1).padStart(2, "0")}-${safePathSegment(attachment.name)}`,
   }));
 }
 
+export function claimPacketProfile(purchase = {}) {
+  const policyTemplateId = String(purchase.policyTemplateId || "custom");
+  const jurisdiction =
+    policyTemplateId.includes("korean") || /korea|korean|한국|대한민국/i.test(`${purchase.notes || ""} ${purchase.merchant || ""}`)
+      ? "KR"
+      : "general";
+  return {
+    policyTemplateId,
+    jurisdiction,
+    templateProfile:
+      policyTemplateId === "custom"
+        ? "custom-user-reviewed"
+        : `policy-template:${policyTemplateId}`,
+    reviewNote: "Confirm merchant policy, product exceptions, and country rules before submitting.",
+  };
+}
+
+export function browserPdfSaveGuide(userAgent = "") {
+  const agent = String(userAgent || "").toLowerCase();
+  if (agent.includes("firefox")) {
+    return "Firefox: choose Print, select Save to PDF, then enable background graphics if attachment previews matter.";
+  }
+  if (agent.includes("safari") && !agent.includes("chrome") && !agent.includes("chromium")) {
+    return "Safari: choose File > Print, open the PDF menu, then choose Save as PDF. Review attachment links after saving.";
+  }
+  if (agent.includes("edg/")) {
+    return "Edge: choose Print, select Save as PDF, keep headers/footers off if you need a cleaner claim packet.";
+  }
+  return "Chrome/Chromium: choose Print, select Save as PDF, keep background graphics enabled for image evidence previews.";
+}
+
+export function attachmentExportReview(attachments = []) {
+  const totalBytes = attachments.reduce((sum, attachment) => sum + Number(attachment.size || 0), 0);
+  const largeFiles = attachments.filter((attachment) => Number(attachment.size || 0) > 2 * 1024 * 1024).map((attachment) => attachment.name);
+  return {
+    totalFiles: attachments.length,
+    totalBytes,
+    largeFileCount: largeFiles.length,
+    largeFiles,
+    guidance:
+      largeFiles.length > 0
+        ? "Large attachments may make email or support forms fail. Compress images or send the ZIP bundle through the merchant upload portal when possible."
+        : "Attachment size is within the lightweight claim-packet range.",
+  };
+}
+
 export function claimSubmissionTemplates(purchase, now = new Date()) {
   const item = computeDeadlines(purchase, now);
+  const profile = claimPacketProfile(item);
   const deadlineSummary = item.deadlines.map((deadline) => `${deadline.label}: ${deadline.date} (${deadline.status})`).join("; ");
   const identity = `${item.productName} purchased from ${item.merchant} on ${item.purchaseDate}`;
   const documents = Array.isArray(item.documents) && item.documents.length ? item.documents.join(", ") : "No document names recorded";
@@ -58,12 +106,12 @@ export function claimSubmissionTemplates(purchase, now = new Date()) {
     {
       id: "merchant-return",
       title: "Merchant Return Request",
-      body: `Hello,\n\nI would like to request return support for ${identity}.\n\nOrder/product details:\n- Product: ${item.productName}\n- Purchase date: ${item.purchaseDate}\n- Price: ${Number(item.price || 0).toFixed(2)}\n- Model/serial: ${item.model || "Not recorded"} / ${item.serial || "Not recorded"}\n- Deadline summary: ${deadlineSummary || "No deadlines recorded"}\n- Documents included: ${documents}\n\nI have included the receipt/order proof and supporting documents in this packet. Please confirm the next return step, RMA number, or label instructions.\n\nThank you.`,
+      body: `Hello,\n\nI would like to request return support for ${identity}.\n\nOrder/product details:\n- Product: ${item.productName}\n- Purchase date: ${item.purchaseDate}\n- Price: ${Number(item.price || 0).toFixed(2)}\n- Model/serial: ${item.model || "Not recorded"} / ${item.serial || "Not recorded"}\n- Deadline summary: ${deadlineSummary || "No deadlines recorded"}\n- Documents included: ${documents}\n- Claim profile: ${profile.templateProfile} / ${profile.jurisdiction}\n\nI have included the receipt/order proof and supporting documents in this packet. Please confirm the next return step, RMA number, or label instructions.\n\nThank you.`,
     },
     {
       id: "warranty-support",
       title: "Warranty Support Request",
-      body: `Hello,\n\nI am requesting warranty support for ${identity}.\n\nWarranty evidence:\n- Product: ${item.productName}\n- Model: ${item.model || "Not recorded"}\n- Serial: ${item.serial || "Not recorded"}\n- Warranty deadline: ${item.warrantyDeadline || "Not calculated"}\n- Support/contact: ${support}\n- Service history: ${item.serviceNotes || "No service history recorded"}\n- Documents included: ${documents}\n\nPlease review the attached proof and advise the repair, replacement, or claim process.`,
+      body: `Hello,\n\nI am requesting warranty support for ${identity}.\n\nWarranty evidence:\n- Product: ${item.productName}\n- Model: ${item.model || "Not recorded"}\n- Serial: ${item.serial || "Not recorded"}\n- Warranty deadline: ${item.warrantyDeadline || "Not calculated"}\n- Support/contact: ${support}\n- Service history: ${item.serviceNotes || "No service history recorded"}\n- Documents included: ${documents}\n- Claim profile: ${profile.templateProfile} / ${profile.jurisdiction}\n\nPlease review the attached proof and advise the repair, replacement, or claim process.`,
     },
     {
       id: "chargeback-summary",
@@ -207,7 +255,7 @@ export function purchasesToCsv(purchases, now = new Date()) {
   return [columns.map(csvCell), ...rows].map((row) => row.join(",")).join("\n");
 }
 
-export function claimPacketHtml(purchase, now = new Date()) {
+export function claimPacketHtml(purchase, now = new Date(), options = {}) {
   const item = computeDeadlines(purchase, now);
   const documents = Array.isArray(item.documents) ? item.documents : [];
   const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
@@ -228,6 +276,9 @@ export function claimPacketHtml(purchase, now = new Date()) {
   const manifest = attachmentManifest(attachments);
   const attachmentSize = attachments.reduce((sum, attachment) => sum + Number(attachment.size || 0), 0);
   const templates = claimSubmissionTemplates(purchase, now);
+  const profile = claimPacketProfile(item);
+  const pdfGuide = browserPdfSaveGuide(options.userAgent);
+  const attachmentReview = attachmentExportReview(attachments);
 
   return `<!doctype html>
 <html lang="en">
@@ -269,7 +320,13 @@ export function claimPacketHtml(purchase, now = new Date()) {
   <h2>PDF Save Guide</h2>
   <div class="guide">
     <p>Use the print button, choose Save as PDF in the browser print dialog, then review every local attachment before sending the packet.</p>
+    <p>${escapeHtml(pdfGuide)}</p>
     <p>Attachment manifest: ${escapeHtml(String(attachments.length))} file(s), ${escapeHtml(String(attachmentSize))} bytes total.</p>
+  </div>
+  <h2>Claim Profile</h2>
+  <div class="guide">
+    <p>Template profile: ${escapeHtml(profile.templateProfile)} · Jurisdiction hint: ${escapeHtml(profile.jurisdiction)}</p>
+    <p>${escapeHtml(profile.reviewNote)}</p>
   </div>
   <h2>Documents</h2>
   <ul>${documents.length ? documents.map((name) => `<li>${escapeHtml(name)}</li>`).join("") : "<li>No document names recorded.</li>"}</ul>
@@ -291,6 +348,11 @@ export function claimPacketHtml(purchase, now = new Date()) {
           .join("")}</tbody></table>`
       : "<p>No local attachment manifest.</p>"
   }
+  <h2>Attachment Export Review</h2>
+  <div class="guide">
+    <p>${escapeHtml(String(attachmentReview.totalFiles))} file(s), ${escapeHtml(String(attachmentReview.totalBytes))} bytes, ${escapeHtml(String(attachmentReview.largeFileCount))} large file(s).</p>
+    <p>${escapeHtml(attachmentReview.guidance)}</p>
+  </div>
   <h2>Service History</h2>
   <p>${escapeHtml(item.serviceNotes || "No service history recorded.")}</p>
   <h2>Notes</h2>
@@ -321,7 +383,7 @@ export function claimPacketHtml(purchase, now = new Date()) {
 </html>`;
 }
 
-export function claimPacketBundleJson(purchase, now = new Date()) {
+export function claimPacketBundleJson(purchase, now = new Date(), options = {}) {
   const item = computeDeadlines(purchase, now);
   const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
   return JSON.stringify(
@@ -333,14 +395,18 @@ export function claimPacketBundleJson(purchase, now = new Date()) {
       purchase,
       deadlines: item.deadlines,
       evidencePackMarkdown: evidencePackMarkdown(purchase, now),
-      claimPacketHtml: claimPacketHtml(purchase, now),
+      claimPacketHtml: claimPacketHtml(purchase, now, options),
       submissionTemplates: claimSubmissionTemplates(purchase, now),
+      claimProfile: claimPacketProfile(item),
+      pdfSaveGuide: browserPdfSaveGuide(options.userAgent),
       attachmentManifest: attachmentManifest(attachments),
+      attachmentExportReview: attachmentExportReview(attachments),
       attachments: attachments.map((attachment) => ({
         name: attachment.name,
         type: attachment.type || "application/octet-stream",
         size: attachment.size || 0,
         createdAt: attachment.createdAt || "",
+        storage: attachment.storage || (attachment.dataUrl ? "data-url" : "local-reference"),
         dataUrl: attachment.dataUrl || "",
       })),
     },
@@ -604,15 +670,16 @@ export function zipFiles(files, now = new Date()) {
   return output;
 }
 
-export function claimPacketZipBytes(purchase, now = new Date()) {
+export function claimPacketZipBytes(purchase, now = new Date(), options = {}) {
   const item = computeDeadlines(purchase, now);
   const root = safePathSegment(item.productName || "claim");
   const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
   const files = [
-    { name: `${root}/claim-packet.html`, content: claimPacketHtml(purchase, now) },
+    { name: `${root}/claim-packet.html`, content: claimPacketHtml(purchase, now, options) },
     { name: `${root}/evidence-pack.md`, content: evidencePackMarkdown(purchase, now) },
-    { name: `${root}/claim-bundle.json`, content: claimPacketBundleJson(purchase, now) },
+    { name: `${root}/claim-bundle.json`, content: claimPacketBundleJson(purchase, now, options) },
     { name: `${root}/attachment-manifest.json`, content: JSON.stringify(attachmentManifest(attachments), null, 2) },
+    { name: `${root}/attachment-export-review.json`, content: JSON.stringify(attachmentExportReview(attachments), null, 2) },
     ...claimSubmissionTemplates(purchase, now).map((template) => ({
       name: `${root}/templates/${safePathSegment(template.id)}.txt`,
       content: template.body,

@@ -12,6 +12,11 @@ import {
   selfHostedNotificationPayload,
 } from "./exporters.js";
 import {
+  attachmentToDataUrl,
+  fileToLocalAttachment,
+  hydratePurchaseAttachments,
+} from "./attachment-storage.js";
+import {
   CSV_IMPORT_FIELDS,
   CSV_IMPORT_PRESETS,
   analyzeCsvImport,
@@ -54,6 +59,7 @@ const state = {
 const today = () => new Date();
 const t = (key, values) => translate(state.language, key, values);
 const notifiedReminderKeys = new Set();
+const claimPacketOptions = () => ({ userAgent: navigator.userAgent, locale: state.language });
 const h = (value) =>
   String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -73,22 +79,6 @@ function fileSizeLabel(size) {
   if (amount < 1024) return `${amount} B`;
   if (amount < 1024 * 1024) return `${(amount / 1024).toFixed(1)} KB`;
   return `${(amount / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function fileToAttachment(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () =>
-      resolve({
-        name: file.name,
-        type: file.type || "application/octet-stream",
-        size: file.size,
-        dataUrl: reader.result,
-        createdAt: new Date().toISOString(),
-      });
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
 }
 
 async function extractLocalText(file, ocrSidecarText = "") {
@@ -115,19 +105,19 @@ async function localOcrSidecarText() {
   return [typedText.trim(), fileText.trim()].filter(Boolean).join("\n");
 }
 
-async function attachmentsFromForm(formData) {
+async function attachmentsFromForm(formData, purchaseId) {
   const files = formData.getAll("attachments").filter((file) => file instanceof File && file.name);
   const accepted = files.filter((file) => file.size <= MAX_ATTACHMENT_BYTES);
   const rejected = files.filter((file) => file.size > MAX_ATTACHMENT_BYTES);
   return {
-    attachments: await Promise.all(accepted.map(fileToAttachment)),
+    attachments: await Promise.all(accepted.map((file) => fileToLocalAttachment(file, purchaseId))),
     rejected,
     total: files.length,
   };
 }
 
 function purchaseAttachments(purchase) {
-  return Array.isArray(purchase.attachments) ? purchase.attachments.filter((item) => item?.name && item?.dataUrl) : [];
+  return Array.isArray(purchase.attachments) ? purchase.attachments.filter((item) => item?.name && (item?.dataUrl || item?.opfsPath)) : [];
 }
 
 function reminderLeadDays(purchase) {
@@ -261,7 +251,8 @@ async function normalizePurchase(formData) {
   const template = policyTemplateById(formData.get("policyTemplate"));
   const notes = String(formData.get("notes") || "").trim();
   const serviceNotes = String(formData.get("serviceNotes") || "").trim();
-  const attachmentResult = await attachmentsFromForm(formData);
+  const id = makeId();
+  const attachmentResult = await attachmentsFromForm(formData, id);
   const policyNote = policyTemplateReviewNote(template);
   state.attachmentStatus = attachmentResult.total
     ? t("attachmentsSavedStatus", {
@@ -270,7 +261,7 @@ async function normalizePurchase(formData) {
       })
     : "";
   return {
-    id: makeId(),
+    id,
     productName: String(formData.get("productName") || "").trim(),
     merchant: String(formData.get("merchant") || "").trim(),
     purchaseDate: String(formData.get("purchaseDate") || "").trim(),
@@ -1147,38 +1138,47 @@ function exportEvidence(id) {
   downloadText(`${safeName || "purchase"}-evidence-pack.md`, "text/markdown", evidencePackMarkdown(purchase, today()));
 }
 
-function exportClaimPacket(id) {
+async function exportClaimPacket(id) {
   const purchase = state.purchases.find((item) => item.id === id);
   if (!purchase) return;
+  const hydratedPurchase = await hydratePurchaseAttachments(purchase);
   const safeName = purchase.productName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  downloadText(`${safeName || "purchase"}-claim-packet.html`, "text/html", claimPacketHtml(purchase, today()));
+  downloadText(`${safeName || "purchase"}-claim-packet.html`, "text/html", claimPacketHtml(hydratedPurchase, today(), claimPacketOptions()));
 }
 
-function exportClaimBundle(id) {
+async function exportClaimBundle(id) {
   const purchase = state.purchases.find((item) => item.id === id);
   if (!purchase) return;
+  const hydratedPurchase = await hydratePurchaseAttachments(purchase);
   const safeName = purchase.productName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   downloadText(
     `${safeName || "purchase"}-claim-bundle.json`,
     "application/json",
-    claimPacketBundleJson(purchase, today()),
+    claimPacketBundleJson(hydratedPurchase, today(), claimPacketOptions()),
   );
 }
 
-function exportClaimZip(id) {
+async function exportClaimZip(id) {
   const purchase = state.purchases.find((item) => item.id === id);
   if (!purchase) return;
+  const hydratedPurchase = await hydratePurchaseAttachments(purchase);
   const safeName = purchase.productName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const bytes = claimPacketZipBytes(purchase, today());
+  const bytes = claimPacketZipBytes(hydratedPurchase, today(), claimPacketOptions());
   downloadBlob(`${safeName || "purchase"}-claim-bundle.zip`, new Blob([bytes], { type: "application/zip" }));
 }
 
-function downloadAttachment(purchaseId, attachmentIndex) {
+async function downloadAttachment(purchaseId, attachmentIndex) {
   const purchase = state.purchases.find((item) => item.id === purchaseId);
   const attachment = purchaseAttachments(purchase || {})[Number(attachmentIndex)];
   if (!attachment) return;
+  const dataUrl = await attachmentToDataUrl(attachment);
+  if (!dataUrl) {
+    state.attachmentStatus = t("attachmentUnavailable");
+    render();
+    return;
+  }
   const link = document.createElement("a");
-  link.href = attachment.dataUrl;
+  link.href = dataUrl;
   link.download = attachment.name;
   link.click();
 }
@@ -1319,22 +1319,22 @@ app.addEventListener("click", async (event) => {
   }
 
   if (button.dataset.claimPacket) {
-    exportClaimPacket(button.dataset.claimPacket);
+    await exportClaimPacket(button.dataset.claimPacket);
     return;
   }
 
   if (button.dataset.claimBundle) {
-    exportClaimBundle(button.dataset.claimBundle);
+    await exportClaimBundle(button.dataset.claimBundle);
     return;
   }
 
   if (button.dataset.claimZip) {
-    exportClaimZip(button.dataset.claimZip);
+    await exportClaimZip(button.dataset.claimZip);
     return;
   }
 
   if (button.dataset.attachmentPurchase) {
-    downloadAttachment(button.dataset.attachmentPurchase, button.dataset.attachmentIndex);
+    await downloadAttachment(button.dataset.attachmentPurchase, button.dataset.attachmentIndex);
     return;
   }
 

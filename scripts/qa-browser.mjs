@@ -127,6 +127,27 @@ await page.waitForSelector("text=첨부 1개 저장됨, 5 MB 초과 1개 제외�
 const rowsAfterManualSave = await page.locator(".purchase-row").count();
 const attachmentVisible = await page.locator("text=qa-receipt.pdf").count();
 const attachmentStatusVisible = await page.locator("text=첨부 1개 저장됨, 5 MB 초과 1개 제외됨.").count();
+const opfsSupported = await page.evaluate(() => Boolean(navigator.storage?.getDirectory));
+const attachmentStorageRecord = await page.evaluate(async () => {
+  const purchases = await new Promise((resolve, reject) => {
+    const request = indexedDB.open("return-warranty-guardian", 1);
+    request.onsuccess = () => {
+      const db = request.result;
+      const transaction = db.transaction("settings", "readonly");
+      const getRequest = transaction.objectStore("settings").get("purchases");
+      getRequest.onsuccess = () => resolve(getRequest.result || []);
+      getRequest.onerror = () => reject(getRequest.error);
+    };
+    request.onerror = () => reject(request.error);
+  });
+  const purchase = purchases.find((item) => item.productName === "QA Attachment Purchase");
+  return purchase?.attachments?.[0]?.storage || "";
+});
+const attachmentDownload = await Promise.all([
+  page.waitForEvent("download"),
+  page.locator('[data-attachment-purchase]').first().click(),
+]).then(([download]) => download);
+const attachmentDownloadName = attachmentDownload.suggestedFilename();
 stages.push("attachment-save");
 
 await page.selectOption("#policy-template", "extended-60-day-return");
@@ -395,6 +416,9 @@ const result = {
   rowsAfterManualSave,
   attachmentVisible,
   attachmentStatusVisible,
+  opfsSupported,
+  attachmentStorageRecord,
+  attachmentDownloadName,
   policyReturnDays,
   policyNotesUpdated: policyNotes.includes("extended 60-day return"),
   policyReviewNoteVisible: policyNotes.includes("Policy review scope"),
@@ -427,15 +451,18 @@ const result = {
   claimPath,
   claimContainsPrintPdf: claimText.includes("Print or save PDF") && claimText.includes("Claim Packet"),
   claimContainsPdfGuide: claimText.includes("PDF Save Guide") && claimText.includes("Attachment Manifest"),
+  claimContainsProfile: claimText.includes("Claim Profile") && claimText.includes("Attachment Export Review"),
   claimContainsTemplates: claimText.includes("Submission Templates") && claimText.includes("Merchant Return Request"),
   claimBundlePath,
   claimBundleContainsEvidence: claimBundleText.includes("return-warranty-guardian.claim-bundle.v1") && claimBundleText.includes("claimPacketHtml"),
   claimBundleContainsManifest: claimBundleText.includes("attachmentManifest"),
+  claimBundleContainsProfile: claimBundleText.includes("claimProfile") && claimBundleText.includes("attachmentExportReview"),
   claimBundleContainsTemplates: claimBundleText.includes("submissionTemplates") && claimBundleText.includes("chargeback-summary"),
   claimZipPath,
   claimZipHasSignature: claimZipBytes[0] === 0x50 && claimZipBytes[1] === 0x4b && claimZipBytes.includes(0x50),
   claimZipHasTemplateFiles: Buffer.from(claimZipBytes).includes(Buffer.from("templates/merchant-return.txt")),
   claimZipHasAttachmentManifest: Buffer.from(claimZipBytes).includes(Buffer.from("attachment-manifest.json")),
+  claimZipHasAttachmentReview: Buffer.from(claimZipBytes).includes(Buffer.from("attachment-export-review.json")),
   icsPath,
   icsContainsCalendar: icsText.includes("BEGIN:VCALENDAR"),
   icsContainsAlarm: icsText.includes("BEGIN:VALARM") && icsText.includes("TRIGGER:-P"),
@@ -467,6 +494,8 @@ const failures = [
   rowsAfterManualSave < 4 && "Expected manual purchase with attachment to be saved",
   attachmentVisible < 1 && "Expected saved local attachment name to be visible",
   attachmentStatusVisible < 1 && "Expected attachment save/skipped status",
+  opfsSupported && attachmentStorageRecord !== "opfs" && "Expected OPFS attachment storage when browser supports it",
+  attachmentDownloadName !== "qa-receipt.pdf" && "Expected local attachment download to hydrate from storage",
   policyReturnDays !== "60" && "Expected policy template to set return days",
   !result.policyNotesUpdated && "Expected policy template to append a user-confirmed note",
   !result.policyReviewNoteVisible && "Expected policy template to append structured review note",
@@ -495,13 +524,16 @@ const failures = [
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",
   !result.claimContainsPrintPdf && "Expected printable claim packet HTML",
   !result.claimContainsPdfGuide && "Expected claim packet PDF save guide and attachment manifest",
+  !result.claimContainsProfile && "Expected claim packet profile and attachment export review",
   !result.claimContainsTemplates && "Expected claim packet submission templates",
   !result.claimBundleContainsEvidence && "Expected claim bundle JSON export",
   !result.claimBundleContainsManifest && "Expected claim bundle attachment manifest",
+  !result.claimBundleContainsProfile && "Expected claim bundle profile and attachment export review",
   !result.claimBundleContainsTemplates && "Expected claim bundle templates",
   !result.claimZipHasSignature && "Expected claim ZIP bundle export",
   !result.claimZipHasTemplateFiles && "Expected claim ZIP template files",
   !result.claimZipHasAttachmentManifest && "Expected claim ZIP attachment manifest",
+  !result.claimZipHasAttachmentReview && "Expected claim ZIP attachment export review",
   !result.icsContainsCalendar && "Expected ICS calendar export",
   !result.icsContainsAlarm && "Expected ICS VALARM reminder export",
   !result.icsContainsRepeatAlarm && "Expected repeated ICS reminder alarm",

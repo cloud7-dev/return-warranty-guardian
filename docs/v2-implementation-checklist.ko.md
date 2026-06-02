@@ -44,7 +44,8 @@
 1. **실제 첨부 파일 저장**
    - 현재 구현: 영수증 이미지/PDF/매뉴얼 파일을 브라우저 로컬 구매 레코드에 저장하고 상세 화면에서 다운로드 가능
    - 현재 구현: 파일 크기 제한 안내, 5MB 초과 파일 제외 상태 표시, 상세 화면 첨부 체크리스트, claim HTML 이미지 미리보기, claim ZIP 첨부 파일과 첨부 매니페스트 포함
-   - 남은 구현: OPFS Blob 분리 저장, 첨부 압축/용량 최적화, 첨부 전용 복구/마이그레이션 UX
+   - 현재 구현: 지원 브라우저에서는 OPFS Blob 분리 저장을 사용하고, 미지원 브라우저에서는 data URL 저장으로 폴백하며, 다운로드/claim export 직전에 OPFS 첨부를 data URL로 hydration
+   - 남은 구현: 첨부 전용 복구/마이그레이션 UX, encrypted export bundle과 연동한 장기 복구 흐름
 
 2. **CSV import**
    - 현재 구현: CSV 파일을 import preview에서 확인하고, 자동 감지/built-in preset/user preset/수동 컬럼 매핑으로 정상/중복/오류 행을 분리한 뒤 정상 행만 추가
@@ -88,9 +89,9 @@
 ### v0.4: 클레임/홈 히스토리 출력
 
 5. **클레임 패킷 HTML/PDF**
-   - 현재 구현: 출력용 HTML 클레임 패킷 생성, 브라우저 인쇄 대화상자를 통한 PDF 저장, PDF 저장 가이드, 문서명/첨부 링크/이미지 미리보기/첨부 매니페스트/시리얼/수리 이력/제출 전 확인 메모 포함, claim bundle JSON/ZIP으로 증빙 데이터 묶음 내보내기
+   - 현재 구현: 출력용 HTML 클레임 패킷 생성, 브라우저 인쇄 대화상자를 통한 PDF 저장, 브라우저별 PDF 저장 가이드, 클레임 프로필/관할권 힌트, 문서명/첨부 링크/이미지 미리보기/첨부 매니페스트/첨부 export review/시리얼/수리 이력/제출 전 확인 메모 포함, claim bundle JSON/ZIP으로 증빙 데이터 묶음 내보내기
    - 현재 구현: 판매처 반품 요청, 보증 지원 요청, chargeback 증빙 요약, 수리 접수 메모 템플릿을 HTML/JSON/ZIP에 포함
-   - 남은 구현: 판매처/국가별 템플릿 커스터마이즈, 첨부 파일 용량 최적화, 브라우저별 PDF 저장 가이드
+   - 남은 구현: 판매처/국가별 템플릿 커스터마이즈 심화, 템플릿 문구 현지화
 
 6. **홈 설비/수리 이력 모델 확장**
    - 현재 구현: 구매 항목 안의 서비스 이력 메모
@@ -112,4 +113,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대/리뷰 체크리스트/row 선택/preset bundle 호환성 검증/fixture validation/sample intake manifest/단일 및 batch sample review CLI/provenance와 재사용 허가 검증/trust metadata/fingerprint-ready signing payload/detached signature 검증/review manifest/대량 review filter의 1차 범위, 3번 로컬 OCR/정책 추출/fallback 진단/local OCR text fixture/스캔 PDF용 로컬 OCR sidecar 입력/정책 source metadata/OCR adapter의 1차 범위, 4번 서버 없는 알림 경험/캘린더 가이드/세분화 스누즈/self-hosted 설정 저장/dry-run report/runner CLI/opt-in send guard/provider fixture/scheduler recipe/loopback smoke test/opt-in public smoke/readiness report/smoke record audit/scheduled and manual GitHub Actions smoke/sanitized result record/platform fallback guide/운영 문서는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 익명화된 실제 샘플 기반 import/OCR fixture 확대, 실제 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화, 유지관리자 별도 환경의 recurring public/self-hosted endpoint smoke 운영, 암호화 백업, polished PWA입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration까지 보강되었으며, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 남은 2,3,4는 익명화된 실제 사용자/커뮤니티 샘플 기반 import fixture 확대, 실제 범용 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR 자동화, 유지관리자 별도 환경의 recurring public/self-hosted endpoint smoke 운영입니다.

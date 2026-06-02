@@ -59,6 +59,8 @@ There is no API server and no account system. All purchase data remains in brows
       "name": "warranty-card.pdf",
       "type": "application/pdf",
       "size": 128,
+      "storage": "opfs",
+      "opfsPath": "purchase-123/receipt.pdf",
       "dataUrl": "data:application/pdf;base64,...",
       "createdAt": "2026-06-02T00:00:00.000Z"
     }
@@ -75,6 +77,8 @@ There is no API server and no account system. All purchase data remains in brows
 
 Deadlines are derived, not stored. This keeps deadline math transparent and reproducible.
 
+Attachments are captured through `src/attachment-storage.js`. Browsers with Origin Private File System support store accepted attachment Blobs outside the purchase JSON and keep only local metadata plus `opfsPath`; browsers without OPFS fall back to the previous data URL record format. Claim exports and attachment downloads hydrate OPFS attachments back into data URLs only at export/download time, keeping the saved purchase record smaller while preserving the existing export surface.
+
 CSV imports are staged in an in-memory preview before they are saved. The app imports selected valid rows, supports auto-detected, built-in preset, saved user preset, and manual field mapping, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file. Built-in presets cover generic card/order exports, Korean card statements, Korean shopping orders, Amazon-style order history, Shopify-style order exports, and Stripe-style receipt exports. User CSV presets and preset bundles are stored or imported through browser `localStorage` without purchase rows. `csvImportReviewChecklist` adds a local pre-import checklist for required mappings, duplicates, invalid rows, and missing proof markers. `csvImportReviewFilters` gives large imports a query/proof filter surface before confirmation. `validateCsvPresetBundle` rejects unsupported schema/version values and strips unsupported mapping fields with warnings; preset bundles carry trust model, signature status, source, review date, and fixture coverage metadata.
 
 Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and simple PDF text-operator paths are file reads; image OCR goes through `localOcrEnginePlan` and `textFromImageSource`, choosing a future bundled worker, browser-local `TextDetector`, or manual fallback without cloud calls. `pdfExtractionDiagnostics` classifies PDFs as text-operator, scanned/compressed, or plain fallback and records image/compression/encryption signals; compressed or scanned PDFs that do not expose text operators produce a no-upload fallback notice instead of calling cloud OCR. Users can paste local OCR sidecar text or attach a local `.txt` sidecar file for a scanned PDF in the parser UI, which routes through `textFromScannedPdfWithLocalOcr` and then the receipt parser without uploading the PDF or OCR output.
@@ -83,7 +87,7 @@ Notification behavior stays serverless. Each purchase can store `reminderLeadDay
 
 Self-hosted notification support is export-only in the web app. Optional provider/endpoint/topic settings are stored locally under `rwg:self-hosted-alerts`; `selfHostedNotificationPayload` creates reviewed JSON/curl drafts for ntfy, Gotify, and Apprise, and `selfHostedDryRunReport` checks local settings and external-runner requirements. `scripts/self-hosted-notification-runner.mjs` can read the payload and print scheduler-ready dry-run commands plus macOS/Linux/Windows scheduler recipes. Its send mode is opt-in only, requiring `--send --yes` plus `RWG_NOTIFY_SEND=1`; provider tokens stay outside the app in runner environment variables. Provider fixture payloads under `tests/fixtures/notifications` verify ntfy, Gotify, and Apprise endpoint plans without sending purchase data.
 
-Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include PDF save guidance, attachment manifests, starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
+Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include browser-specific PDF save guidance, claim profile and jurisdiction hints, attachment export review, attachment manifests, starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
 
 Tests use `tests/fixtures` as a synthetic corpus for CSV presets, HTML receipt extraction, PDF text-operator extraction, scanned/compressed PDF fallback behavior, self-hosted notification runner payloads, and user-confirmed policy template defaults. `scripts/validate-fixtures.mjs` checks fixture importability, PDF fallback coverage, provider endpoint plans, source/license metadata, and common private-data patterns. Private receipts or real card statements should not be committed.
 

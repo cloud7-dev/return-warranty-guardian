@@ -2,10 +2,12 @@ import { readFile } from "node:fs/promises";
 
 const requiredFiles = [
   "index.html",
+  "offline.html",
   "styles.css",
   "manifest.webmanifest",
   "sw.js",
   "src/app.js",
+  "src/attachment-storage.js",
   "src/deadline-engine.js",
   "src/fixture-sanitizer.js",
   "src/receipt-parser.js",
@@ -73,6 +75,10 @@ for (const ref of htmlRefs) {
 
 if (manifest.display !== "standalone") {
   throw new Error("manifest display must be standalone");
+}
+
+if (!manifest.id || !manifest.scope || !manifest.start_url) {
+  throw new Error("manifest must include id, scope, and start_url");
 }
 
 for (const cached of [...sw.matchAll(/"(\.\/[^"]+)"/g)].map((match) => match[1].replace(/^\.\//, ""))) {
