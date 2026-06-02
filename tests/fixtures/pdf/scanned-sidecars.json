@@ -1,0 +1,15 @@
+{
+  "schema": "return-warranty-guardian.scanned-pdf-sidecars.v1",
+  "privacyNote": "Sidecar fixtures connect scanned PDF diagnostics to anonymized local OCR text. Do not commit raw private PDF images or cloud OCR output.",
+  "sidecars": [
+    {
+      "pdfPath": "pdf/scanned-image-only.pdf.txt",
+      "ocrTextPath": "ocr/scanned-receipt.local-ocr.txt",
+      "expectedPdfStatus": "scanned-or-compressed",
+      "expectedMerchant": "Fixture OCR Market",
+      "expectedPurchaseDate": "2026-06-02",
+      "expectedItem": "Countertop Filter",
+      "expectedTotal": 75.87
+    }
+  ]
+}

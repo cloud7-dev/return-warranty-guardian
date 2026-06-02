@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { pdfExtractionDiagnostics, textFromPdfSource } from "../src/local-extraction.js";
+import { pdfExtractionDiagnostics, textFromPdfSource, textFromScannedPdfWithLocalOcr } from "../src/local-extraction.js";
 import { bundledLocalOcrWorker, bundledLocalOcrWorkerSupports } from "../src/local-ocr-worker.js";
 import {
   CSV_IMPORT_PRESETS,
@@ -153,6 +153,29 @@ async function validatePdfFixtures() {
   }
   if (!statuses.has("text-operator")) throw new Error("Expected at least one PDF text-operator fixture.");
   if (!statuses.has("scanned-or-compressed")) throw new Error("Expected at least one scanned/compressed PDF fallback fixture.");
+
+  const sidecarManifestPath = path.join(root, "pdf/scanned-sidecars.json");
+  const sidecarManifest = JSON.parse(await readFile(sidecarManifestPath, "utf8"));
+  if (sidecarManifest.schema !== "return-warranty-guardian.scanned-pdf-sidecars.v1") {
+    throw new Error("Scanned PDF sidecar manifest has unsupported schema.");
+  }
+  for (const sidecar of sidecarManifest.sidecars || []) {
+    const pdfPath = path.join(root, sidecar.pdfPath);
+    const ocrTextPath = path.join(root, sidecar.ocrTextPath);
+    const pdfText = await readFile(pdfPath, "utf8");
+    const ocrText = await readFile(ocrTextPath, "utf8");
+    assertNoPrivateData(pdfPath, pdfText);
+    assertNoPrivateData(ocrTextPath, ocrText);
+    const diagnostics = pdfExtractionDiagnostics(pdfText);
+    if (diagnostics.status !== sidecar.expectedPdfStatus) throw new Error(`${sidecar.pdfPath} status mismatch.`);
+    const extracted = textFromScannedPdfWithLocalOcr(pdfText, ocrText);
+    if (!/No cloud OCR was used/.test(extracted)) throw new Error(`${sidecar.pdfPath} sidecar extraction must state no cloud OCR was used.`);
+    const parsed = parseReceiptText(extracted);
+    if (parsed.merchant !== sidecar.expectedMerchant) throw new Error(`${sidecar.pdfPath} sidecar merchant mismatch.`);
+    if (parsed.purchaseDate !== sidecar.expectedPurchaseDate) throw new Error(`${sidecar.pdfPath} sidecar purchase date mismatch.`);
+    if (!parsed.items.some((item) => item.name === sidecar.expectedItem)) throw new Error(`${sidecar.pdfPath} sidecar missing expected item.`);
+    if (parsed.total !== Number(sidecar.expectedTotal || 0)) throw new Error(`${sidecar.pdfPath} sidecar total mismatch.`);
+  }
 }
 
 async function validatePolicyFixtures() {

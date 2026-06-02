@@ -39,6 +39,8 @@ Do not commit scanned receipt images by default. Commit only local OCR text outp
 
 The repo also includes synthetic SVG OCR fixtures for the bundled no-cloud worker path. These SVG files must contain only fake receipt text in `data-rwg-ocr-text` metadata and must pass `npm run fixture:validate`.
 
+Scanned PDF fixtures may be paired with anonymized local OCR text through `tests/fixtures/pdf/scanned-sidecars.json`. The sidecar text must come from a local/no-cloud process and must be parser-checked before commit.
+
 ## Real Endpoint Smoke Records
 
 Do not commit raw notification smoke output. Convert it first:

@@ -24,7 +24,15 @@ import {
   verifyCsvPresetBundleDetachedSignatures,
   verifyCsvPresetBundleFingerprint,
 } from "../src/importers.js";
-import { localOcrEnginePlan, pdfExtractionDiagnostics, pdfExtractionStatus, textFromHtmlSource, textFromImageSource, textFromPdfSource } from "../src/local-extraction.js";
+import {
+  localOcrEnginePlan,
+  pdfExtractionDiagnostics,
+  pdfExtractionStatus,
+  textFromHtmlSource,
+  textFromImageSource,
+  textFromPdfSource,
+  textFromScannedPdfWithLocalOcr,
+} from "../src/local-extraction.js";
 import { bundledLocalOcrWorker, bundledLocalOcrWorkerSupports, localOcrEnvironment } from "../src/local-ocr-worker.js";
 import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
@@ -355,6 +363,13 @@ assert.equal(scannedPdfDiagnostics.status, "scanned-or-compressed");
 assert.equal(scannedPdfDiagnostics.hasImageXObject, true);
 assert.equal(scannedPdfDiagnostics.hasCompressedStream, true);
 assert.equal(scannedPdfDiagnostics.noCloudOcrUsed, true);
+const scannedPdfSidecarText = textFromScannedPdfWithLocalOcr(
+  await fixture("pdf/scanned-image-only.pdf.txt"),
+  await fixture("ocr/scanned-receipt.local-ocr.txt"),
+);
+assert.match(scannedPdfSidecarText, /PDF local OCR sidecar note/);
+assert.match(scannedPdfSidecarText, /No cloud OCR was used/);
+assert.equal(parseReceiptText(scannedPdfSidecarText).merchant, "Fixture OCR Market");
 const ocrResultFixture = parseReceiptText(await fixture("ocr/scanned-receipt.local-ocr.txt"));
 assert.equal(ocrResultFixture.merchant, "Fixture OCR Market");
 assert.equal(ocrResultFixture.purchaseDate, "2026-06-02");

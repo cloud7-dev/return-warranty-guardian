@@ -9,7 +9,7 @@ Current fixture groups:
 - `intake/`: sample intake manifests that document anonymization, parser review, and coverage targets before a fixture is accepted.
 - `csv/`: card statement, marketplace order, Shopify-style order, and Stripe-style receipt exports for import preset coverage.
 - `receipts/`: email-style receipt HTML for local text extraction and receipt parser coverage.
-- `pdf/`: PDF source snippets with simple text operators plus scanned/compressed fallback diagnostics.
+- `pdf/`: PDF source snippets with simple text operators, scanned/compressed fallback diagnostics, and local OCR sidecar manifests.
 - `ocr/`: local OCR text result fixtures and synthetic SVG bundled-worker fixtures for scanned receipt parser regression without committing private receipt images.
 - `notifications/`: ntfy, Gotify, and Apprise payload fixtures plus sanitized smoke policy and result records for local runner dry-run and endpoint-plan coverage.
 - `policies/`: expected defaults, evidence requirements, and country/jurisdiction metadata for user-confirmed policy templates.

@@ -23,6 +23,7 @@ const requiredFiles = [
   "scripts/smoke-notifications.mjs",
   "scripts/record-notification-smoke-result.mjs",
   "tests/fixtures/notifications/smoke-policy.json",
+  "tests/fixtures/pdf/scanned-sidecars.json",
   "assets/icon.svg",
   "README.md",
   "CONTRIBUTING.md",

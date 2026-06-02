@@ -166,3 +166,19 @@ export function textFromPdfSource(raw) {
   }
   return source.replace(/[^\x09\x0a\x0d\x20-\x7e가-힣一-龥ぁ-ゔァ-ヴー]/g, " ");
 }
+
+export function textFromScannedPdfWithLocalOcr(pdfRaw, ocrText) {
+  const diagnostics = pdfExtractionDiagnostics(pdfRaw);
+  const text = String(ocrText || "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+  if (diagnostics.status !== "scanned-or-compressed") return textFromPdfSource(pdfRaw);
+  if (!text) return textFromPdfSource(pdfRaw);
+  return [
+    text,
+    "PDF local OCR sidecar note: scanned PDF text was supplied by a local OCR sidecar fixture.",
+    "No cloud OCR was used.",
+  ].join("\n");
+}
