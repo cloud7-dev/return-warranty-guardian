@@ -82,13 +82,30 @@ function pdfTextToken(value) {
 }
 
 export function pdfExtractionStatus(raw) {
+  return pdfExtractionDiagnostics(raw).status;
+}
+
+export function pdfExtractionDiagnostics(raw) {
   const source = String(raw || "");
   const hasTextOperators =
     /(\((?:\\[\s\S]|[^\\)])*\)|<[\da-fA-F\s]+>)\s*(?:Tj|'|")/g.test(source) ||
     /\[((?:\s*(?:\((?:\\[\s\S]|[^\\)])*\)|<[\da-fA-F\s]+>|-?\d+(?:\.\d+)?)\s*)+)\]\s*TJ/g.test(source);
-  if (hasTextOperators) return "text-operator";
-  if (/\/Filter\s*\/?(?:FlateDecode|DCTDecode|JPXDecode)|\/Subtype\s*\/Image/i.test(source)) return "scanned-or-compressed";
-  return "plain-fallback";
+  const hasImageXObject = /\/Subtype\s*\/Image|\/XObject\b/i.test(source);
+  const hasCompressedStream = /\/Filter\s*\/?(?:FlateDecode|DCTDecode|JPXDecode|CCITTFaxDecode|JBIG2Decode)/i.test(source);
+  const hasPotentialEncryption = /\/Encrypt\b/i.test(source);
+  const status = hasTextOperators ? "text-operator" : hasImageXObject || hasCompressedStream ? "scanned-or-compressed" : "plain-fallback";
+  return {
+    status,
+    hasTextOperators,
+    hasImageXObject,
+    hasCompressedStream,
+    hasPotentialEncryption,
+    noCloudOcrUsed: true,
+    fallbackAction:
+      status === "scanned-or-compressed"
+        ? "Paste local OCR text manually or keep the PDF as local claim evidence."
+        : "Use extracted browser-local text.",
+  };
 }
 
 export function textFromPdfSource(raw) {

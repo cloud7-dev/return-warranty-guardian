@@ -33,7 +33,7 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Exports a local CSV import report for audit/debugging before the import is confirmed.
 - Extracts local text, CSV, HTML/email receipts, simple PDF text operators, scanned/compressed PDF fallback notices, and supported browser-local image OCR into the receipt parser without upload.
 - Applies user-confirmed policy templates with evidence requirements, source/version metadata, and country/jurisdiction disclaimers without fetching merchant data.
-- Includes a synthetic fixture corpus for CSV presets, email receipt extraction, PDF text extraction, and policy-template coverage.
+- Includes a synthetic fixture corpus for CSV presets, email receipt extraction, PDF text extraction/scanned fallback diagnostics, notification runner payloads, and policy-template coverage.
 - Provides a local fixture anonymizer for turning private examples into privacy-safe test fixtures before contribution.
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
@@ -76,7 +76,7 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, preset bundle export/validation, review checklist generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback notices, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, self-hosted notification payload, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, scanned PDF fallback, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, preset bundle export/validation, review checklist generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback diagnostics, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, self-hosted notification payload, provider fixture plans, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, scanned PDF fallback, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
 
 To prepare a privacy-safe fixture from a local sample:
 
@@ -100,6 +100,7 @@ npm run notify:dry-run -- return-warranty-guardian-self-hosted-alerts.json --jso
 
 The runner prints command previews only. Keep provider tokens outside this app and use your own scheduler if you decide to send notifications.
 Actual sending is opt-in and requires `--send --yes` plus `RWG_NOTIFY_SEND=1`; Gotify also requires `GOTIFY_TOKEN` in the runner environment.
+Provider-specific fixture payloads live in `tests/fixtures/notifications`, and the operating guide is in `docs/self-hosted-notification-runner.md`.
 
 ## Privacy Model
 

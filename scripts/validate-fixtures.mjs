@@ -1,7 +1,9 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { pdfExtractionDiagnostics, textFromPdfSource } from "../src/local-extraction.js";
 import { CSV_IMPORT_PRESETS, analyzeCsvImport, csvMappingForPreset } from "../src/importers.js";
 import { policyTemplateById } from "../src/policy-templates.js";
+import { buildRunnerPlan } from "./self-hosted-notification-runner.mjs";
 
 const root = path.resolve("tests/fixtures");
 const piiPatterns = [
@@ -30,7 +32,7 @@ function assertNoPrivateData(file, text) {
 async function validateCsvFixtures() {
   const csvDir = path.join(root, "csv");
   const files = (await listFiles(csvDir)).filter((file) => file.endsWith(".csv"));
-  if (files.length < 3) throw new Error("Expected at least three CSV fixtures.");
+  if (files.length < 5) throw new Error("Expected at least five CSV fixtures.");
   for (const file of files) {
     const text = await readFile(file, "utf8");
     assertNoPrivateData(file, text);
@@ -47,6 +49,24 @@ async function validateCsvFixtures() {
   }
 }
 
+async function validatePdfFixtures() {
+  const pdfDir = path.join(root, "pdf");
+  const files = (await listFiles(pdfDir)).filter((file) => file.endsWith(".txt"));
+  const statuses = new Set();
+  for (const file of files) {
+    const text = await readFile(file, "utf8");
+    const diagnostics = pdfExtractionDiagnostics(text);
+    statuses.add(diagnostics.status);
+    if (!diagnostics.noCloudOcrUsed) throw new Error(`${file} must not use cloud OCR.`);
+    if (diagnostics.status === "scanned-or-compressed") {
+      const extracted = textFromPdfSource(text);
+      if (!/No cloud OCR was used/.test(extracted)) throw new Error(`${file} scanned fallback must state that no cloud OCR was used.`);
+    }
+  }
+  if (!statuses.has("text-operator")) throw new Error("Expected at least one PDF text-operator fixture.");
+  if (!statuses.has("scanned-or-compressed")) throw new Error("Expected at least one scanned/compressed PDF fallback fixture.");
+}
+
 async function validatePolicyFixtures() {
   const fixturePath = path.join(root, "policies/templates.json");
   const fixtures = JSON.parse(await readFile(fixturePath, "utf8"));
@@ -59,13 +79,38 @@ async function validatePolicyFixtures() {
   }
 }
 
+async function validateNotificationFixtures() {
+  const notificationDir = path.join(root, "notifications");
+  const files = (await listFiles(notificationDir)).filter((file) => file.endsWith(".json"));
+  const providers = new Set();
+  for (const file of files) {
+    const payload = JSON.parse(await readFile(file, "utf8"));
+    const expectedProvider = payload.expectedRunner?.provider || payload.settings?.provider;
+    const plan = buildRunnerPlan(payload, {
+      provider: expectedProvider,
+      limit: payload.expectedRunner?.plannedCount || 1,
+      checkEndpoint: true,
+    });
+    providers.add(plan.provider);
+    if (plan.endpointCheck.sendsPurchaseData) throw new Error(`${file} endpoint check must not send purchase data.`);
+    if (plan.appSendsNetworkRequests) throw new Error(`${file} dry-run plan must not send network requests.`);
+    if (plan.plannedCount !== payload.expectedRunner?.plannedCount) throw new Error(`${file} planned reminder count mismatch.`);
+    if (!plan.endpointCheck.url.includes("example.test")) throw new Error(`${file} must use a synthetic example.test endpoint.`);
+  }
+  for (const provider of ["ntfy", "gotify", "apprise"]) {
+    if (!providers.has(provider)) throw new Error(`Missing notification fixture for ${provider}.`);
+  }
+}
+
 async function main() {
   const files = await listFiles(root);
   for (const file of files) {
     assertNoPrivateData(file, await readFile(file, "utf8"));
   }
   await validateCsvFixtures();
+  await validatePdfFixtures();
   await validatePolicyFixtures();
+  await validateNotificationFixtures();
   console.log("Fixture validation passed.");
 }
 

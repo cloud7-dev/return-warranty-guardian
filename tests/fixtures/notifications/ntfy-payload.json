@@ -1,0 +1,34 @@
+{
+  "schema": "return-warranty-guardian.self-hosted-notifications.v1",
+  "generatedAt": "2026-06-02T10:00:00.000Z",
+  "privacyNote": "Synthetic fixture. No data is sent by this app.",
+  "settings": {
+    "enabled": true,
+    "provider": "ntfy",
+    "endpoint": "https://alerts.example.test",
+    "topic": "returns",
+    "tokenStored": false
+  },
+  "providers": {
+    "ntfy": {
+      "curl": "curl -H 'Title: Return & Warranty Guardian' -d '<message>' https://alerts.example.test/returns"
+    }
+  },
+  "reminders": [
+    {
+      "productName": "Fixture Headphones",
+      "merchant": "Fixture Audio Store",
+      "deadlineType": "return",
+      "deadlineLabel": "Return deadline",
+      "deadlineDate": "2026-06-30",
+      "daysLeft": 28,
+      "reminderLeadDays": 3,
+      "title": "Return deadline: Fixture Headphones",
+      "message": "Fixture Audio Store | 2026-06-30 | 28 days left"
+    }
+  ],
+  "expectedRunner": {
+    "provider": "ntfy",
+    "plannedCount": 1
+  }
+}

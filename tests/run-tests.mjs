@@ -11,12 +11,13 @@ import {
   analyzeCsvImport,
   csvImportReport,
   csvImportReviewChecklist,
+  csvHeaders,
   csvMappingForPreset,
   csvPresetBundle,
   purchasesFromCsv,
   validateCsvPresetBundle,
 } from "../src/importers.js";
-import { pdfExtractionStatus, textFromHtmlSource, textFromPdfSource } from "../src/local-extraction.js";
+import { pdfExtractionDiagnostics, pdfExtractionStatus, textFromHtmlSource, textFromPdfSource } from "../src/local-extraction.js";
 import { policyTemplateById, policyTemplateReviewNote } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
@@ -205,6 +206,14 @@ const koreanOrderMapping = csvMappingForPreset(["주문일", "상품명", "판�
 assert.equal(koreanOrderMapping.productName, "상품명");
 assert.equal(koreanOrderMapping.merchant, "판매자");
 
+const shopifyMapping = csvMappingForPreset(["created_at", "lineitem_name", "vendor", "lineitem_price", "name"], "shopify-order-export");
+assert.equal(shopifyMapping.productName, "lineitem_name");
+assert.equal(shopifyMapping.documents, "name");
+
+const stripeMapping = csvMappingForPreset(["created", "description", "statement_descriptor", "amount_paid", "receipt_url"], "stripe-receipt-export");
+assert.equal(stripeMapping.productName, "description");
+assert.equal(stripeMapping.merchant, "statement_descriptor");
+
 const fixtureCases = [
   {
     path: "csv/korean-card-statement.csv",
@@ -224,10 +233,22 @@ const fixtureCases = [
     expectedProduct: "USB-C Hub",
     expectedPrice: 32.49,
   },
+  {
+    path: "csv/shopify-order-export.csv",
+    presetId: "shopify-order-export",
+    expectedProduct: "Desk Lamp Shade",
+    expectedPrice: 27.5,
+  },
+  {
+    path: "csv/stripe-receipt-export.csv",
+    presetId: "stripe-receipt-export",
+    expectedProduct: "Countertop Water Filter",
+    expectedPrice: 58.25,
+  },
 ];
 for (const item of fixtureCases) {
   const text = await fixture(item.path);
-  const mapping = csvMappingForPreset(text.split(/\r?\n/)[0].split(","), item.presetId);
+  const mapping = csvMappingForPreset(csvHeaders(text), item.presetId);
   const preview = analyzeCsvImport(text, [], now, { presetId: item.presetId, mapping });
   assert.equal(preview.valid.length, 1);
   assert.equal(preview.valid[0].purchase.productName, item.expectedProduct);
@@ -256,6 +277,11 @@ const scannedPdfFallback = textFromPdfSource("%PDF-1.4\n/Filter /DCTDecode\n/Sub
 assert.match(scannedPdfFallback, /appears to be compressed, image-based, or scanned/);
 assert.equal(pdfExtractionStatus("%PDF-1.4\n/Filter /DCTDecode\n/Subtype /Image\nstream\n..."), "scanned-or-compressed");
 assert.equal(pdfExtractionStatus("(Readable) Tj"), "text-operator");
+const scannedPdfDiagnostics = pdfExtractionDiagnostics(await fixture("pdf/scanned-image-only.pdf.txt"));
+assert.equal(scannedPdfDiagnostics.status, "scanned-or-compressed");
+assert.equal(scannedPdfDiagnostics.hasImageXObject, true);
+assert.equal(scannedPdfDiagnostics.hasCompressedStream, true);
+assert.equal(scannedPdfDiagnostics.noCloudOcrUsed, true);
 
 const policyTemplate = policyTemplateById("extended-60-day-return");
 assert.equal(policyTemplate.returnWindowDays, 60);
@@ -375,6 +401,15 @@ const { stdout: runnerStdout } = await execFileAsync(process.execPath, [
 const cliPlan = JSON.parse(runnerStdout);
 assert.equal(cliPlan.plannedCount, 1);
 assert.equal(cliPlan.appSendsNetworkRequests, false);
+for (const provider of ["ntfy", "gotify", "apprise"]) {
+  const providerPayload = JSON.parse(await fixture(`notifications/${provider}-payload.json`));
+  const providerPlan = buildRunnerPlan(providerPayload, { provider, limit: 1, checkEndpoint: true });
+  assert.equal(providerPlan.provider, provider);
+  assert.equal(providerPlan.plannedCount, 1);
+  assert.equal(providerPlan.endpointCheck.sendsPurchaseData, false);
+  assert.equal(providerPlan.appSendsNetworkRequests, false);
+  assert.match(providerPlan.endpointCheck.url, /example\.test/);
+}
 const { stdout: fixtureStdout } = await execFileAsync(process.execPath, ["scripts/validate-fixtures.mjs"]);
 assert.match(fixtureStdout, /Fixture validation passed/);
 

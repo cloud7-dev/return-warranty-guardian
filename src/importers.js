@@ -122,6 +122,30 @@ export const CSV_IMPORT_PRESETS = [
       notes: ["주문번호", "비고", "메모"],
     },
   },
+  {
+    id: "shopify-order-export",
+    label: "Shopify-style order export",
+    aliases: {
+      productName: ["lineitem_name", "product_title", "name", "title"],
+      merchant: ["vendor", "shop_name", "merchant", "store"],
+      purchaseDate: ["created_at", "paid_at", "order_date", "date"],
+      price: ["lineitem_price", "total", "subtotal", "amount"],
+      documents: ["name", "order_name", "receipt_url"],
+      notes: ["order_name", "financial_status", "fulfillment_status"],
+    },
+  },
+  {
+    id: "stripe-receipt-export",
+    label: "Stripe-style receipt export",
+    aliases: {
+      productName: ["description", "product", "item_name"],
+      merchant: ["merchant", "seller", "statement_descriptor", "business_name"],
+      purchaseDate: ["created", "created_at", "date"],
+      price: ["amount", "amount_paid", "total"],
+      documents: ["receipt_url", "invoice", "payment_intent"],
+      notes: ["payment_intent", "status"],
+    },
+  },
 ];
 
 function normalizeHeader(header) {
