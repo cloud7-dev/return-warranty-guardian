@@ -11,6 +11,7 @@ Current fixture groups:
 - `pdf/`: PDF source snippets with simple text operators plus scanned/compressed fallback diagnostics.
 - `notifications/`: ntfy, Gotify, and Apprise payload fixtures for local runner dry-run and endpoint-plan coverage.
 - `policies/`: expected defaults, evidence requirements, and country/jurisdiction metadata for user-confirmed policy templates.
+- `presets/`: review manifests for CSV preset bundle fingerprint and community review flow coverage.
 
 To create a sanitized draft from a local private sample:
 

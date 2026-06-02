@@ -470,6 +470,42 @@ export async function verifyCsvPresetBundleFingerprint(bundle, cryptoProvider = 
   };
 }
 
+export async function csvPresetBundleReviewSummary(bundle, reviewManifest = {}, cryptoProvider = globalThis.crypto) {
+  const fingerprintCheck = await verifyCsvPresetBundleFingerprint(bundle, cryptoProvider);
+  const reviewers = Array.isArray(reviewManifest.reviewers) ? reviewManifest.reviewers : [];
+  const decisions = Array.isArray(reviewManifest.decisions) ? reviewManifest.decisions : [];
+  const expectedFingerprint = String(reviewManifest.fingerprint || bundle?.fingerprint || "");
+  const matchingFingerprint = expectedFingerprint ? fingerprintCheck.fingerprint === expectedFingerprint : fingerprintCheck.ok;
+  const acceptedDecisions = decisions.filter((decision) => decision?.decision === "accept");
+  const rejectedDecisions = decisions.filter((decision) => decision?.decision === "reject");
+  const reviewerIds = new Set(reviewers.map((reviewer) => reviewer.id));
+  const invalidDecision = decisions.find((decision) => !reviewerIds.has(decision.reviewerId));
+  const coveredFixtures = new Set(
+    (bundle?.presets || []).flatMap((preset) => (Array.isArray(preset.fixtureCoverage) ? preset.fixtureCoverage : [])),
+  );
+  const claimedFixtures = new Set(reviewManifest.fixtureCoverage || []);
+  const missingClaimedFixture = [...claimedFixtures].find((fixture) => !coveredFixtures.has(fixture));
+  const minimumReviewers = Number(reviewManifest.minimumReviewers || 2);
+  const issues = [
+    !matchingFingerprint && "review manifest fingerprint does not match bundle",
+    invalidDecision && `review decision references unknown reviewer ${invalidDecision.reviewerId}`,
+    missingClaimedFixture && `review manifest claims uncovered fixture ${missingClaimedFixture}`,
+    acceptedDecisions.length < minimumReviewers && `requires at least ${minimumReviewers} accepted reviews`,
+    rejectedDecisions.length > 0 && "review manifest contains rejection decisions",
+  ].filter(Boolean);
+  return {
+    schema: "return-warranty-guardian.csv-preset-review-summary.v1",
+    ok: issues.length === 0,
+    status: issues.length === 0 ? "community-reviewed" : "needs-review",
+    fingerprint: fingerprintCheck.fingerprint,
+    reviewerCount: reviewers.length,
+    acceptedCount: acceptedDecisions.length,
+    rejectedCount: rejectedDecisions.length,
+    fixtureCoverage: [...coveredFixtures],
+    issues,
+  };
+}
+
 export function validateCsvPresetBundle(bundle) {
   const issues = [];
   const warnings = [];

@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pdfExtractionDiagnostics, textFromPdfSource } from "../src/local-extraction.js";
-import { CSV_IMPORT_PRESETS, analyzeCsvImport, csvMappingForPreset } from "../src/importers.js";
+import { CSV_IMPORT_PRESETS, analyzeCsvImport, csvMappingForPreset, csvPresetBundle, csvPresetBundleFingerprint, csvPresetBundleReviewSummary } from "../src/importers.js";
 import { policyTemplateById } from "../src/policy-templates.js";
 import { buildRunnerPlan } from "./self-hosted-notification-runner.mjs";
 
@@ -102,6 +102,32 @@ async function validateNotificationFixtures() {
   }
 }
 
+async function validatePresetReviewFixtures() {
+  const fixturePath = path.join(root, "presets/review-manifest.json");
+  const manifest = JSON.parse(await readFile(fixturePath, "utf8"));
+  if (manifest.schema !== "return-warranty-guardian.csv-preset-review-manifest.v1") {
+    throw new Error("Preset review manifest has unsupported schema.");
+  }
+  const bundle = JSON.parse(
+    csvPresetBundle(
+      [
+        {
+          id: "fixture-reviewed-shopify",
+          label: "Fixture reviewed Shopify",
+          mapping: { productName: "lineitem_name", merchant: "vendor", purchaseDate: "created_at", price: "lineitem_price" },
+          source: "fixture-review",
+          reviewedAt: "2026-06-02",
+          fixtureCoverage: manifest.fixtureCoverage,
+        },
+      ],
+      new Date("2026-06-02T10:00:00Z"),
+    ),
+  );
+  const fingerprint = await csvPresetBundleFingerprint(bundle);
+  const summary = await csvPresetBundleReviewSummary({ ...bundle, fingerprint }, { ...manifest, fingerprint });
+  if (!summary.ok) throw new Error(`Preset review manifest failed: ${summary.issues.join("; ")}`);
+}
+
 async function main() {
   const files = await listFiles(root);
   for (const file of files) {
@@ -111,6 +137,7 @@ async function main() {
   await validatePdfFixtures();
   await validatePolicyFixtures();
   await validateNotificationFixtures();
+  await validatePresetReviewFixtures();
   console.log("Fixture validation passed.");
 }
 

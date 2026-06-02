@@ -16,6 +16,7 @@ import {
   csvMappingForPreset,
   csvPresetBundle,
   csvPresetBundleFingerprint,
+  csvPresetBundleReviewSummary,
   purchasesFromCsv,
   validateCsvPresetBundle,
   verifyCsvPresetBundleFingerprint,
@@ -187,6 +188,15 @@ const fingerprintedPresetBundle = { ...presetBundle, fingerprint: presetFingerpr
 const fingerprintCheck = await verifyCsvPresetBundleFingerprint(fingerprintedPresetBundle);
 assert.equal(fingerprintCheck.ok, true);
 assert.equal(fingerprintCheck.status, "fingerprint-matched");
+const reviewManifest = JSON.parse(await fixture("presets/review-manifest.json"));
+const reviewSummary = await csvPresetBundleReviewSummary(fingerprintedPresetBundle, {
+  ...reviewManifest,
+  fingerprint: presetFingerprint,
+});
+assert.equal(reviewSummary.schema, "return-warranty-guardian.csv-preset-review-summary.v1");
+assert.equal(reviewSummary.ok, true);
+assert.equal(reviewSummary.status, "community-reviewed");
+assert.equal(reviewSummary.acceptedCount, 2);
 const presetValidation = validateCsvPresetBundle({
   ...presetBundle,
   presets: [{ id: "user-test", label: "User Test", mapping: { price: "amount", unexpected: "x" } }],

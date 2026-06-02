@@ -35,6 +35,45 @@ async function runRunner(payloadPath, provider, env = {}) {
   return JSON.parse(stdout);
 }
 
+function requireEnv(name) {
+  const value = process.env[name] || "";
+  if (!value) throw new Error(`${name} is required for public endpoint smoke mode.`);
+  return value;
+}
+
+async function runPublicSmoke(tempDir) {
+  if (process.env.RWG_NOTIFY_PUBLIC_SMOKE !== "1") {
+    return { skipped: true, reason: "Set RWG_NOTIFY_PUBLIC_SMOKE=1 to run public/self-hosted endpoint smoke." };
+  }
+  const provider = process.env.RWG_NOTIFY_PUBLIC_PROVIDER || "ntfy";
+  const endpoint = requireEnv("RWG_NOTIFY_PUBLIC_ENDPOINT").replace(/\/+$/, "");
+  const topic = process.env.RWG_NOTIFY_PUBLIC_TOPIC || "returns";
+  const payloadFixture = provider === "gotify" ? "gotify-payload.json" : "ntfy-payload.json";
+  const payload = JSON.parse(await readFile(`tests/fixtures/notifications/${payloadFixture}`, "utf8"));
+  payload.settings.provider = provider;
+  payload.settings.endpoint = endpoint;
+  payload.settings.topic = provider === "ntfy" ? topic : "";
+  if (provider === "ntfy") {
+    payload.providers.ntfy = { curl: `curl -H 'Title: Return & Warranty Guardian' -d '<message>' ${endpoint}/${topic}` };
+  } else if (provider === "gotify") {
+    requireEnv("GOTIFY_TOKEN");
+    payload.providers.gotify = {
+      curl: `curl -H 'Content-Type: application/json' -H 'Authorization: Bearer <token-not-stored>' -d '{"title":"<title>","message":"<message>","priority":5}' ${endpoint}/message`,
+    };
+  } else {
+    throw new Error("Public endpoint smoke supports ntfy or gotify.");
+  }
+  const payloadPath = join(tempDir, "public-smoke.json");
+  await writeFile(payloadPath, JSON.stringify(payload, null, 2));
+  const result = await runRunner(payloadPath, provider, provider === "gotify" ? { GOTIFY_TOKEN: process.env.GOTIFY_TOKEN } : {});
+  return {
+    skipped: false,
+    provider,
+    endpointHost: new URL(endpoint).host,
+    result: result.sendResults[0],
+  };
+}
+
 async function main() {
   const requests = [];
   const server = createServer(async (request, response) => {
@@ -66,6 +105,7 @@ async function main() {
     if (!ntfyPost?.body.includes("Fixture Audio Store")) throw new Error("ntfy smoke request did not include expected reminder body.");
     if (!gotifyPost?.headers.authorization?.includes("fixture-token")) throw new Error("Gotify smoke request did not include bearer token header.");
     if (!gotifyPost?.body.includes("Fixture Router")) throw new Error("Gotify smoke request did not include expected JSON body.");
+    const publicSmoke = await runPublicSmoke(tempDir);
 
     console.log(
       JSON.stringify(
@@ -74,6 +114,7 @@ async function main() {
           endpoint: baseUrl,
           ntfy: ntfyResult.sendResults[0],
           gotify: gotifyResult.sendResults[0],
+          publicSmoke,
           requestCount: requests.length,
           purchaseDataSentOnlyDuringExplicitSend: true,
         },

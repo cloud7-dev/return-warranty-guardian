@@ -103,6 +103,7 @@ npm run notify:dry-run -- return-warranty-guardian-self-hosted-alerts.json --jso
 The runner prints command previews only. Keep provider tokens outside this app and use your own scheduler if you decide to send notifications.
 Actual sending is opt-in and requires `--send --yes` plus `RWG_NOTIFY_SEND=1`; Gotify also requires `GOTIFY_TOKEN` in the runner environment.
 Provider-specific fixture payloads live in `tests/fixtures/notifications`, and the operating guide is in `docs/self-hosted-notification-runner.md`.
+Platform fallback guidance is in `docs/notification-fallback-guide.md`.
 
 To run the local loopback endpoint smoke test for ntfy/Gotify send mode:
 
@@ -121,6 +122,7 @@ This project is a tracking and evidence-organization tool. It does not guarantee
 ## Notifications
 
 The current no-server notification path is `.ics` calendar export with `VALARM` lead-day reminders. Mobile users can import deadlines into iOS, Google, or Samsung Calendar; desktop users can import them into macOS Calendar, Outlook, Google Calendar, or Windows Calendar. The app can also show local browser notifications while it is open, snooze reminders for 3 hours/tomorrow/7 days, and store optional self-hosted draft settings locally. See [docs/notification-strategy.ko.md](docs/notification-strategy.ko.md) for the Korean notification plan.
+See [docs/notification-fallback-guide.md](docs/notification-fallback-guide.md) for mobile/desktop fallback choices and opt-in public endpoint smoke testing.
 
 ## Consolidation
 

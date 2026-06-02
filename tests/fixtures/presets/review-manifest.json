@@ -1,0 +1,34 @@
+{
+  "schema": "return-warranty-guardian.csv-preset-review-manifest.v1",
+  "minimumReviewers": 2,
+  "fingerprint": "",
+  "fixtureCoverage": [
+    "tests/fixtures/csv/shopify-order-export.csv"
+  ],
+  "reviewers": [
+    {
+      "id": "reviewer-fixture-a",
+      "displayName": "Fixture Reviewer A",
+      "role": "maintainer"
+    },
+    {
+      "id": "reviewer-fixture-b",
+      "displayName": "Fixture Reviewer B",
+      "role": "community"
+    }
+  ],
+  "decisions": [
+    {
+      "reviewerId": "reviewer-fixture-a",
+      "decision": "accept",
+      "reviewedAt": "2026-06-02",
+      "note": "Synthetic fixture coverage is importable and contains no purchase rows in the preset bundle."
+    },
+    {
+      "reviewerId": "reviewer-fixture-b",
+      "decision": "accept",
+      "reviewedAt": "2026-06-02",
+      "note": "Mapping fields are limited to supported import columns."
+    }
+  ]
+}

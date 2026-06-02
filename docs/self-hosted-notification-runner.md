@@ -36,6 +36,8 @@ npm run notify:smoke
 
 The script starts a loopback HTTP server, rewrites the ntfy/Gotify fixture payloads to that local endpoint, runs the real runner with `--send --yes`, and verifies the received POST body/headers. It does not contact public notification services. Apprise remains command-preview-only because the runner intentionally does not own an Apprise installation.
 
+To smoke-test a real endpoint you control, set `RWG_NOTIFY_PUBLIC_SMOKE=1` plus provider-specific endpoint variables. This is deliberately excluded by default so CI and local tests do not contact public services.
+
 ## Actual send guard
 
 Actual sending is off by default. It requires all of the following:

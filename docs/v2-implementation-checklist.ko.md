@@ -78,8 +78,8 @@
    - 현재 구현: provider/endpoint/topic 설정, 토큰 미저장, 외부 runner 필요 여부를 dry-run report로 검증
    - 현재 구현: `npm run notify:dry-run` CLI로 payload JSON을 읽고 provider별 명령 미리보기와 endpoint-only check 계획을 생성
    - 현재 구현: CLI opt-in send mode는 `--send --yes`와 `RWG_NOTIFY_SEND=1`을 요구하고, Gotify token은 환경변수로만 받음
-   - 현재 구현: ntfy/Gotify/Apprise provider별 synthetic payload fixture, endpoint-only dry-run plan 검증, send mode 운영 문서, macOS/Linux/Windows scheduler recipe 생성, ntfy/Gotify loopback endpoint smoke test
-   - 남은 구현: 플랫폼별 알림 가이드 강화, 실제 public/self-hosted endpoint smoke test
+   - 현재 구현: ntfy/Gotify/Apprise provider별 synthetic payload fixture, endpoint-only dry-run plan 검증, send mode 운영 문서, macOS/Linux/Windows scheduler recipe 생성, ntfy/Gotify loopback endpoint smoke test, opt-in public endpoint smoke mode, 모바일/PC fallback guide
+   - 남은 구현: 실제 public/self-hosted endpoint smoke run을 유지관리자가 별도 환경에서 정기 수행
 
 ### v0.4: 클레임/홈 히스토리 출력
 
@@ -108,4 +108,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대/리뷰 체크리스트/row 선택/preset bundle 호환성 검증/fixture validation/trust metadata/fingerprint-ready signing payload/대량 review filter의 1차 범위, 3번 로컬 OCR/정책 추출/fallback 진단/정책 source metadata/OCR adapter의 1차 범위, 4번 서버 없는 알림 경험/캘린더 가이드/세분화 스누즈/self-hosted 설정 저장/dry-run report/runner CLI/opt-in send guard/provider fixture/scheduler recipe/loopback smoke test/운영 문서는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 익명화된 실제 샘플 기반 import/OCR fixture 확대, 실제 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR, 실제 public/self-hosted endpoint smoke test, 암호화 백업, polished PWA입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대/리뷰 체크리스트/row 선택/preset bundle 호환성 검증/fixture validation/trust metadata/fingerprint-ready signing payload/review manifest/대량 review filter의 1차 범위, 3번 로컬 OCR/정책 추출/fallback 진단/정책 source metadata/OCR adapter의 1차 범위, 4번 서버 없는 알림 경험/캘린더 가이드/세분화 스누즈/self-hosted 설정 저장/dry-run report/runner CLI/opt-in send guard/provider fixture/scheduler recipe/loopback smoke test/opt-in public smoke/platform fallback guide/운영 문서는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 익명화된 실제 샘플 기반 import/OCR fixture 확대, 실제 번들형 크로스브라우저 OCR과 실제 스캔 PDF OCR, 유지관리자 별도 환경의 실제 public/self-hosted endpoint smoke run, 암호화 백업, polished PWA입니다.
