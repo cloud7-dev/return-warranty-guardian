@@ -1,6 +1,15 @@
 import { computeDeadlines, formatDate, summarizePurchases } from "./deadline-engine.js";
-import { claimPacketBundleJson, claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs, downloadText } from "./exporters.js";
-import { CSV_IMPORT_FIELDS, CSV_IMPORT_PRESETS, analyzeCsvImport, csvMappingForPreset } from "./importers.js";
+import {
+  claimPacketBundleJson,
+  claimPacketHtml,
+  claimPacketZipBytes,
+  downloadBlob,
+  downloadText,
+  evidencePackMarkdown,
+  purchasesToCsv,
+  purchasesToIcs,
+} from "./exporters.js";
+import { CSV_IMPORT_FIELDS, CSV_IMPORT_PRESETS, analyzeCsvImport, csvImportReport, csvMappingForPreset } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
@@ -277,6 +286,7 @@ function renderImportPreview() {
         </div>
         <div class="detail-actions">
           <button class="secondary-action" id="confirm-import" type="button" ${valid.length ? "" : "disabled"}>${t("confirmImport")}</button>
+          <button class="secondary-action" id="export-import-report" type="button">${t("exportImportReport")}</button>
           <button class="ghost-action" id="cancel-import" type="button">${t("cancelImport")}</button>
         </div>
       </div>
@@ -613,6 +623,7 @@ function renderDetail() {
           <button class="secondary-action" data-evidence="${item.id}" type="button">${icons.pack} ${t("exportPack")}</button>
           <button class="secondary-action" data-claim-packet="${item.id}" type="button">${icons.pack} ${t("claimPacket")}</button>
           <button class="secondary-action" data-claim-bundle="${item.id}" type="button">${icons.export} ${t("claimBundle")}</button>
+          <button class="secondary-action" data-claim-zip="${item.id}" type="button">${icons.export} ${t("claimZip")}</button>
         </div>
       </div>
       <div class="deadline-math">
@@ -841,6 +852,14 @@ function exportClaimBundle(id) {
   );
 }
 
+function exportClaimZip(id) {
+  const purchase = state.purchases.find((item) => item.id === id);
+  if (!purchase) return;
+  const safeName = purchase.productName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const bytes = claimPacketZipBytes(purchase, today());
+  downloadBlob(`${safeName || "purchase"}-claim-bundle.zip`, new Blob([bytes], { type: "application/zip" }));
+}
+
 function downloadAttachment(purchaseId, attachmentIndex) {
   const purchase = state.purchases.find((item) => item.id === purchaseId);
   const attachment = purchaseAttachments(purchase || {})[Number(attachmentIndex)];
@@ -944,6 +963,11 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
+  if (button.dataset.claimZip) {
+    exportClaimZip(button.dataset.claimZip);
+    return;
+  }
+
   if (button.dataset.attachmentPurchase) {
     downloadAttachment(button.dataset.attachmentPurchase, button.dataset.attachmentIndex);
     return;
@@ -977,6 +1001,13 @@ app.addEventListener("click", async (event) => {
     state.selectedId = purchases[0]?.id || state.selectedId;
     state.importPreview = null;
     await persistAndRender();
+    return;
+  }
+
+  if (button.id === "export-import-report") {
+    if (!state.importPreview) return;
+    const safeName = (state.importPreview.fileName || "csv-import").replace(/[^a-z0-9._-]+/gi, "-").replace(/^-|-$/g, "");
+    downloadText(`${safeName || "csv-import"}-report.json`, "application/json", csvImportReport(state.importPreview, today()));
     return;
   }
 

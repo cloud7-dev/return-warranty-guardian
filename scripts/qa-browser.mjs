@@ -145,6 +145,12 @@ const importPreviewVisible = await page.locator("text=가져오기 미리보기"
 const importMappingVisible = await page.locator("text=CSV 프리셋").count();
 const importDuplicateVisible = await page.locator("text=중복 1개").count();
 const importInvalidVisible = await page.locator("text=오류 1개").count();
+const importReportDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
+await page.click("#export-import-report");
+const importReportDownload = await importReportDownloadPromise;
+const importReportPath = `${root}/outputs/${importReportDownload.suggestedFilename()}`;
+await importReportDownload.saveAs(importReportPath);
+stages.push("import-report-download");
 await page.click("#confirm-import");
 await page.waitForFunction((count) => document.querySelectorAll(".purchase-row").length >= count + 1, rowsAfterParse);
 await page.waitForSelector("text=CSV Import Toaster");
@@ -180,6 +186,13 @@ const claimBundlePath = `${root}/outputs/${claimBundleDownload.suggestedFilename
 await claimBundleDownload.saveAs(claimBundlePath);
 stages.push("claim-bundle-download");
 
+const claimZipDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
+await page.locator("[data-claim-zip]").first().click();
+const claimZipDownload = await claimZipDownloadPromise;
+const claimZipPath = `${root}/outputs/${claimZipDownload.suggestedFilename()}`;
+await claimZipDownload.saveAs(claimZipPath);
+stages.push("claim-zip-download");
+
 const icsDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
 await page.click("#export-ics");
 const icsDownload = await icsDownloadPromise;
@@ -205,8 +218,10 @@ await browser.close();
 server.close();
 
 const evidenceText = await readFile(evidencePath, "utf8");
+const importReportText = await readFile(importReportPath, "utf8");
 const claimText = await readFile(claimPath, "utf8");
 const claimBundleText = await readFile(claimBundlePath, "utf8");
+const claimZipBytes = await readFile(claimZipPath);
 const icsText = await readFile(icsPath, "utf8");
 const csvText = await readFile(csvPath, "utf8");
 
@@ -225,6 +240,8 @@ const result = {
   importMappingVisible,
   importDuplicateVisible,
   importInvalidVisible,
+  importReportPath,
+  importReportContainsCounts: importReportText.includes("csv-import-report.v1") && importReportText.includes('"duplicateCount": 1'),
   rowsAfterCsvImport,
   filteredRows,
   filteredTextContainsCoffeeMaker: filteredText.includes("Coffee Maker"),
@@ -234,6 +251,8 @@ const result = {
   claimContainsPrintPdf: claimText.includes("Print or save PDF") && claimText.includes("Claim Packet"),
   claimBundlePath,
   claimBundleContainsEvidence: claimBundleText.includes("return-warranty-guardian.claim-bundle.v1") && claimBundleText.includes("claimPacketHtml"),
+  claimZipPath,
+  claimZipHasSignature: claimZipBytes[0] === 0x50 && claimZipBytes[1] === 0x4b && claimZipBytes.includes(0x50),
   icsPath,
   icsContainsCalendar: icsText.includes("BEGIN:VCALENDAR"),
   csvPath,
@@ -258,12 +277,14 @@ const failures = [
   importMappingVisible < 1 && "Expected CSV mapping controls to appear",
   importDuplicateVisible < 1 && "Expected CSV duplicate count to appear",
   importInvalidVisible < 1 && "Expected CSV invalid row count to appear",
+  !result.importReportContainsCounts && "Expected CSV import report JSON export",
   rowsAfterCsvImport < 7 && "Expected CSV import to add a purchase",
   filteredRows !== 1 && "Expected Coffee Maker search to return one row",
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",
   !result.claimContainsPrintPdf && "Expected printable claim packet HTML",
   !result.claimBundleContainsEvidence && "Expected claim bundle JSON export",
+  !result.claimZipHasSignature && "Expected claim ZIP bundle export",
   !result.icsContainsCalendar && "Expected ICS calendar export",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",

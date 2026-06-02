@@ -2,6 +2,10 @@ import { computeDeadlines } from "./deadline-engine.js";
 
 export function downloadText(filename, mimeType, content) {
   const blob = new Blob([content], { type: mimeType });
+  downloadBlob(filename, blob);
+}
+
+export function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -278,4 +282,145 @@ export function purchasesToIcs(purchases, now = new Date()) {
   return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Return Warranty Guardian//EN", ...events, "END:VCALENDAR"].join(
     "\r\n",
   );
+}
+
+function crc32(bytes) {
+  let crc = -1;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ -1) >>> 0;
+}
+
+function uint16(value) {
+  return [value & 0xff, (value >>> 8) & 0xff];
+}
+
+function uint32(value) {
+  return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff];
+}
+
+function bytesFromText(text) {
+  return new TextEncoder().encode(text);
+}
+
+function bytesFromDataUrl(dataUrl) {
+  const match = String(dataUrl || "").match(/^data:([^,]*),(.*)$/);
+  if (!match) return new Uint8Array();
+  const [, meta, payload] = match;
+  if (meta.includes(";base64")) {
+    const binary =
+      typeof atob === "function"
+        ? atob(payload)
+        : Buffer.from(payload, "base64").toString("binary");
+    return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  }
+  return bytesFromText(decodeURIComponent(payload));
+}
+
+function safePathSegment(value) {
+  return String(value || "file")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "file";
+}
+
+function dosDateTime(date) {
+  const value = new Date(date);
+  const year = Math.max(1980, value.getFullYear());
+  return {
+    time: (value.getHours() << 11) | (value.getMinutes() << 5) | Math.floor(value.getSeconds() / 2),
+    date: ((year - 1980) << 9) | ((value.getMonth() + 1) << 5) | value.getDate(),
+  };
+}
+
+export function zipFiles(files, now = new Date()) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  const stamp = dosDateTime(now);
+
+  for (const file of files) {
+    const name = bytesFromText(file.name);
+    const data = file.bytes instanceof Uint8Array ? file.bytes : bytesFromText(file.content || "");
+    const crc = crc32(data);
+    const localHeader = Uint8Array.from([
+      ...uint32(0x04034b50),
+      ...uint16(20),
+      ...uint16(0),
+      ...uint16(0),
+      ...uint16(stamp.time),
+      ...uint16(stamp.date),
+      ...uint32(crc),
+      ...uint32(data.length),
+      ...uint32(data.length),
+      ...uint16(name.length),
+      ...uint16(0),
+    ]);
+    localParts.push(localHeader, name, data);
+
+    const centralHeader = Uint8Array.from([
+      ...uint32(0x02014b50),
+      ...uint16(20),
+      ...uint16(20),
+      ...uint16(0),
+      ...uint16(0),
+      ...uint16(stamp.time),
+      ...uint16(stamp.date),
+      ...uint32(crc),
+      ...uint32(data.length),
+      ...uint32(data.length),
+      ...uint16(name.length),
+      ...uint16(0),
+      ...uint16(0),
+      ...uint16(0),
+      ...uint16(0),
+      ...uint32(0),
+      ...uint32(offset),
+    ]);
+    centralParts.push(centralHeader, name);
+    offset += localHeader.length + name.length + data.length;
+  }
+
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+  const end = Uint8Array.from([
+    ...uint32(0x06054b50),
+    ...uint16(0),
+    ...uint16(0),
+    ...uint16(files.length),
+    ...uint16(files.length),
+    ...uint32(centralSize),
+    ...uint32(offset),
+    ...uint16(0),
+  ]);
+  const size = localParts.reduce((sum, part) => sum + part.length, 0) + centralSize + end.length;
+  const output = new Uint8Array(size);
+  let cursor = 0;
+  for (const part of [...localParts, ...centralParts, end]) {
+    output.set(part, cursor);
+    cursor += part.length;
+  }
+  return output;
+}
+
+export function claimPacketZipBytes(purchase, now = new Date()) {
+  const item = computeDeadlines(purchase, now);
+  const root = safePathSegment(item.productName || "claim");
+  const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
+  const files = [
+    { name: `${root}/claim-packet.html`, content: claimPacketHtml(purchase, now) },
+    { name: `${root}/evidence-pack.md`, content: evidencePackMarkdown(purchase, now) },
+    { name: `${root}/claim-bundle.json`, content: claimPacketBundleJson(purchase, now) },
+  ];
+  attachments.forEach((attachment, index) => {
+    files.push({
+      name: `${root}/attachments/${String(index + 1).padStart(2, "0")}-${safePathSegment(attachment.name)}`,
+      bytes: bytesFromDataUrl(attachment.dataUrl),
+    });
+  });
+  return zipFiles(files, now);
 }

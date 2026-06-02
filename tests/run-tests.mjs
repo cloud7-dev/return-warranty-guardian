@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
-import { analyzeCsvImport, csvMappingForPreset, purchasesFromCsv } from "../src/importers.js";
+import { analyzeCsvImport, csvImportReport, csvMappingForPreset, purchasesFromCsv } from "../src/importers.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
-import { claimPacketBundleJson, claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs } from "../src/exporters.js";
+import {
+  claimPacketBundleJson,
+  claimPacketHtml,
+  claimPacketZipBytes,
+  evidencePackMarkdown,
+  purchasesToCsv,
+  purchasesToIcs,
+} from "../src/exporters.js";
 
 const now = new Date("2026-06-02T10:00:00Z");
 
@@ -104,6 +111,10 @@ const analyzed = analyzeCsvImport(
 assert.equal(analyzed.valid.length, 1);
 assert.equal(analyzed.duplicates.length, 1);
 assert.equal(analyzed.invalid.length, 1);
+const importReport = JSON.parse(csvImportReport({ ...analyzed, fileName: "qa.csv" }, now));
+assert.equal(importReport.schema, "return-warranty-guardian.csv-import-report.v1");
+assert.equal(importReport.duplicateCount, 1);
+assert.equal(importReport.invalidCount, 1);
 
 const cardMapping = csvMappingForPreset(["transaction_date", "description", "amount"], "card-statement");
 assert.equal(cardMapping.merchant, "description");
@@ -130,6 +141,10 @@ const claimBundle = JSON.parse(claimPacketBundleJson(purchase, now));
 assert.equal(claimBundle.schema, "return-warranty-guardian.claim-bundle.v1");
 assert.match(claimBundle.claimPacketHtml, /Claim Packet: Wireless Headset/);
 assert.equal(claimBundle.attachments.length, 2);
+const claimZip = claimPacketZipBytes(purchase, now);
+assert.deepEqual([...claimZip.slice(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
+assert.match(new TextDecoder().decode(claimZip), /claim-packet\.html/);
+assert.match(new TextDecoder().decode(claimZip), /claim-bundle\.json/);
 
 const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);

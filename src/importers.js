@@ -222,6 +222,35 @@ export function analyzeCsvImport(text, existingPurchases = [], now = new Date(),
   };
 }
 
+export function csvImportReport(preview, now = new Date()) {
+  const rowSummary = (row) => ({
+    rowNumber: row.rowNumber,
+    productName: row.purchase?.productName || "",
+    merchant: row.purchase?.merchant || "",
+    purchaseDate: row.purchase?.purchaseDate || "",
+    issues: row.issues || [],
+  });
+  return JSON.stringify(
+    {
+      schema: "return-warranty-guardian.csv-import-report.v1",
+      generatedAt: now.toISOString(),
+      fileName: preview.fileName || "",
+      presetId: preview.presetId || "auto",
+      headers: preview.headers || [],
+      mapping: preview.mapping || {},
+      rowCount: preview.rowCount || 0,
+      validCount: preview.valid?.length || 0,
+      duplicateCount: preview.duplicates?.length || 0,
+      invalidCount: preview.invalid?.length || 0,
+      valid: (preview.valid || []).map(rowSummary),
+      duplicates: (preview.duplicates || []).map((row) => ({ ...rowSummary(row), duplicateKey: row.duplicateKey || "" })),
+      invalid: (preview.invalid || []).map(rowSummary),
+    },
+    null,
+    2,
+  );
+}
+
 export function purchasesFromCsv(text, now = new Date()) {
   return analyzeCsvImport(text, [], now).valid.map((row) => row.purchase);
 }
