@@ -32,6 +32,7 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Exports a local CSV import report for audit/debugging before the import is confirmed.
 - Extracts local text, CSV, HTML/email receipts, simple PDF text operators, and supported browser-local image OCR into the receipt parser without upload.
 - Applies user-confirmed policy templates for common return/warranty assumptions without fetching merchant data.
+- Includes a synthetic fixture corpus for CSV presets, email receipt extraction, PDF text extraction, and policy-template coverage.
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.
@@ -71,7 +72,7 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, local PDF text extraction, policy templates, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, policy templates, CSV preview/presets/manual mapping/deduplication/report export, claim packet template/JSON/ZIP bundle download, local alert status, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, fixture corpus coverage, local HTML/PDF text extraction, policy templates, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/report export, claim packet template/JSON/ZIP bundle download, local alert status, exports, search, and mobile screenshots.
 
 ## Privacy Model
 

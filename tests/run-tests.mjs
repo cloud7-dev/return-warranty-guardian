@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { analyzeCsvImport, csvImportReport, csvMappingForPreset, purchasesFromCsv } from "../src/importers.js";
-import { textFromPdfSource } from "../src/local-extraction.js";
+import { textFromHtmlSource, textFromPdfSource } from "../src/local-extraction.js";
 import { policyTemplateById } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
@@ -15,6 +16,7 @@ import {
 } from "../src/exporters.js";
 
 const now = new Date("2026-06-02T10:00:00Z");
+const fixture = (path) => readFile(new URL(`./fixtures/${path}`, import.meta.url), "utf8");
 
 assert.equal(addDays("2026-06-02", 30), "2026-07-02");
 assert.equal(addDays("2026-06-02", 14), "2026-06-16");
@@ -158,6 +160,40 @@ const koreanOrderMapping = csvMappingForPreset(["주문일", "상품명", "판�
 assert.equal(koreanOrderMapping.productName, "상품명");
 assert.equal(koreanOrderMapping.merchant, "판매자");
 
+const fixtureCases = [
+  {
+    path: "csv/korean-card-statement.csv",
+    presetId: "korean-card-statement",
+    expectedProduct: "서울전자",
+    expectedPrice: 39900,
+  },
+  {
+    path: "csv/korean-shopping-order.csv",
+    presetId: "korean-shopping-order",
+    expectedProduct: "무선 청소기 필터",
+    expectedPrice: 18900,
+  },
+  {
+    path: "csv/amazon-style-order.csv",
+    presetId: "amazon-style-order",
+    expectedProduct: "USB-C Hub",
+    expectedPrice: 32.49,
+  },
+];
+for (const item of fixtureCases) {
+  const text = await fixture(item.path);
+  const mapping = csvMappingForPreset(text.split(/\r?\n/)[0].split(","), item.presetId);
+  const preview = analyzeCsvImport(text, [], now, { presetId: item.presetId, mapping });
+  assert.equal(preview.valid.length, 1);
+  assert.equal(preview.valid[0].purchase.productName, item.expectedProduct);
+  assert.equal(preview.valid[0].purchase.price, item.expectedPrice);
+}
+
+const emailFixture = textFromHtmlSource(await fixture("receipts/email-receipt.html"));
+assert.match(emailFixture, /Fixture Demo Store/);
+assert.match(emailFixture, /Desk Organizer 18.50/);
+assert.equal(parseReceiptText(emailFixture).items[0].name, "Desk Organizer");
+
 const pdfText = textFromPdfSource(`%PDF-1.4
 BT
 (PDF Demo Store) Tj
@@ -168,9 +204,20 @@ assert.match(pdfText, /PDF Demo Store/);
 assert.match(pdfText, /Monitor Stand/);
 assert.match(pdfText, /2026-06-02/);
 
+const pdfFixtureText = textFromPdfSource(await fixture("pdf/simple-text-operator.pdf.txt"));
+assert.match(pdfFixtureText, /PDF Fixture Store/);
+assert.match(pdfFixtureText, /Warranty Router 89.00/);
+
 const policyTemplate = policyTemplateById("extended-60-day-return");
 assert.equal(policyTemplate.returnWindowDays, 60);
 assert.match(policyTemplate.note, /Confirm current merchant terms/);
+const policyFixtures = JSON.parse(await fixture("policies/templates.json"));
+for (const item of policyFixtures) {
+  const template = policyTemplateById(item.id);
+  assert.equal(template.returnWindowDays, item.expectedReturnWindowDays);
+  assert.equal(template.refundWindowDays, item.expectedRefundWindowDays);
+  assert.equal(template.warrantyMonths, item.expectedWarrantyMonths);
+}
 
 const claimPacket = claimPacketHtml(purchase, now);
 assert.match(claimPacket, /Claim Packet: Wireless Headset/);

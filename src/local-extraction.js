@@ -1,3 +1,30 @@
+export function textFromHtmlSource(raw) {
+  const source = String(raw || "");
+  if (typeof DOMParser === "function") {
+    const doc = new DOMParser().parseFromString(source, "text/html");
+    doc.querySelectorAll("script,style,noscript").forEach((node) => node.remove());
+    doc.querySelectorAll("br,p,div,li,tr,h1,h2,h3,h4,h5,h6").forEach((node) => node.append("\n"));
+    return doc.body.textContent
+      .split(/\r?\n/)
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+  return source
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<\/(?:p|div|li|tr|h[1-6]|br)>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
 function decodePdfLiteral(value) {
   const text = String(value || "").replace(/^\(/, "").replace(/\)$/, "");
   let output = "";

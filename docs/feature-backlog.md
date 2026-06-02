@@ -6,7 +6,7 @@ This list separates high-leverage additions from features that could distract th
 
 1. **Reliable notifications without a server**
    - Users want mobile and PC reminders even when the web app is closed.
-   - Calendar export now includes per-purchase lead-day `VALARM` reminders, and open-app browser notifications are available after user permission.
+   - Calendar export now includes per-purchase lead-day `VALARM` reminders, open-app browser notifications are available after user permission, and the app shows a mobile/PC calendar import guide.
    - True background push still conflicts with the no-server promise unless it is opt-in or self-hosted.
 
 2. **More durable local attachments**
@@ -16,7 +16,7 @@ This list separates high-leverage additions from features that could distract th
 3. **Messy receipt and policy extraction**
    - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
    - Local text/PDF text-operator/HTML extraction is now connected to the parser, and image OCR works when the browser exposes local `TextDetector` support.
-   - User-confirmed policy templates can fill common return/refund/warranty assumptions. A bundled cross-browser OCR engine and real policy fixture corpus are still needed before the app can reduce manual entry enough.
+   - User-confirmed policy templates can fill common return/refund/warranty assumptions, and synthetic fixtures cover CSV/HTML/PDF/policy regression cases. A bundled cross-browser OCR engine and real anonymized policy fixture corpus are still needed before the app can reduce manual entry enough.
 
 4. **Warranty claim packet quality**
    - Users need a clean support packet with receipt, serial/model, photos, repair history, manuals, and merchant conversation notes.
@@ -34,7 +34,7 @@ This list separates high-leverage additions from features that could distract th
 ## High-Leverage Next Features
 
 1. **Synthetic receipt fixture corpus**
-   - Lets contributors improve parsing without sharing private receipts.
+   - Initial synthetic CSV, HTML receipt, PDF text-operator, and policy-template fixtures exist under `tests/fixtures`.
    - Good for GitHub stars because it makes the project hackable.
 
 2. **Merchant policy templates**
@@ -51,7 +51,8 @@ This list separates high-leverage additions from features that could distract th
 
 5. **Importers**
    - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, import report export, Korean card statements, Korean shopping orders, and Amazon-style order history.
-   - Remaining work: real card-statement/retailer fixture corpus and community preset validation.
+   - Synthetic fixture corpus covers the current built-in presets.
+   - Remaining work: anonymized real card-statement/retailer fixture expansion and community preset validation.
 
 6. **Optional OCR**
    - Text, CSV, HTML/email, simple PDF text-operator extraction, and supported browser-local image OCR now run locally in the browser.
@@ -59,8 +60,8 @@ This list separates high-leverage additions from features that could distract th
    - Cloud OCR should be explicitly opt-in and disabled by default.
 
 7. **Local notification upgrade**
-   - Per-purchase lead days, `.ics` `VALARM`, and open-app browser notifications are implemented.
-   - Remaining work: calendar import guidance, repeated alerts, snooze, and platform-specific fallback copy.
+   - Per-purchase lead days, `.ics` `VALARM`, open-app browser notifications, and calendar import guidance are implemented.
+   - Remaining work: repeated alerts, snooze, and platform-specific fallback copy.
 
 8. **Claim packet HTML/PDF**
    - Printable HTML claim packet exists with attachment links, image previews, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.

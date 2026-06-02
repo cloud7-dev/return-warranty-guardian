@@ -80,3 +80,5 @@ Local OCR/text extraction is handled in the browser. Text, CSV, HTML/email, and 
 Notification behavior stays serverless. Each purchase can store `reminderLeadDays`; `.ics` exports include `VALARM` entries using that lead time, and browser notifications are only attempted while the app is open and the user grants notification permission.
 
 Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
+
+Tests use `tests/fixtures` as a synthetic corpus for CSV presets, HTML receipt extraction, PDF text-operator extraction, and user-confirmed policy template defaults. Private receipts or real card statements should not be committed.

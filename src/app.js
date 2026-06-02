@@ -11,7 +11,7 @@ import {
 } from "./exporters.js";
 import { CSV_IMPORT_FIELDS, CSV_IMPORT_PRESETS, analyzeCsvImport, csvImportReport, csvMappingForPreset } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
-import { textFromPdfSource } from "./local-extraction.js";
+import { textFromHtmlSource, textFromPdfSource } from "./local-extraction.js";
 import { POLICY_TEMPLATES, policyTemplateById } from "./policy-templates.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
@@ -77,14 +77,7 @@ function fileToAttachment(file) {
 async function extractLocalText(file) {
   if (!file) return "";
   if (file.type === "text/html" || /\.html?$/i.test(file.name)) {
-    const doc = new DOMParser().parseFromString(await file.text(), "text/html");
-    doc.querySelectorAll("script,style,noscript").forEach((node) => node.remove());
-    doc.querySelectorAll("br,p,div,li,tr,h1,h2,h3,h4,h5,h6").forEach((node) => node.append("\n"));
-    return doc.body.textContent
-      .split(/\r?\n/)
-      .map((line) => line.replace(/\s+/g, " ").trim())
-      .filter(Boolean)
-      .join("\n");
+    return textFromHtmlSource(await file.text());
   }
   if (/^text\//.test(file.type) || /\.txt$|\.csv$/i.test(file.name)) return file.text();
   if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
@@ -345,6 +338,34 @@ function renderDashboard() {
       ${summaryCard(t("openItems"), summary.open, t("totalRecords", { count: summary.total }), "")}
       ${summaryCard(t("missingProof"), summary.missingProof, t("missingProofDetail"), "risk")}
       ${summaryCard(t("returnValue"), money(summary.returnValueAtRisk), t("returnValueDetail"), "money")}
+    </section>
+  `;
+}
+
+function renderReminderGuide() {
+  return `
+    <section class="panel reminder-guide" id="calendar-guide">
+      <div class="panel-heading">
+        <div>
+          <h2>${t("calendarGuideTitle")}</h2>
+          <p>${t("calendarGuideSubtitle")}</p>
+        </div>
+        <button class="secondary-action" id="export-ics-guide" type="button">${icons.calendar} ${t("ics")}</button>
+      </div>
+      <div class="guide-steps">
+        <div>
+          <strong>${t("calendarGuideStepExportTitle")}</strong>
+          <span>${t("calendarGuideStepExportBody")}</span>
+        </div>
+        <div>
+          <strong>${t("calendarGuideStepMobileTitle")}</strong>
+          <span>${t("calendarGuideStepMobileBody")}</span>
+        </div>
+        <div>
+          <strong>${t("calendarGuideStepDesktopTitle")}</strong>
+          <span>${t("calendarGuideStepDesktopBody")}</span>
+        </div>
+      </div>
     </section>
   `;
 }
@@ -792,6 +813,7 @@ function renderShell() {
       <nav class="side-nav" aria-label="${t("navDeadlineQueue")}">
         <a href="#deadline-queue" class="active">${t("navDeadlineQueue")}</a>
         <a href="#add-purchase">${t("navAddPurchase")}</a>
+        <a href="#calendar-guide">${t("navCalendarGuide")}</a>
         <a href="#privacy">${t("navPrivacy")}</a>
       </nav>
       <div class="sidebar-note" id="privacy">
@@ -833,6 +855,7 @@ function renderShell() {
         </div>
       </header>
       ${renderDashboard()}
+      ${renderReminderGuide()}
       ${renderImportPreview()}
       <section class="workbench">
         ${renderPurchaseForm()}
@@ -1204,7 +1227,7 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
-  if (button.id === "export-ics") {
+  if (button.id === "export-ics" || button.id === "export-ics-guide") {
     downloadText("return-warranty-guardian-deadlines.ics", "text/calendar", purchasesToIcs(state.purchases, today()));
   }
 });

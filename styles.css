@@ -333,6 +333,36 @@ svg {
   background: linear-gradient(180deg, #eef8f4, white);
 }
 
+.reminder-guide {
+  margin-bottom: 16px;
+}
+
+.guide-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guide-steps div {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+}
+
+.guide-steps strong {
+  font-size: 13px;
+}
+
+.guide-steps span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
 .import-preview {
   margin-bottom: 16px;
 }
@@ -916,6 +946,7 @@ svg {
   }
 
   .summary-grid,
+  .guide-steps,
   .purchase-form,
   .mapping-grid,
   .purchase-row,

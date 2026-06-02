@@ -64,6 +64,7 @@ const requiredUiCopy = [
   "반품기한과 보증기간을 다시는 놓치지 마세요.",
   "마감 큐",
   "영수증 텍스트 파서",
+  "캘린더 알림",
   "증빙 데스크",
   "계정도, 서버 업로드도 없습니다.",
   "Never miss a return window or warranty again.",

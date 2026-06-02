@@ -51,6 +51,19 @@ const context = await browser.newContext({
 });
 await context.grantPermissions(["notifications"], { origin: `http://127.0.0.1:${port}` });
 const page = await context.newPage();
+await page.addInitScript(() => {
+  class MockNotification {
+    static permission = "granted";
+    static requestPermission() {
+      return Promise.resolve("granted");
+    }
+
+    constructor(title, options) {
+      window.__rwgNotifications = [...(window.__rwgNotifications || []), { title, options }];
+    }
+  }
+  Object.defineProperty(window, "Notification", { configurable: true, value: MockNotification });
+});
 const consoleErrors = [];
 const stages = [];
 
@@ -84,6 +97,7 @@ stages.push("language-switch");
 
 const initialRows = await page.locator(".purchase-row").count();
 const initialSummary = await page.locator(".summary-card").count();
+const calendarGuideVisible = await page.locator("text=캘린더 알림").count();
 await page.screenshot({ path: `${root}/outputs/playwright-desktop.png`, fullPage: true });
 stages.push("desktop-screenshot");
 
@@ -282,6 +296,7 @@ const result = {
   languageOptionCount,
   initialRows,
   initialSummary,
+  calendarGuideVisible,
   rowsAfterManualSave,
   attachmentVisible,
   policyReturnDays,
@@ -329,6 +344,7 @@ const failures = [
   languageOptionCount !== 8 && "Expected eight language options",
   initialRows < 3 && "Expected seeded purchase rows",
   initialSummary !== 4 && "Expected four dashboard summary cards",
+  calendarGuideVisible < 1 && "Expected calendar import guide",
   rowsAfterManualSave < 4 && "Expected manual purchase with attachment to be saved",
   attachmentVisible < 1 && "Expected saved local attachment name to be visible",
   policyReturnDays !== "60" && "Expected policy template to set return days",

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "standard-30-day-return",
+    "expectedReturnWindowDays": 30,
+    "expectedRefundWindowDays": 14,
+    "expectedWarrantyMonths": 12
+  },
+  {
+    "id": "extended-60-day-return",
+    "expectedReturnWindowDays": 60,
+    "expectedRefundWindowDays": 30,
+    "expectedWarrantyMonths": 12
+  },
+  {
+    "id": "warranty-only",
+    "expectedReturnWindowDays": 0,
+    "expectedRefundWindowDays": 0,
+    "expectedWarrantyMonths": 12
+  },
+  {
+    "id": "final-sale",
+    "expectedReturnWindowDays": 0,
+    "expectedRefundWindowDays": 0,
+    "expectedWarrantyMonths": 0
+  }
+]

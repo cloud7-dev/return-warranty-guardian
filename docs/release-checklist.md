@@ -14,7 +14,7 @@ Expected result:
 
 - Logic tests pass.
 - Static file and PWA checks pass.
-- Browser QA confirms default Korean language, eight language options, local attachment save/download visibility, local HTML/PDF receipt extraction, user-confirmed policy templates, CSV import preview with built-in/manual column mapping plus saved preset, duplicate/invalid row counts, CSV import report export, receipt parsing, search, evidence pack export, claim packet HTML download with attachment evidence and submission templates, claim bundle JSON/ZIP download, ICS export with alarms, local alert status, CSV export, mobile layout, and no console errors.
+- Browser QA confirms default Korean language, eight language options, local attachment save/download visibility, local HTML/PDF receipt extraction, user-confirmed policy templates, calendar import guide visibility, CSV import preview with built-in/manual column mapping plus saved preset, duplicate/invalid row counts, CSV import report export, receipt parsing, search, evidence pack export, claim packet HTML download with attachment evidence and submission templates, claim bundle JSON/ZIP download, ICS export with alarms, local alert status, CSV export, mobile layout, and no console errors.
 
 ## Screenshots
 
@@ -58,6 +58,7 @@ Release notes should include:
 - Import/OCR/claim packet behavior changes.
 - Claim submission template changes.
 - Notification, calendar alarm, or policy template changes.
+- Fixture corpus additions and privacy-safe sample notes.
 - Migration or compatibility notes.
 - Test evidence.
 - Known limitations and V2 backlog items.

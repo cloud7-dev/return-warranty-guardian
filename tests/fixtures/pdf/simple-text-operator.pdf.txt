@@ -1,0 +1,12 @@
+%PDF-1.4
+1 0 obj
+<<>>
+stream
+BT
+(PDF Fixture Store) Tj
+[(Warranty) -20 ( Router 89.00)] TJ
+<323032362d30362d3032> Tj
+(Total 89.00) Tj
+ET
+endstream
+endobj

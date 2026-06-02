@@ -23,6 +23,7 @@
 - CSV import report JSON 내보내기
 - 로컬 텍스트/CSV/HTML 이메일 영수증/기본 PDF text operator/지원 브라우저의 이미지 OCR 추출 후 영수증 파서 연결
 - 사용자 확인형 정책 템플릿: 표준 30일 반품, 60일 확장 반품, 보증 전용, final sale/no return
+- CSV/HTML 영수증/PDF text operator/정책 템플릿 synthetic fixture corpus
 - 사전 알림 일수 저장, `.ics` `VALARM` 내보내기, 앱이 열려 있을 때의 브라우저 로컬 알림
 - 출력용 클레임 HTML 생성, 로컬 첨부 링크/이미지 미리보기 포함, 브라우저 인쇄 대화상자를 통한 PDF 저장 흐름
 - 클레임 제출 템플릿: 판매처 반품 요청, 보증 지원 요청, chargeback 증빙 요약, 수리 접수 메모
@@ -43,7 +44,8 @@
    - 현재 구현: import report JSON으로 매핑/정상/중복/오류 결과 내보내기
    - 현재 구현: 현재 매핑을 사용자 preset으로 localStorage에 저장/삭제
    - 현재 구현: 한국 카드명세서, 한국 쇼핑몰 주문내역, Amazon-style 주문내역 프리셋과 한국어/영어 주요 헤더 alias
-   - 남은 구현: 실제 사용자 샘플 기반의 카드사/판매처별 fixture corpus, 프리셋 공유/검증 워크플로
+   - 현재 구현: 개인정보 없는 synthetic CSV fixture corpus로 프리셋 회귀 테스트
+   - 남은 구현: 익명화된 실제 사용자 샘플 기반의 카드사/판매처별 fixture 확대, 프리셋 공유/검증 워크플로
 
 ### v0.3: 입력 자동화와 정책 보조
 
@@ -51,11 +53,13 @@
    - 현재 구현: 텍스트/CSV/HTML 이메일 영수증/기본 PDF text operator를 브라우저에서 읽고, 브라우저가 로컬 `TextDetector`를 제공할 때 이미지 OCR 결과를 영수증 파서로 연결
    - 현재 구현: 브라우저가 이미지 OCR을 지원하지 않을 때 cloud OCR 대신 붙여넣기 fallback을 안내
    - 현재 구현: 사용자가 확인해서 적용하는 정책 템플릿으로 반품/환불/보증 기본값과 정책 확인 메모를 채움
-   - 남은 구현: 모든 브라우저에서 동작하는 번들형 이미지 OCR 엔진, 압축/스캔 PDF OCR, 실제 판매처 정책 fixture와 국가별 면책 문구
+   - 현재 구현: HTML 이메일 영수증, PDF text operator, 정책 템플릿 synthetic fixture corpus로 회귀 테스트
+   - 남은 구현: 모든 브라우저에서 동작하는 번들형 이미지 OCR 엔진, 압축/스캔 PDF OCR, 실제 판매처 정책 fixture 확대와 국가별 면책 문구
 
 4. **서버 없는 알림 경험 고도화**
    - 현재 구현: 구매별 사전 알림 일수 저장, `.ics` 캘린더 내보내기, `.ics` `VALARM` 사전 알림, 앱이 열려 있을 때의 브라우저 로컬 알림 버튼
-   - 남은 구현: 캘린더 가져오기 화면 가이드, 반복 알림/스누즈 UX, 선택형 self-hosted 알림 연동
+   - 현재 구현: 앱 안의 캘린더 가져오기 가이드로 모바일/PC 캘린더 경로 안내
+   - 남은 구현: 반복 알림/스누즈 UX, 선택형 self-hosted 알림 연동
 
 ### v0.4: 클레임/홈 히스토리 출력
 
@@ -84,4 +88,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대의 1차 범위, 3번 로컬 OCR/정책 추출의 1차 범위, 4번 서버 없는 알림 경험의 1차 범위, 5번 클레임 패킷 HTML/PDF는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 실제 샘플 기반 import/OCR fixture corpus, 압축/스캔 PDF OCR, 캘린더 가져오기/반복 알림 UX, 선택형 self-hosted 알림 연동, 암호화 백업, polished PWA입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장, 2번 CSV import preset 확대와 fixture corpus의 1차 범위, 3번 로컬 OCR/정책 추출과 fixture corpus의 1차 범위, 4번 서버 없는 알림 경험과 캘린더 가이드의 1차 범위, 5번 클레임 패킷 HTML/PDF는 사용 가능한 수준으로 보강되었습니다. 남은 큰 묶음은 익명화된 실제 샘플 기반 import/OCR fixture 확대, 압축/스캔 PDF OCR, 반복 알림/스누즈 UX, 선택형 self-hosted 알림 연동, 암호화 백업, polished PWA입니다.
