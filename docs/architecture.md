@@ -23,9 +23,9 @@ There is no API server and no account system. All purchase data remains in brows
 
 - `src/deadline-engine.js`: date math, deadline status, dashboard summaries.
 - `src/receipt-parser.js`: deterministic pasted-text parser for receipts and invoices.
-- `src/importers.js`: CSV parsing and purchase-row normalization.
+- `src/importers.js`: CSV parsing, purchase-row normalization, duplicate detection, and invalid-row reporting.
 - `src/storage.js`: IndexedDB persistence with localStorage fallback.
-- `src/exporters.js`: Markdown evidence pack, printable claim packet HTML, CSV export, and `.ics` calendar export.
+- `src/exporters.js`: Markdown evidence pack, printable claim packet HTML with attachment evidence, CSV export, and `.ics` calendar export.
 - `src/app.js`: UI composition, local state, event handling, import/export.
 - `src/i18n.js`: Korean-default multilingual UI dictionary.
 
@@ -66,3 +66,7 @@ There is no API server and no account system. All purchase data remains in brows
 ```
 
 Deadlines are derived, not stored. This keeps deadline math transparent and reproducible.
+
+CSV imports are staged in an in-memory preview before they are saved. The app imports valid new rows, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file.
+
+Local OCR/text extraction is handled in the browser. Text, CSV, and simple PDF text paths are file reads; image OCR uses browser-local `TextDetector` only when the current browser supports it.

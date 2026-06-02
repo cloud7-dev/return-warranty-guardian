@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
-import { purchasesFromCsv } from "../src/importers.js";
+import { analyzeCsvImport, purchasesFromCsv } from "../src/importers.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import { claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs } from "../src/exporters.js";
 
@@ -33,6 +33,12 @@ const purchase = {
       type: "application/pdf",
       size: 128,
       dataUrl: "data:application/pdf;base64,JVBERi0x",
+    },
+    {
+      name: "receipt-photo.png",
+      type: "image/png",
+      size: 96,
+      dataUrl: "data:image/png;base64,iVBORw0KGgo=",
     },
   ],
   serviceNotes: "No repairs yet.",
@@ -87,10 +93,24 @@ assert.equal(imported.length, 1);
 assert.equal(imported[0].productName, "Imported Lamp");
 assert.equal(imported[0].documents.length, 2);
 
+const analyzed = analyzeCsvImport(
+  `product_name,merchant,purchase_date,price
+"Imported Lamp","Home Store","2026-06-01","59.99"
+"Wireless Headset","Example Electronics","2026-06-02","129.99"
+"Missing Merchant","","2026-06-01","10.00"`,
+  [purchase],
+  now,
+);
+assert.equal(analyzed.valid.length, 1);
+assert.equal(analyzed.duplicates.length, 1);
+assert.equal(analyzed.invalid.length, 1);
+
 const claimPacket = claimPacketHtml(purchase, now);
 assert.match(claimPacket, /Claim Packet: Wireless Headset/);
 assert.match(claimPacket, /Print or save PDF/);
 assert.match(claimPacket, /warranty-card\.pdf/);
+assert.match(claimPacket, /data:image\/png/);
+assert.match(claimPacket, /Submission Note/);
 
 const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);

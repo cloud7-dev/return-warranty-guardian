@@ -324,6 +324,54 @@ svg {
   background: linear-gradient(180deg, #eef8f4, white);
 }
 
+.import-preview {
+  margin-bottom: 16px;
+}
+
+.import-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.import-stats span {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.import-row-list,
+.import-issues {
+  display: grid;
+  gap: 8px;
+}
+
+.import-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+}
+
+.import-row span,
+.import-issues span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.import-issues {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 .workbench {
   display: grid;
   grid-template-columns: minmax(440px, 0.95fr) minmax(360px, 1.05fr);

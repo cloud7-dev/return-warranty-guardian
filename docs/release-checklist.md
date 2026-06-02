@@ -14,7 +14,7 @@ Expected result:
 
 - Logic tests pass.
 - Static file and PWA checks pass.
-- Browser QA confirms default Korean language, eight language options, local attachment save/download visibility, local text extraction, CSV import, receipt parsing, search, evidence pack export, claim packet HTML download, ICS export, CSV export, mobile layout, and no console errors.
+- Browser QA confirms default Korean language, eight language options, local attachment save/download visibility, local text extraction, CSV import preview with duplicate/invalid row counts, receipt parsing, search, evidence pack export, claim packet HTML download with attachment evidence, ICS export, CSV export, mobile layout, and no console errors.
 
 ## Screenshots
 
@@ -38,6 +38,7 @@ Check:
 - Notification strategy.
 - Privacy threat model.
 - Architecture data model when storage fields change.
+- V2 checklist when a backlog item moves from "remaining" to "implemented".
 
 ## GitHub Metadata
 

@@ -1,6 +1,6 @@
 import { computeDeadlines, formatDate, summarizePurchases } from "./deadline-engine.js";
 import { claimPacketHtml, evidencePackMarkdown, purchasesToCsv, purchasesToIcs, downloadText } from "./exporters.js";
-import { purchasesFromCsv } from "./importers.js";
+import { analyzeCsvImport } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
@@ -17,10 +17,17 @@ const state = {
   selectedId: "",
   parsedReceipt: null,
   ocrStatus: "",
+  importPreview: null,
 };
 
 const today = () => new Date();
 const t = (key, values) => translate(state.language, key, values);
+const h = (value) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 
 function linesFromText(value) {
   return String(value || "")
@@ -59,7 +66,20 @@ async function extractLocalText(file) {
     const raw = await file.text();
     return raw.replace(/[^\x09\x0a\x0d\x20-\x7e가-힣一-龥ぁ-ゔァ-ヴー]/g, " ");
   }
-  throw new Error("Image OCR needs browser OCR support or a future local OCR engine.");
+  if (/^image\//.test(file.type)) {
+    if (typeof TextDetector !== "function") {
+      throw new Error("Image OCR is not available in this browser. Paste receipt text or use a browser with local TextDetector support.");
+    }
+    const bitmap = await createImageBitmap(file);
+    try {
+      const detector = new TextDetector();
+      const detections = await detector.detect(bitmap);
+      return detections.map((item) => item.rawValue || "").filter(Boolean).join("\n");
+    } finally {
+      bitmap.close?.();
+    }
+  }
+  throw new Error("Unsupported local file type.");
 }
 
 async function attachmentsFromForm(formData) {
@@ -224,6 +244,65 @@ function renderDashboard() {
       ${summaryCard(t("openItems"), summary.open, t("totalRecords", { count: summary.total }), "")}
       ${summaryCard(t("missingProof"), summary.missingProof, t("missingProofDetail"), "risk")}
       ${summaryCard(t("returnValue"), money(summary.returnValueAtRisk), t("returnValueDetail"), "money")}
+    </section>
+  `;
+}
+
+function renderImportPreview() {
+  const preview = state.importPreview;
+  if (!preview) return "";
+  const valid = preview.valid || [];
+  const duplicates = preview.duplicates || [];
+  const invalid = preview.invalid || [];
+  const previewRows = valid.slice(0, 4);
+
+  return `
+    <section class="panel import-preview" aria-live="polite">
+      <div class="panel-heading">
+        <div>
+          <h2>${t("importPreviewTitle")}</h2>
+          <p>${h(t("importPreviewSubtitle", { file: preview.fileName }))}</p>
+        </div>
+        <div class="detail-actions">
+          <button class="secondary-action" id="confirm-import" type="button" ${valid.length ? "" : "disabled"}>${t("confirmImport")}</button>
+          <button class="ghost-action" id="cancel-import" type="button">${t("cancelImport")}</button>
+        </div>
+      </div>
+      <div class="import-stats">
+        <span>${t("importValidCount", { count: valid.length })}</span>
+        <span>${t("importDuplicateCount", { count: duplicates.length })}</span>
+        <span>${t("importInvalidCount", { count: invalid.length })}</span>
+      </div>
+      ${
+        previewRows.length
+          ? `<div class="import-row-list">
+              ${previewRows
+                .map(
+                  ({ purchase }) => `
+                    <div class="import-row">
+                      <strong>${h(purchase.productName)}</strong>
+                      <span>${h(purchase.merchant)} · ${h(purchase.purchaseDate)} · ${money(purchase.price)}</span>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>`
+          : `<p class="empty-note">${t("noImportableRows")}</p>`
+      }
+      ${
+        duplicates.length || invalid.length
+          ? `<div class="import-issues">
+              ${duplicates
+                .slice(0, 3)
+                .map(({ rowNumber, purchase }) => `<span>${h(t("duplicateImport", { row: rowNumber, product: purchase.productName }))}</span>`)
+                .join("")}
+              ${invalid
+                .slice(0, 3)
+                .map(({ rowNumber, issues }) => `<span>${h(t("rowIssues", { row: rowNumber, issues: issues.join(", ") }))}</span>`)
+                .join("")}
+            </div>`
+          : ""
+      }
     </section>
   `;
 }
@@ -596,6 +675,7 @@ function renderShell() {
         </div>
       </header>
       ${renderDashboard()}
+      ${renderImportPreview()}
       <section class="workbench">
         ${renderPurchaseForm()}
         ${renderParser()}
@@ -623,7 +703,7 @@ function parseImportedJson(text) {
 async function parseImportedFile(file) {
   const text = await file.text();
   if (/\.csv$/i.test(file.name) || file.type === "text/csv") {
-    return { mode: "append", purchases: purchasesFromCsv(text, today()) };
+    return { mode: "preview", preview: { ...analyzeCsvImport(text, state.purchases, today()), fileName: file.name } };
   }
   return { mode: "replace", purchases: parseImportedJson(text) };
 }
@@ -724,8 +804,12 @@ app.addEventListener("change", async (event) => {
   if (!file) return;
   try {
     const imported = await parseImportedFile(file);
-    state.purchases =
-      imported.mode === "append" ? [...imported.purchases, ...state.purchases] : imported.purchases;
+    if (imported.mode === "preview") {
+      state.importPreview = imported.preview;
+      render();
+      return;
+    }
+    state.purchases = imported.purchases;
     state.selectedId = imported.purchases[0]?.id || "";
     await persistAndRender();
   } catch (error) {
@@ -782,6 +866,21 @@ app.addEventListener("click", async (event) => {
   if (button.id === "parse-receipt") {
     const text = document.querySelector("#receipt-text").value;
     state.parsedReceipt = parseReceiptText(text);
+    render();
+    return;
+  }
+
+  if (button.id === "confirm-import") {
+    const purchases = (state.importPreview?.valid || []).map((row) => row.purchase);
+    state.purchases = [...purchases, ...state.purchases];
+    state.selectedId = purchases[0]?.id || state.selectedId;
+    state.importPreview = null;
+    await persistAndRender();
+    return;
+  }
+
+  if (button.id === "cancel-import") {
+    state.importPreview = null;
     render();
     return;
   }

@@ -18,6 +18,21 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function attachmentEvidenceHtml(attachment) {
+  const name = escapeHtml(attachment.name);
+  const type = escapeHtml(attachment.type || "file");
+  const href = escapeHtml(attachment.dataUrl || "");
+  const size = Number(attachment.size || 0);
+  const sizeLabel = size ? `${size} bytes` : "size not recorded";
+  if (String(attachment.type || "").startsWith("image/") && attachment.dataUrl) {
+    return `<figure class="attachment-card"><img src="${href}" alt="${name}" /><figcaption>${name} · ${type} · ${escapeHtml(sizeLabel)}</figcaption></figure>`;
+  }
+  if (attachment.dataUrl) {
+    return `<li><a href="${href}" download="${name}">${name}</a> (${type}, ${escapeHtml(sizeLabel)})</li>`;
+  }
+  return `<li>${name} (${type}, ${escapeHtml(sizeLabel)})</li>`;
+}
+
 export function evidencePackMarkdown(purchase, now = new Date()) {
   const item = computeDeadlines(purchase, now);
   const documents = Array.isArray(item.documents) ? item.documents : [];
@@ -147,6 +162,8 @@ export function claimPacketHtml(purchase, now = new Date()) {
       `,
     )
     .join("");
+  const imageAttachments = attachments.filter((attachment) => String(attachment.type || "").startsWith("image/"));
+  const fileAttachments = attachments.filter((attachment) => !String(attachment.type || "").startsWith("image/"));
 
   return `<!doctype html>
 <html lang="en">
@@ -160,7 +177,13 @@ export function claimPacketHtml(purchase, now = new Date()) {
     .meta{color:#64716d;margin:0 0 20px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .box{border:1px solid #dfe6e1;border-radius:8px;padding:12px;background:#f9faf7}
     table{width:100%;border-collapse:collapse}td,th{border:1px solid #dfe6e1;padding:8px;text-align:left}
-    ul{padding-left:20px}.print{margin-bottom:18px}@media print{.print{display:none}body{margin:18px}}
+    ul{padding-left:20px}.print{margin-bottom:18px}
+    .attachment-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+    .attachment-card{margin:0;border:1px solid #dfe6e1;border-radius:8px;padding:10px;background:#f9faf7}
+    .attachment-card img{max-width:100%;max-height:260px;object-fit:contain;display:block;margin:auto}
+    .attachment-card figcaption{margin-top:8px;color:#64716d;font-size:12px}
+    .submission-note{border-left:4px solid #0f766e;background:#e6f4ef;padding:12px}
+    @media print{.print{display:none}body{margin:18px}a{color:#14211f}}
   </style>
 </head>
 <body>
@@ -180,7 +203,12 @@ export function claimPacketHtml(purchase, now = new Date()) {
   <h2>Documents</h2>
   <ul>${documents.length ? documents.map((name) => `<li>${escapeHtml(name)}</li>`).join("") : "<li>No document names recorded.</li>"}</ul>
   <h2>Local Attachments</h2>
-  <ul>${attachments.length ? attachments.map((attachment) => `<li>${escapeHtml(attachment.name)} (${escapeHtml(attachment.type || "file")})</li>`).join("") : "<li>No local files attached.</li>"}</ul>
+  ${
+    attachments.length
+      ? `<ul>${fileAttachments.map(attachmentEvidenceHtml).join("")}</ul>
+         ${imageAttachments.length ? `<div class="attachment-grid">${imageAttachments.map(attachmentEvidenceHtml).join("")}</div>` : ""}`
+      : "<ul><li>No local files attached.</li></ul>"
+  }
   <h2>Service History</h2>
   <p>${escapeHtml(item.serviceNotes || "No service history recorded.")}</p>
   <h2>Notes</h2>
@@ -194,6 +222,8 @@ export function claimPacketHtml(purchase, now = new Date()) {
     <li>Merchant support contact</li>
     <li>Return label or RMA number</li>
   </ul>
+  <h2>Submission Note</h2>
+  <p class="submission-note">This packet is generated locally from browser storage. Review deadlines, merchant policy, and attachment contents before submitting a return, warranty, chargeback, or repair claim.</p>
 </body>
 </html>`;
 }

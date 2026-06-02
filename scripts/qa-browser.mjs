@@ -124,9 +124,19 @@ const csvImportPath = `${root}/outputs/qa-import.csv`;
 await writeFile(
   csvImportPath,
   `product_name,merchant,purchase_date,price,return_days,refund_days,warranty_months,documents
-"CSV Import Toaster","CSV Home","2026-06-01","49.99","30","14","24","toaster-receipt.pdf; toaster-manual.pdf"`,
+"CSV Import Toaster","CSV Home","2026-06-01","49.99","30","14","24","toaster-receipt.pdf; toaster-manual.pdf"
+"Coffee Maker","Kitchen Corner","2026-05-14","84.50","60","30","24","duplicate.pdf"
+"Broken Row","","2026-06-01","12.00","30","14","12","missing-merchant.pdf"`,
 );
 await page.setInputFiles("#import-json", csvImportPath);
+await page.waitForSelector("text=가져오기 미리보기");
+await page.waitForSelector("text=중복 1개");
+await page.waitForSelector("text=오류 1개");
+const importPreviewVisible = await page.locator("text=가져오기 미리보기").count();
+const importDuplicateVisible = await page.locator("text=중복 1개").count();
+const importInvalidVisible = await page.locator("text=오류 1개").count();
+await page.click("#confirm-import");
+await page.waitForFunction((count) => document.querySelectorAll(".purchase-row").length >= count + 1, rowsAfterParse);
 await page.waitForSelector("text=CSV Import Toaster");
 const rowsAfterCsvImport = await page.locator(".purchase-row").count();
 stages.push("csv-import");
@@ -193,6 +203,9 @@ const result = {
   previewItems,
   rowsAfterParse,
   ocrImportedTextVisible,
+  importPreviewVisible,
+  importDuplicateVisible,
+  importInvalidVisible,
   rowsAfterCsvImport,
   filteredRows,
   filteredTextContainsCoffeeMaker: filteredText.includes("Coffee Maker"),
@@ -220,6 +233,9 @@ const failures = [
   previewItems !== 2 && "Expected two parsed receipt items",
   rowsAfterParse < 6 && "Expected parsed items to be saved",
   ocrImportedTextVisible < 1 && "Expected local OCR extracted receipt item to be visible",
+  importPreviewVisible < 1 && "Expected CSV import preview to appear",
+  importDuplicateVisible < 1 && "Expected CSV duplicate count to appear",
+  importInvalidVisible < 1 && "Expected CSV invalid row count to appear",
   rowsAfterCsvImport < 7 && "Expected CSV import to add a purchase",
   filteredRows !== 1 && "Expected Coffee Maker search to return one row",
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
