@@ -10,6 +10,8 @@ const requiredFiles = [
   "src/receipt-parser.js",
   "src/i18n.js",
   "src/importers.js",
+  "src/local-extraction.js",
+  "src/policy-templates.js",
   "src/storage.js",
   "src/exporters.js",
   "src/sample-data.js",

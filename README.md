@@ -28,16 +28,18 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Tracks return, refund, and warranty deadlines from one local dashboard.
 - Stores purchases in browser storage with JSON export/import.
 - Stores local receipt, PDF, manual, and warranty-card attachments in the browser record.
-- Previews CSV purchase rows before import, supports built-in and saved user presets, manual column mapping, duplicate skipping, and invalid row reporting locally.
+- Previews CSV purchase rows before import, supports built-in presets for card/order exports including Korean card statements, Korean shopping orders, and Amazon-style order history, plus saved user presets, manual column mapping, duplicate skipping, and invalid row reporting locally.
 - Exports a local CSV import report for audit/debugging before the import is confirmed.
-- Extracts local text, CSV, HTML/email receipts, simple PDF text, and supported browser-local image OCR into the receipt parser without upload.
+- Extracts local text, CSV, HTML/email receipts, simple PDF text operators, and supported browser-local image OCR into the receipt parser without upload.
+- Applies user-confirmed policy templates for common return/warranty assumptions without fetching merchant data.
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
 - Exports claim-ready evidence packs as Markdown.
 - Exports printable HTML claim packets with local attachment links/previews and submission templates that can be saved as PDF from the browser print dialog.
 - Exports claim bundle JSON with the purchase record, deadline math, evidence pack Markdown, claim HTML, submission templates, and local attachment data URLs.
 - Exports a ZIP claim bundle with HTML, Markdown, JSON, submission template files, and attached local files.
-- Exports `.ics` calendar reminders for purchase deadlines.
+- Exports `.ics` calendar reminders with per-purchase lead-day alarms for purchase deadlines.
+- Supports browser notifications while the app is open, with `.ics` export as the no-server mobile/desktop fallback.
 - Exports CSV records for spreadsheet review.
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
 - Switches the interface between Korean, English, Japanese, Chinese, German, French, Italian, and Hindi.
@@ -69,19 +71,19 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, CSV export, and calendar export. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML receipt extraction, CSV preview/manual mapping/deduplication/report export, claim packet template/JSON/ZIP bundle download, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, CSV import analysis, mapping presets, local PDF text extraction, policy templates, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim submission templates, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments, local HTML/PDF receipt extraction, policy templates, CSV preview/presets/manual mapping/deduplication/report export, claim packet template/JSON/ZIP bundle download, local alert status, exports, search, and mobile screenshots.
 
 ## Privacy Model
 
 Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use JSON export for backups.
 
-Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, HTML/email receipts, basic PDF text extraction, and image OCR when the browser exposes a local `TextDetector` API. If image OCR is not available in the current browser, the app keeps the flow local and asks the user to paste receipt text instead of calling a cloud OCR service.
+Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, HTML/email receipts, simple PDF text operators, and image OCR when the browser exposes a local `TextDetector` API. If image OCR is not available in the current browser, the app keeps the flow local and asks the user to paste receipt text instead of calling a cloud OCR service.
 
 This project is a tracking and evidence-organization tool. It does not guarantee that a merchant will accept a return, refund, or warranty claim.
 
 ## Notifications
 
-The current no-server notification path is `.ics` calendar export. Mobile users can import deadlines into iOS, Google, or Samsung Calendar; desktop users can import them into macOS Calendar, Outlook, Google Calendar, or Windows Calendar. See [docs/notification-strategy.ko.md](docs/notification-strategy.ko.md) for the Korean notification plan.
+The current no-server notification path is `.ics` calendar export with `VALARM` lead-day reminders. Mobile users can import deadlines into iOS, Google, or Samsung Calendar; desktop users can import them into macOS Calendar, Outlook, Google Calendar, or Windows Calendar. The app can also show local browser notifications while it is open. See [docs/notification-strategy.ko.md](docs/notification-strategy.ko.md) for the Korean notification plan.
 
 ## Consolidation
 

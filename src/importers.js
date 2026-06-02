@@ -29,6 +29,7 @@ export const CSV_IMPORT_FIELDS = [
   { key: "returnWindowDays", label: "Return days", required: false },
   { key: "refundWindowDays", label: "Refund days", required: false },
   { key: "warrantyMonths", label: "Warranty months", required: false },
+  { key: "reminderLeadDays", label: "Reminder lead days", required: false },
   { key: "model", label: "Model", required: false },
   { key: "serial", label: "Serial", required: false },
   { key: "category", label: "Category", required: false },
@@ -42,22 +43,23 @@ export const CSV_IMPORT_FIELDS = [
 ];
 
 const CSV_FIELD_ALIASES = {
-  productName: ["product_name", "product", "name", "item", "description", "item_name", "title"],
-  merchant: ["merchant", "merchant_name", "store", "vendor", "seller", "payee", "shop"],
-  purchaseDate: ["purchase_date", "date", "order_date", "transaction_date", "purchased_at"],
-  price: ["price", "amount", "total", "line_total", "transaction_amount"],
-  returnWindowDays: ["return_days", "return_window_days"],
-  refundWindowDays: ["refund_days", "refund_window_days"],
-  warrantyMonths: ["warranty_months", "warranty"],
-  model: ["model", "model_number"],
-  serial: ["serial", "serial_number"],
-  category: ["category"],
-  room: ["room", "location"],
-  supportContact: ["support_contact", "support", "contact"],
-  documents: ["documents", "document_names", "receipt", "receipt_file"],
-  serviceNotes: ["service_notes", "service_history"],
-  hasReceipt: ["has_receipt", "receipt_available", "proof"],
-  notes: ["notes", "memo"],
+  productName: ["product_name", "product", "name", "item", "description", "item_name", "title", "thing", "상품명", "품목", "제품명", "주문상품"],
+  merchant: ["merchant", "merchant_name", "store", "vendor", "seller", "payee", "shop", "shop_name", "가맹점명", "상호", "판매자", "구매처", "사용처"],
+  purchaseDate: ["purchase_date", "date", "order_date", "transaction_date", "purchased_at", "bought_on", "구매일", "주문일", "결제일", "승인일", "거래일", "사용일"],
+  price: ["price", "amount", "total", "line_total", "transaction_amount", "cost", "item_subtotal", "금액", "결제금액", "승인금액", "이용금액", "주문금액", "합계"],
+  returnWindowDays: ["return_days", "return_window_days", "return_policy_days", "반품가능일수", "반품일수"],
+  refundWindowDays: ["refund_days", "refund_window_days", "refund_policy_days", "환불가능일수", "환불일수"],
+  warrantyMonths: ["warranty_months", "warranty", "warranty_period_months", "보증개월", "보증기간"],
+  reminderLeadDays: ["reminder_days", "reminder_lead_days", "alert_days", "알림일수", "사전알림일수"],
+  model: ["model", "model_number", "모델", "모델명"],
+  serial: ["serial", "serial_number", "serial_no", "시리얼", "일련번호"],
+  category: ["category", "카테고리", "분류"],
+  room: ["room", "location", "install_location", "방", "위치", "설치위치"],
+  supportContact: ["support_contact", "support", "contact", "customer_service", "고객센터", "연락처"],
+  documents: ["documents", "document_names", "receipt", "receipt_file", "docs", "invoice", "order_id", "order_number", "문서", "영수증", "증빙", "주문번호"],
+  serviceNotes: ["service_notes", "service_history", "repair_notes", "수리이력", "서비스메모"],
+  hasReceipt: ["has_receipt", "receipt_available", "proof", "영수증보유", "증빙보유"],
+  notes: ["notes", "memo", "비고", "메모"],
   status: ["status"],
 };
 
@@ -75,6 +77,17 @@ export const CSV_IMPORT_PRESETS = [
     },
   },
   {
+    id: "korean-card-statement",
+    label: "Korean card statement",
+    aliases: {
+      merchant: ["가맹점명", "사용처", "상호", "이용가맹점"],
+      purchaseDate: ["승인일", "거래일", "사용일", "이용일"],
+      price: ["승인금액", "이용금액", "결제금액", "금액"],
+      productName: ["가맹점명", "사용처", "상호", "이용가맹점"],
+      notes: ["비고", "메모", "승인번호"],
+    },
+  },
+  {
     id: "order-export",
     label: "Order export",
     aliases: {
@@ -83,6 +96,30 @@ export const CSV_IMPORT_PRESETS = [
       purchaseDate: ["order_date", "purchased_at", "date"],
       price: ["line_total", "total", "price"],
       documents: ["receipt", "receipt_file", "documents"],
+    },
+  },
+  {
+    id: "amazon-style-order",
+    label: "Amazon-style order history",
+    aliases: {
+      productName: ["title", "item_name", "product_name", "description"],
+      merchant: ["seller", "merchant", "ship_from", "vendor", "website"],
+      purchaseDate: ["order_date", "purchase_date", "date"],
+      price: ["item_subtotal", "total", "price", "item_total"],
+      documents: ["order_id", "order_number", "invoice"],
+      notes: ["order_id", "order_number", "asin/isbn"],
+    },
+  },
+  {
+    id: "korean-shopping-order",
+    label: "Korean shopping order",
+    aliases: {
+      productName: ["상품명", "주문상품", "제품명", "품목"],
+      merchant: ["판매자", "구매처", "상호", "스토어"],
+      purchaseDate: ["주문일", "구매일", "결제일"],
+      price: ["결제금액", "주문금액", "금액", "합계"],
+      documents: ["주문번호", "영수증", "증빙"],
+      notes: ["주문번호", "비고", "메모"],
     },
   },
 ];
@@ -110,6 +147,7 @@ export function csvHeaders(text) {
 }
 
 function numberFrom(value, fallback = 0) {
+  if (!String(value ?? "").trim()) return fallback;
   const parsed = Number(String(value || "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -167,6 +205,7 @@ function normalizeCsvRow(row, index, now, mapping = {}) {
       returnWindowDays: numberFrom(valueFrom(row, "returnWindowDays", mapping), 30),
       refundWindowDays: numberFrom(valueFrom(row, "refundWindowDays", mapping), 14),
       warrantyMonths: numberFrom(valueFrom(row, "warrantyMonths", mapping), 12),
+      reminderLeadDays: numberFrom(valueFrom(row, "reminderLeadDays", mapping), 3),
       model: valueFrom(row, "model", mapping),
       serial: valueFrom(row, "serial", mapping),
       category: valueFrom(row, "category", mapping),

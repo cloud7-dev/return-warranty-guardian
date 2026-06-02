@@ -11,6 +11,8 @@ import {
 } from "./exporters.js";
 import { CSV_IMPORT_FIELDS, CSV_IMPORT_PRESETS, analyzeCsvImport, csvImportReport, csvMappingForPreset } from "./importers.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
+import { textFromPdfSource } from "./local-extraction.js";
+import { POLICY_TEMPLATES, policyTemplateById } from "./policy-templates.js";
 import { parseReceiptText } from "./receipt-parser.js";
 import { samplePurchases } from "./sample-data.js";
 import { loadPurchases, savePurchases } from "./storage.js";
@@ -29,10 +31,12 @@ const state = {
   ocrStatus: "",
   importPreview: null,
   userCsvPresets: [],
+  notificationStatus: "",
 };
 
 const today = () => new Date();
 const t = (key, values) => translate(state.language, key, values);
+const notifiedReminderKeys = new Set();
 const h = (value) =>
   String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -84,8 +88,7 @@ async function extractLocalText(file) {
   }
   if (/^text\//.test(file.type) || /\.txt$|\.csv$/i.test(file.name)) return file.text();
   if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
-    const raw = await file.text();
-    return raw.replace(/[^\x09\x0a\x0d\x20-\x7e가-힣一-龥ぁ-ゔァ-ヴー]/g, " ");
+    return textFromPdfSource(await file.text());
   }
   if (/^image\//.test(file.type)) {
     if (typeof TextDetector !== "function") {
@@ -111,6 +114,11 @@ async function attachmentsFromForm(formData) {
 
 function purchaseAttachments(purchase) {
   return Array.isArray(purchase.attachments) ? purchase.attachments.filter((item) => item?.name && item?.dataUrl) : [];
+}
+
+function reminderLeadDays(purchase) {
+  const value = Number(purchase.reminderLeadDays ?? 3);
+  return Number.isFinite(value) && value >= 0 ? value : 3;
 }
 
 const filterKeys = {
@@ -195,6 +203,9 @@ function csvPresetOptions() {
 }
 
 async function normalizePurchase(formData) {
+  const template = policyTemplateById(formData.get("policyTemplate"));
+  const notes = String(formData.get("notes") || "").trim();
+  const serviceNotes = String(formData.get("serviceNotes") || "").trim();
   return {
     id: makeId(),
     productName: String(formData.get("productName") || "").trim(),
@@ -204,6 +215,7 @@ async function normalizePurchase(formData) {
     returnWindowDays: Number(formData.get("returnWindowDays") || 0),
     refundWindowDays: Number(formData.get("refundWindowDays") || 0),
     warrantyMonths: Number(formData.get("warrantyMonths") || 0),
+    reminderLeadDays: Number(formData.get("reminderLeadDays") || 3),
     model: String(formData.get("model") || "").trim(),
     serial: String(formData.get("serial") || "").trim(),
     category: String(formData.get("category") || "").trim(),
@@ -211,10 +223,11 @@ async function normalizePurchase(formData) {
     supportContact: String(formData.get("supportContact") || "").trim(),
     documents: linesFromText(formData.get("documents")),
     attachments: await attachmentsFromForm(formData),
-    serviceNotes: String(formData.get("serviceNotes") || "").trim(),
+    policyTemplateId: template?.id || "",
+    serviceNotes,
     source: String(formData.get("source") || "manual"),
     hasReceipt: formData.get("hasReceipt") === "on",
-    notes: String(formData.get("notes") || "").trim(),
+    notes: [notes, template?.note && !notes.includes(template.note) ? template.note : ""].filter(Boolean).join("\n"),
     status: "active",
     createdAt: new Date().toISOString(),
   };
@@ -264,6 +277,53 @@ function getFilteredPurchases() {
 
 async function persistAndRender() {
   await savePurchases(state.purchases);
+  notifyOpenAppReminders();
+  render();
+}
+
+function reminderCandidates() {
+  return state.purchases
+    .filter((purchase) => purchase.status !== "resolved")
+    .flatMap((purchase) => {
+      const item = computeDeadlines(purchase, today());
+      const lead = reminderLeadDays(item);
+      return item.deadlines
+        .filter((deadline) => deadline.daysLeft !== null && deadline.daysLeft >= 0 && deadline.daysLeft <= lead)
+        .map((deadline) => ({ purchase: item, deadline, lead }));
+    });
+}
+
+function notifyOpenAppReminders() {
+  if (typeof Notification !== "function" || Notification.permission !== "granted") return;
+  for (const { purchase, deadline } of reminderCandidates().slice(0, 5)) {
+    const key = `${purchase.id}:${deadline.type}:${deadline.date}`;
+    if (notifiedReminderKeys.has(key)) continue;
+    notifiedReminderKeys.add(key);
+    try {
+      new Notification(`${deadline.label}: ${purchase.productName}`, {
+        body: `${purchase.merchant} · ${deadline.date} · ${t("daysLeft", { count: deadline.daysLeft })}`,
+        tag: key,
+      });
+    } catch {
+      return;
+    }
+  }
+}
+
+async function enableLocalAlerts() {
+  if (typeof Notification !== "function") {
+    state.notificationStatus = t("localAlertsUnsupported");
+    render();
+    return;
+  }
+  const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+  if (permission === "granted") {
+    const count = reminderCandidates().length;
+    state.notificationStatus = t("localAlertsEnabled", { count });
+    notifyOpenAppReminders();
+  } else {
+    state.notificationStatus = t("localAlertsDenied");
+  }
   render();
 }
 
@@ -426,6 +486,18 @@ function renderPurchaseForm() {
         <label>
           ${t("warrantyMonths")}
           <input name="warrantyMonths" min="0" step="1" type="number" value="12" />
+        </label>
+        <label>
+          ${t("reminderLeadDays")}
+          <input name="reminderLeadDays" min="0" step="1" type="number" value="3" />
+        </label>
+        <label>
+          ${t("policyTemplate")}
+          <select name="policyTemplate" id="policy-template">
+            <option value="">${t("policyTemplateNone")}</option>
+            ${POLICY_TEMPLATES.map((template) => `<option value="${template.id}">${h(template.label)}</option>`).join("")}
+          </select>
+          <span class="field-help">${t("policyTemplateHelp")}</span>
         </label>
         <label>
           ${t("model")}
@@ -679,6 +751,7 @@ function renderDetail() {
         <h3>${t("homeContext")}</h3>
         <p>${item.category || t("noCategory")} · ${item.room || t("noRoom")}</p>
         <p>${item.supportContact || t("optional")}</p>
+        <p>${t("reminderLeadLabel", { count: Number(item.reminderLeadDays ?? 3) })}</p>
       </div>
       <div class="document-list">
         <h3>${t("localDocs")}</h3>
@@ -754,7 +827,9 @@ function renderShell() {
             ${icons.import} ${t("import")}
             <input id="import-json" type="file" accept="application/json,text/csv,.json,.csv" />
           </label>
+          <button class="tool-button" id="enable-local-alerts" type="button">${icons.calendar} ${t("localAlerts")}</button>
           <button class="tool-button" id="export-ics" type="button">${icons.calendar} ${t("ics")}</button>
+          ${state.notificationStatus ? `<span class="alert-status">${h(state.notificationStatus)}</span>` : ""}
         </div>
       </header>
       ${renderDashboard()}
@@ -834,6 +909,7 @@ function addParsedItems() {
     returnWindowDays: item.returnWindowDays,
     refundWindowDays: item.refundWindowDays,
     warrantyMonths: item.warrantyMonths,
+    reminderLeadDays: 3,
     model: "",
     serial: "",
     category: "Receipt import",
@@ -841,6 +917,7 @@ function addParsedItems() {
     supportContact: "",
     documents: [`${state.parsedReceipt.merchant} receipt text`],
     attachments: [],
+    policyTemplateId: "",
     serviceNotes: "",
     source: "receipt-text",
     hasReceipt: true,
@@ -927,6 +1004,20 @@ app.addEventListener("change", async (event) => {
   if (event.target.id === "csv-preset") {
     reanalyzeImportPreview({ presetId: event.target.value });
     render();
+    return;
+  }
+
+  if (event.target.id === "policy-template") {
+    const template = policyTemplateById(event.target.value);
+    if (!template) return;
+    const form = event.target.closest("form");
+    form.querySelector('[name="returnWindowDays"]').value = template.returnWindowDays;
+    form.querySelector('[name="refundWindowDays"]').value = template.refundWindowDays;
+    form.querySelector('[name="warrantyMonths"]').value = template.warrantyMonths;
+    const notes = form.querySelector('[name="notes"]');
+    if (!notes.value.includes(template.note)) {
+      notes.value = [notes.value.trim(), template.note].filter(Boolean).join("\n");
+    }
     return;
   }
 
@@ -1095,6 +1186,11 @@ app.addEventListener("click", async (event) => {
 
   if (button.id === "add-parsed-items") {
     addParsedItems();
+    return;
+  }
+
+  if (button.id === "enable-local-alerts") {
+    await enableLocalAlerts();
     return;
   }
 

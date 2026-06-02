@@ -134,6 +134,11 @@ function csvCell(value) {
   return `"${text.replaceAll('"', '""')}"`;
 }
 
+function reminderLeadDays(purchase) {
+  const value = Number(purchase.reminderLeadDays ?? 3);
+  return Number.isFinite(value) && value >= 0 ? value : 3;
+}
+
 export function purchasesToCsv(purchases, now = new Date()) {
   const columns = [
     "product_name",
@@ -143,6 +148,7 @@ export function purchasesToCsv(purchases, now = new Date()) {
     "return_deadline",
     "refund_deadline",
     "warranty_deadline",
+    "reminder_lead_days",
     "category",
     "room",
     "model",
@@ -165,6 +171,7 @@ export function purchasesToCsv(purchases, now = new Date()) {
       item.returnDeadline,
       item.refundDeadline,
       item.warrantyDeadline,
+      reminderLeadDays(item),
       item.category,
       item.room,
       item.model,
@@ -311,6 +318,7 @@ export function purchasesToIcs(purchases, now = new Date()) {
       const uid = `${purchase.id}-${deadline.type}@return-warranty-guardian`;
       const summary = `${deadline.label} deadline: ${purchase.productName}`;
       const description = `${purchase.merchant} | Purchase date ${purchase.purchaseDate} | ${deadline.daysLeft} days left`;
+      const leadDays = reminderLeadDays(purchase);
       return [
         "BEGIN:VEVENT",
         `UID:${uid}`,
@@ -318,6 +326,15 @@ export function purchasesToIcs(purchases, now = new Date()) {
         `DTSTART;VALUE=DATE:${date}`,
         `SUMMARY:${summary}`,
         `DESCRIPTION:${description}`,
+        ...(leadDays > 0
+          ? [
+              "BEGIN:VALARM",
+              "ACTION:DISPLAY",
+              `DESCRIPTION:${summary}`,
+              `TRIGGER:-P${leadDays}D`,
+              "END:VALARM",
+            ]
+          : []),
         "END:VEVENT",
       ].join("\r\n");
     });

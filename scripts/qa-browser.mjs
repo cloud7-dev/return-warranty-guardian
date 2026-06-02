@@ -49,6 +49,7 @@ const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
   deviceScaleFactor: 1,
 });
+await context.grantPermissions(["notifications"], { origin: `http://127.0.0.1:${port}` });
 const page = await context.newPage();
 const consoleErrors = [];
 const stages = [];
@@ -100,6 +101,11 @@ const rowsAfterManualSave = await page.locator(".purchase-row").count();
 const attachmentVisible = await page.locator("text=qa-receipt.pdf").count();
 stages.push("attachment-save");
 
+await page.selectOption("#policy-template", "extended-60-day-return");
+const policyReturnDays = await page.locator('input[name="returnWindowDays"]').inputValue();
+const policyNotes = await page.locator('textarea[name="notes"]').inputValue();
+stages.push("policy-template");
+
 const ocrFixturePath = `${root}/outputs/qa-ocr-receipt.html`;
 await writeFile(
   ocrFixturePath,
@@ -121,6 +127,42 @@ await page.waitForFunction(() => document.querySelectorAll(".purchase-row").leng
 const rowsAfterParse = await page.locator(".purchase-row").count();
 const ocrImportedTextVisible = await page.locator("text=Desk Lamp").count();
 stages.push("ocr-extract-and-save");
+
+const pdfOcrFixturePath = `${root}/outputs/qa-ocr-receipt.pdf`;
+await writeFile(
+  pdfOcrFixturePath,
+  `%PDF-1.4
+1 0 obj
+<<>>
+stream
+BT
+(PDF Demo Store) Tj
+[(Monitor) -20 ( Stand 29.99)] TJ
+(2026-06-02) Tj
+(Total 29.99) Tj
+ET
+endstream
+endobj`,
+);
+await page.setInputFiles("#ocr-file", pdfOcrFixturePath);
+await page.click("#extract-local-ocr");
+await page.waitForSelector("text=Monitor Stand");
+const pdfOcrVisible = await page.locator("text=Monitor Stand").count();
+stages.push("pdf-ocr-extract");
+
+const koreanCsvPresetPath = `${root}/outputs/qa-korean-card.csv`;
+await writeFile(
+  koreanCsvPresetPath,
+  `승인일,가맹점명,이용금액
+"2026-06-01","서울전자","39900"`,
+);
+await page.setInputFiles("#import-json", koreanCsvPresetPath);
+await page.waitForSelector("text=가져오기 미리보기");
+await page.selectOption("#csv-preset", "korean-card-statement");
+await page.waitForSelector("text=서울전자");
+const koreanPresetPreviewVisible = await page.locator("text=서울전자").count();
+await page.click("#cancel-import");
+stages.push("korean-csv-preset");
 
 const csvImportPath = `${root}/outputs/qa-import.csv`;
 await writeFile(
@@ -204,6 +246,11 @@ const icsPath = `${root}/outputs/${icsDownload.suggestedFilename()}`;
 await icsDownload.saveAs(icsPath);
 stages.push("ics-download");
 
+await page.click("#enable-local-alerts");
+await page.waitForSelector("text=앱이 열려 있을 때의 로컬 알림을 켰습니다.");
+const localAlertsVisible = await page.locator("text=앱이 열려 있을 때의 로컬 알림을 켰습니다.").count();
+stages.push("local-alerts");
+
 const csvDownloadPromise = page.waitForEvent("download", { timeout: 7000 });
 await page.click("#export-csv");
 const csvDownload = await csvDownloadPromise;
@@ -237,9 +284,13 @@ const result = {
   initialSummary,
   rowsAfterManualSave,
   attachmentVisible,
+  policyReturnDays,
+  policyNotesUpdated: policyNotes.includes("extended 60-day return"),
   previewItems,
   rowsAfterParse,
   ocrImportedTextVisible,
+  pdfOcrVisible,
+  koreanPresetPreviewVisible,
   importPreviewVisible,
   importMappingVisible,
   importDuplicateVisible,
@@ -263,6 +314,8 @@ const result = {
   claimZipHasTemplateFiles: Buffer.from(claimZipBytes).includes(Buffer.from("templates/merchant-return.txt")),
   icsPath,
   icsContainsCalendar: icsText.includes("BEGIN:VCALENDAR"),
+  icsContainsAlarm: icsText.includes("BEGIN:VALARM") && icsText.includes("TRIGGER:-P"),
+  localAlertsVisible,
   csvPath,
   csvContainsHomeFields: csvText.includes("support_contact") && csvText.includes("documents"),
   mobileHasQueue: mobileHasKoreanQueue || mobileHasQueue,
@@ -278,9 +331,13 @@ const failures = [
   initialSummary !== 4 && "Expected four dashboard summary cards",
   rowsAfterManualSave < 4 && "Expected manual purchase with attachment to be saved",
   attachmentVisible < 1 && "Expected saved local attachment name to be visible",
+  policyReturnDays !== "60" && "Expected policy template to set return days",
+  !result.policyNotesUpdated && "Expected policy template to append a user-confirmed note",
   previewItems !== 2 && "Expected two parsed receipt items",
   rowsAfterParse < 6 && "Expected parsed items to be saved",
   ocrImportedTextVisible < 1 && "Expected local OCR extracted receipt item to be visible",
+  pdfOcrVisible < 1 && "Expected local PDF text extraction preview",
+  koreanPresetPreviewVisible < 1 && "Expected Korean card CSV preset preview",
   importPreviewVisible < 1 && "Expected CSV import preview to appear",
   importMappingVisible < 1 && "Expected CSV mapping controls to appear",
   importDuplicateVisible < 1 && "Expected CSV duplicate count to appear",
@@ -298,6 +355,8 @@ const failures = [
   !result.claimZipHasSignature && "Expected claim ZIP bundle export",
   !result.claimZipHasTemplateFiles && "Expected claim ZIP template files",
   !result.icsContainsCalendar && "Expected ICS calendar export",
+  !result.icsContainsAlarm && "Expected ICS VALARM reminder export",
+  localAlertsVisible < 1 && "Expected open-app local alert status",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",
   consoleErrors.length > 0 && `Console errors: ${consoleErrors.join(" | ")}`,

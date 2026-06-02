@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { analyzeCsvImport, csvImportReport, csvMappingForPreset, purchasesFromCsv } from "../src/importers.js";
+import { textFromPdfSource } from "../src/local-extraction.js";
+import { policyTemplateById } from "../src/policy-templates.js";
 import { parseReceiptText } from "../src/receipt-parser.js";
 import {
   claimPacketBundleJson,
@@ -29,6 +31,7 @@ const purchase = {
   returnWindowDays: 30,
   refundWindowDays: 14,
   warrantyMonths: 12,
+  reminderLeadDays: 5,
   hasReceipt: true,
   status: "active",
   category: "Electronics",
@@ -91,6 +94,7 @@ assert.match(pack, /Home office/);
 
 const csv = purchasesToCsv([purchase], now);
 assert.match(csv, /product_name/);
+assert.match(csv, /reminder_lead_days/);
 assert.match(csv, /Wireless Headset/);
 assert.match(csv, /manual\.pdf/);
 assert.match(csv, /warranty-card\.pdf/);
@@ -130,6 +134,43 @@ const mapped = analyzeCsvImport(
 );
 assert.equal(mapped.valid[0].purchase.productName, "Mapped Card Store");
 assert.equal(mapped.valid[0].purchase.price, 19.95);
+assert.equal(mapped.valid[0].purchase.reminderLeadDays, 3);
+
+const koreanCardMapping = csvMappingForPreset(["승인일", "가맹점명", "이용금액"], "korean-card-statement");
+assert.equal(koreanCardMapping.purchaseDate, "승인일");
+assert.equal(koreanCardMapping.productName, "가맹점명");
+assert.equal(koreanCardMapping.price, "이용금액");
+const koreanCard = analyzeCsvImport(
+  `승인일,가맹점명,이용금액
+"2026-06-01","서울전자","₩39,900"`,
+  [],
+  now,
+  { presetId: "korean-card-statement", mapping: koreanCardMapping },
+);
+assert.equal(koreanCard.valid[0].purchase.productName, "서울전자");
+assert.equal(koreanCard.valid[0].purchase.price, 39900);
+
+const amazonMapping = csvMappingForPreset(["order_date", "title", "seller", "item_subtotal", "order_id"], "amazon-style-order");
+assert.equal(amazonMapping.productName, "title");
+assert.equal(amazonMapping.documents, "order_id");
+
+const koreanOrderMapping = csvMappingForPreset(["주문일", "상품명", "판매자", "결제금액", "주문번호"], "korean-shopping-order");
+assert.equal(koreanOrderMapping.productName, "상품명");
+assert.equal(koreanOrderMapping.merchant, "판매자");
+
+const pdfText = textFromPdfSource(`%PDF-1.4
+BT
+(PDF Demo Store) Tj
+[(Monitor) -20 ( Stand)] TJ
+<323032362d30362d3032> Tj
+ET`);
+assert.match(pdfText, /PDF Demo Store/);
+assert.match(pdfText, /Monitor Stand/);
+assert.match(pdfText, /2026-06-02/);
+
+const policyTemplate = policyTemplateById("extended-60-day-return");
+assert.equal(policyTemplate.returnWindowDays, 60);
+assert.match(policyTemplate.note, /Confirm current merchant terms/);
 
 const claimPacket = claimPacketHtml(purchase, now);
 assert.match(claimPacket, /Claim Packet: Wireless Headset/);
@@ -161,5 +202,7 @@ const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);
 assert.match(ics, /SUMMARY:Return deadline: Wireless Headset/);
 assert.match(ics, /DTSTART;VALUE=DATE:20260702/);
+assert.match(ics, /BEGIN:VALARM/);
+assert.match(ics, /TRIGGER:-P5D/);
 
 console.log("All logic tests passed.");

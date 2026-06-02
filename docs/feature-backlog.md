@@ -6,7 +6,8 @@ This list separates high-leverage additions from features that could distract th
 
 1. **Reliable notifications without a server**
    - Users want mobile and PC reminders even when the web app is closed.
-   - Calendar export works today, but true background push conflicts with the no-server promise unless it is opt-in or self-hosted.
+   - Calendar export now includes per-purchase lead-day `VALARM` reminders, and open-app browser notifications are available after user permission.
+   - True background push still conflicts with the no-server promise unless it is opt-in or self-hosted.
 
 2. **More durable local attachments**
    - Receipt images, PDFs, manuals, and warranty cards can now be stored in the browser record.
@@ -14,7 +15,8 @@ This list separates high-leverage additions from features that could distract th
 
 3. **Messy receipt and policy extraction**
    - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
-   - Local text/PDF/HTML extraction is now connected to the parser, and image OCR works when the browser exposes local `TextDetector` support. A bundled cross-browser OCR engine and user-confirmed merchant policy templates are still needed before the app can reduce manual entry enough.
+   - Local text/PDF text-operator/HTML extraction is now connected to the parser, and image OCR works when the browser exposes local `TextDetector` support.
+   - User-confirmed policy templates can fill common return/refund/warranty assumptions. A bundled cross-browser OCR engine and real policy fixture corpus are still needed before the app can reduce manual entry enough.
 
 4. **Warranty claim packet quality**
    - Users need a clean support packet with receipt, serial/model, photos, repair history, manuals, and merchant conversation notes.
@@ -48,17 +50,17 @@ This list separates high-leverage additions from features that could distract th
    - Keeps local-first story while reducing data-loss risk.
 
 5. **Importers**
-   - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, and import report export.
-   - Remaining work: real card-statement/retailer preset expansion.
+   - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, import report export, Korean card statements, Korean shopping orders, and Amazon-style order history.
+   - Remaining work: real card-statement/retailer fixture corpus and community preset validation.
 
 6. **Optional OCR**
-   - Text, CSV, HTML/email, simple PDF text extraction, and supported browser-local image OCR now run locally in the browser.
-   - A bundled cross-browser image OCR engine is still needed if practical.
+   - Text, CSV, HTML/email, simple PDF text-operator extraction, and supported browser-local image OCR now run locally in the browser.
+   - A bundled cross-browser image OCR engine and scan/bitmap PDF OCR are still needed if practical.
    - Cloud OCR should be explicitly opt-in and disabled by default.
 
 7. **Local notification upgrade**
-   - Better reminder scheduling, repeated alerts, and platform-specific fallback copy.
-   - Calendar export should remain available because browser notifications are inconsistent.
+   - Per-purchase lead days, `.ics` `VALARM`, and open-app browser notifications are implemented.
+   - Remaining work: calendar import guidance, repeated alerts, snooze, and platform-specific fallback copy.
 
 8. **Claim packet HTML/PDF**
    - Printable HTML claim packet exists with attachment links, image previews, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.
