@@ -45,6 +45,8 @@ npm run notify:record -- smoke-output.json
 
 The GitHub Actions workflow does this conversion automatically after a successful public endpoint smoke run and uploads only `sanitized-smoke-record.json` as a 30-day artifact. It does not upload the raw smoke output.
 
+Before upload, the workflow runs `npm run notify:validate-record` against the sanitized record. This blocks artifacts that contain raw URLs, token-like text, stale timestamps, failed loopback checks, failed public status, or a missing endpoint host hash.
+
 Sanitized records are checked against `tests/fixtures/notifications/smoke-policy.json`. The policy requires fresh records, provider coverage, successful loopback status, successful public status, and a hashed endpoint host instead of the raw URL.
 
 ## OCR Fallback

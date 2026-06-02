@@ -49,8 +49,9 @@ jobs:
           GOTIFY_TOKEN: ${{ secrets.GOTIFY_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP/rwg-notification-smoke"
-          npm run notify:smoke > "$RUNNER_TEMP/rwg-notification-smoke/raw-smoke.json"
-          npm run notify:record -- "$RUNNER_TEMP/rwg-notification-smoke/raw-smoke.json" > "$RUNNER_TEMP/rwg-notification-smoke/sanitized-smoke-record.json"
+          npm --silent run notify:smoke > "$RUNNER_TEMP/rwg-notification-smoke/raw-smoke.json"
+          npm --silent run notify:record -- "$RUNNER_TEMP/rwg-notification-smoke/raw-smoke.json" > "$RUNNER_TEMP/rwg-notification-smoke/sanitized-smoke-record.json"
+          npm --silent run notify:validate-record -- "$RUNNER_TEMP/rwg-notification-smoke/sanitized-smoke-record.json"
 
       - name: Upload sanitized smoke record
         if: ${{ steps.public-smoke.outcome == 'success' }}

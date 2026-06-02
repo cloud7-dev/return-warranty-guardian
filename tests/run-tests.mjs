@@ -8,6 +8,7 @@ import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } f
 import { sanitizeFixtureFilename, sanitizeFixtureReport, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
 import { notificationSmokeRecord } from "../scripts/record-notification-smoke-result.mjs";
+import { validateNotificationSmokeRecord } from "../scripts/validate-notification-smoke-record.mjs";
 import {
   analyzeCsvImport,
   csvImportReport,
@@ -547,6 +548,8 @@ const smokePolicy = JSON.parse(await fixture("notifications/smoke-policy.json"))
 assert.equal(smokePolicy.schema, "return-warranty-guardian.notification-smoke-policy.v1");
 assert.ok(smokePolicy.maxRecordAgeDays >= 30);
 assert.ok(smokePolicy.requiredProviders.includes("ntfy"));
+const smokeValidation = validateNotificationSmokeRecord(smokeRecord, smokePolicy, { now });
+assert.equal(smokeValidation.ok, true);
 for (const provider of ["ntfy", "gotify", "apprise"]) {
   const providerPayload = JSON.parse(await fixture(`notifications/${provider}-payload.json`));
   const providerPlan = buildRunnerPlan(providerPayload, { provider, limit: 1, checkEndpoint: true });
@@ -558,6 +561,13 @@ for (const provider of ["ntfy", "gotify", "apprise"]) {
 }
 const { stdout: fixtureStdout } = await execFileAsync(process.execPath, ["scripts/validate-fixtures.mjs"]);
 assert.match(fixtureStdout, /Fixture validation passed/);
+const tempSmokeRecordPath = join(tempDir, "smoke-record.json");
+await writeFile(tempSmokeRecordPath, JSON.stringify(smokeRecord, null, 2));
+const { stdout: smokeRecordValidationStdout } = await execFileAsync(process.execPath, [
+  "scripts/validate-notification-smoke-record.mjs",
+  tempSmokeRecordPath,
+]);
+assert.match(smokeRecordValidationStdout, /notification-smoke-record-validation/);
 const anonymizeDir = await mkdtemp(join(tmpdir(), "rwg-anonymize-"));
 const privateSamplePath = join(anonymizeDir, "private-sample.csv");
 await writeFile(
