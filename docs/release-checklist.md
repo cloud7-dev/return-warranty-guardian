@@ -18,6 +18,8 @@ Expected result:
 - Logic tests confirm `npm run notify:dry-run` runner planning output without sending network requests.
 - Logic tests confirm fixture validation, large CSV review filters, preset trust metadata, fingerprints, detached signature verification, review manifests, local OCR text result parsing, local OCR engine planning, provider payload fixture coverage, scheduler recipes, PDF fallback diagnostics, public smoke readiness reports, sanitized smoke records, smoke record audits, smoke operations reports, and self-hosted send guard behavior. `npm run notify:smoke` confirms loopback ntfy/Gotify send behavior; opt-in public endpoint smoke requires environment variables or the manual `Notification Smoke` workflow and is not part of default CI.
 - `npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json` reports fixture coverage and whether reviewed community/public-open-license samples are still missing.
+- `npm run fixture:request-pack -- tests/fixtures/intake/sample-intake.json` generates the privacy-safe contributor request pack when new real-world shaped samples are needed.
+- `npm run release:readiness -- tests/fixtures/intake/sample-intake.json` summarizes release gates and keeps the remaining 2/3/4 work explicit.
 
 ## Screenshots
 
@@ -64,6 +66,8 @@ Release notes should include:
 - Notification, calendar alarm, or policy template changes.
 - Fixture corpus additions and privacy-safe sample notes.
 - Fixture coverage report status, especially whether accepted samples are synthetic-only.
+- Fixture request pack status when asking for new anonymized-community or public-open-license samples.
+- Release readiness report status and the still-open 2/3/4 items.
 - Sample intake or sanitized smoke record additions.
 - Notification smoke operations report changes.
 - Fixture anonymizer or reminder snooze changes.

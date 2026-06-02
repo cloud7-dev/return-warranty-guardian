@@ -101,6 +101,18 @@ To summarize fixture intake coverage and see whether reviewed community/public s
 npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json
 ```
 
+To generate a privacy-safe request pack for potential fixture contributors and maintainers:
+
+```bash
+npm run fixture:request-pack -- tests/fixtures/intake/sample-intake.json
+```
+
+To produce a release-readiness report that separates implemented OSS proof from known remaining work:
+
+```bash
+npm run release:readiness -- tests/fixtures/intake/sample-intake.json
+```
+
 To inspect a self-hosted notification payload without sending anything:
 
 ```bash

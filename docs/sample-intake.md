@@ -44,6 +44,14 @@ npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json
 
 The report summarizes accepted entries by type, source kind, and provenance origin. It also makes the current community-sample gap explicit. Use `--strict-community` when a release gate should fail unless at least one `anonymized-community` or `public-open-license` sample has been accepted.
 
+To produce a privacy-safe contributor request pack:
+
+```bash
+npm run fixture:request-pack -- tests/fixtures/intake/sample-intake.json
+```
+
+The request pack is meant for issue comments, maintainer notes, or release planning. It lists requested sample shapes, contributor commands, maintainer gate commands, and an intake entry template without asking anyone to share raw receipts, account screenshots, order IDs, addresses, or card statements.
+
 ## Coverage Targets
 
 `tests/fixtures/intake/sample-intake.json` defines fixture coverage targets for the importer and local OCR regression set. Keep these targets strict enough that a new card statement, marketplace order, merchant order, payment receipt, local OCR text sample, or bundled OCR image fixture cannot be added without review metadata and parser validation.

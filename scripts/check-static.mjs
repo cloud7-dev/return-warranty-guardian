@@ -23,6 +23,8 @@ const requiredFiles = [
   "scripts/review-sample-intake.mjs",
   "scripts/review-sample-batch.mjs",
   "scripts/sample-intake-coverage-report.mjs",
+  "scripts/sample-request-pack.mjs",
+  "scripts/release-readiness-report.mjs",
   "scripts/validate-fixtures.mjs",
   "scripts/self-hosted-notification-runner.mjs",
   "scripts/notification-smoke-readiness.mjs",

@@ -57,6 +57,7 @@
    - 현재 구현: sample intake manifest로 익명화 여부, parser 검토 여부, fixture path, source shape coverage target, provenance, 재사용 허가, 원본 샘플 미보관, 비민감 contributor handle을 검증
    - 현재 구현: `npm run fixture:validate`로 개인정보 패턴, CSV fixture importability, 정책 source/license metadata 검증
    - 현재 구현: `npm run fixture:coverage`로 fixture type/source/provenance별 현황과 synthetic-only 상태, 실제 커뮤니티/public-open-license 샘플 부재 여부를 Markdown으로 표시
+   - 현재 구현: `npm run fixture:request-pack`으로 실제 샘플 기여자에게 전달할 개인정보 보호형 요청 패키지, intake entry 템플릿, maintainer gate 명령을 Markdown으로 생성
    - 현재 구현: import review checklist로 필수 매핑/중복/오류/증빙 누락을 확인하고, 정상 행을 포함/제외 선택한 뒤 확정 import
    - 현재 구현: CSV preset bundle JSON 내보내기/가져오기와 schema/version/field 호환성 검증
    - 현재 구현: preset bundle trust model/source/reviewedAt/fixtureCoverage metadata, SHA-256 fingerprint-ready signing payload, ECDSA P-256 detached signature 검증 helper, review manifest, trusted public key registry fixture, key rotation/revocation governance fixture, signed preset bundle fixture, 대량 row query/proof review filter helper
@@ -110,6 +111,7 @@
 
 9. **Polished PWA release**
    - 현재 구현: manifest와 service worker 기본 구조
+   - 현재 구현: `npm run release:readiness`로 OSS 릴리스 준비 상태와 2/3/4 잔여 항목을 Markdown으로 요약
    - 남은 구현: install QA, offline fallback UX, release screenshots, accessibility pass
 
 ## 결론

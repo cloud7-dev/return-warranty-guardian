@@ -17,7 +17,9 @@ import { auditNotificationSmokeRecords } from "../scripts/audit-notification-smo
 import { notificationSmokeOpsReportMarkdown } from "../scripts/notification-smoke-ops-report.mjs";
 import { notificationSmokeReadiness } from "../scripts/notification-smoke-readiness.mjs";
 import { notificationSmokeRecord } from "../scripts/record-notification-smoke-result.mjs";
+import { releaseReadinessMarkdown, releaseReadinessReport } from "../scripts/release-readiness-report.mjs";
 import { sampleIntakeCoverageMarkdown, sampleIntakeCoverageReport } from "../scripts/sample-intake-coverage-report.mjs";
+import { sampleRequestPack, sampleRequestPackMarkdown } from "../scripts/sample-request-pack.mjs";
 import { validateNotificationSmokeRecord } from "../scripts/validate-notification-smoke-record.mjs";
 import {
   analyzeCsvImport,
@@ -740,12 +742,42 @@ assert.equal(sampleCoverage.countsByType.csv, 5);
 const sampleCoverageMarkdown = sampleIntakeCoverageMarkdown(sampleCoverage);
 assert.match(sampleCoverageMarkdown, /Sample Intake Coverage Report/);
 assert.match(sampleCoverageMarkdown, /Community sample status: MISSING/);
+const requestPack = sampleRequestPack(sampleManifest, now);
+assert.equal(requestPack.schema, "return-warranty-guardian.sample-request-pack.v1");
+assert.equal(requestPack.communitySampleStatus, "MISSING");
+assert.match(JSON.stringify(requestPack.intakeEntryTemplate), /rawSampleRetained/);
+const requestPackMarkdown = sampleRequestPackMarkdown(requestPack);
+assert.match(requestPackMarkdown, /Sample Request Pack/);
+assert.match(requestPackMarkdown, /Community sample status: MISSING/);
+assert.match(requestPackMarkdown, /fixture:anonymize/);
+assert.match(requestPackMarkdown, /rawSampleRetained=false/);
+assert.match(requestPackMarkdown, /card-statement-shape/);
 const { stdout: sampleCoverageStdout } = await execFileAsync(process.execPath, [
   "scripts/sample-intake-coverage-report.mjs",
   "tests/fixtures/intake/sample-intake.json",
 ]);
 assert.match(sampleCoverageStdout, /Coverage status: PASS/);
 assert.match(sampleCoverageStdout, /Community sample status: MISSING/);
+const { stdout: requestPackStdout } = await execFileAsync(process.execPath, [
+  "scripts/sample-request-pack.mjs",
+  "tests/fixtures/intake/sample-intake.json",
+]);
+assert.match(requestPackStdout, /Sample Request Pack/);
+assert.match(requestPackStdout, /Maintainer Gate/);
+const releaseReport = releaseReadinessReport(sampleManifest, now);
+assert.equal(releaseReport.schema, "return-warranty-guardian.release-readiness-report.v1");
+assert.equal(releaseReport.remainingItems.length, 3);
+assert.match(releaseReport.remainingItems.join("\n"), /Actual bundled cross-browser OCR engine/);
+const releaseMarkdown = releaseReadinessMarkdown(releaseReport);
+assert.match(releaseMarkdown, /Release Readiness Report/);
+assert.match(releaseMarkdown, /2, 3, 4 remain/);
+assert.match(releaseMarkdown, /Needs accepted community\/public sample/);
+const { stdout: releaseStdout } = await execFileAsync(process.execPath, [
+  "scripts/release-readiness-report.mjs",
+  "tests/fixtures/intake/sample-intake.json",
+]);
+assert.match(releaseStdout, /Release Readiness Report/);
+assert.match(releaseStdout, /2, 3, 4 remain/);
 await assert.rejects(
   execFileAsync(process.execPath, [
     "scripts/sample-intake-coverage-report.mjs",
