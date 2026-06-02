@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { addDays, addMonths, computeDeadlines, daysUntil, summarizePurchases } from "../src/deadline-engine.js";
 import { sanitizeFixtureFilename, sanitizeFixtureReport, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
+import { auditNotificationSmokeRecords } from "../scripts/audit-notification-smoke-records.mjs";
 import { notificationSmokeReadiness } from "../scripts/notification-smoke-readiness.mjs";
 import { notificationSmokeRecord } from "../scripts/record-notification-smoke-result.mjs";
 import { validateNotificationSmokeRecord } from "../scripts/validate-notification-smoke-record.mjs";
@@ -567,6 +568,15 @@ assert.match(readiness.endpoint.hostHash, /^[a-f0-9]{64}$/);
 assert.equal(JSON.stringify(readiness).includes("ntfy.example.test"), false);
 const smokeValidation = validateNotificationSmokeRecord(smokeRecord, smokePolicy, { now });
 assert.equal(smokeValidation.ok, true);
+const smokeRecordAudit = await auditNotificationSmokeRecords(
+  new URL("./fixtures/notifications/smoke-records", import.meta.url).pathname,
+  smokePolicy,
+  { now },
+);
+assert.equal(smokeRecordAudit.schema, "return-warranty-guardian.notification-smoke-record-audit.v1");
+assert.equal(smokeRecordAudit.ok, true);
+assert.equal(smokeRecordAudit.freshSuccessfulProviders.includes("ntfy"), true);
+assert.equal(JSON.stringify(smokeRecordAudit).includes("https://"), false);
 for (const provider of ["ntfy", "gotify", "apprise"]) {
   const providerPayload = JSON.parse(await fixture(`notifications/${provider}-payload.json`));
   const providerPlan = buildRunnerPlan(providerPayload, { provider, limit: 1, checkEndpoint: true });
@@ -597,6 +607,14 @@ const { stdout: readinessStdout } = await execFileAsync(process.execPath, ["scri
 const readinessCli = JSON.parse(readinessStdout);
 assert.equal(readinessCli.ok, true);
 assert.equal(JSON.stringify(readinessCli).includes("ntfy.example.test"), false);
+const { stdout: auditStdout } = await execFileAsync(process.execPath, [
+  "scripts/audit-notification-smoke-records.mjs",
+  "tests/fixtures/notifications/smoke-records",
+  "tests/fixtures/notifications/smoke-policy.json",
+]);
+const auditCli = JSON.parse(auditStdout);
+assert.equal(auditCli.ok, true);
+assert.equal(auditCli.freshSuccessfulProviders.includes("ntfy"), true);
 const anonymizeDir = await mkdtemp(join(tmpdir(), "rwg-anonymize-"));
 const privateSamplePath = join(anonymizeDir, "private-sample.csv");
 await writeFile(

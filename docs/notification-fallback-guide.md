@@ -61,6 +61,14 @@ Before upload, the workflow runs `npm run notify:validate-record` against the sa
 
 Sanitized records are checked against `tests/fixtures/notifications/smoke-policy.json`. The policy requires fresh records, provider coverage, successful loopback status, successful public status, and a hashed endpoint host instead of the raw URL.
 
+To audit a directory of sanitized records, for example downloaded workflow artifacts or committed fixture records:
+
+```bash
+npm run notify:audit-records -- path/to/smoke-records tests/fixtures/notifications/smoke-policy.json
+```
+
+The audit checks every record, verifies freshness and required provider coverage, and prints only provider/status metadata plus endpoint host hashes.
+
 ## OCR Fallback
 
 Image OCR is local only. The app tries a bundled local worker if one exists, then browser `TextDetector`, then manual paste/attachment fallback. Scanned PDFs without text operators stay as local claim evidence unless the user supplies local OCR text.
