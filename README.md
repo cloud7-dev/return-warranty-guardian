@@ -15,7 +15,7 @@ Core values:
 
 - **Local-first:** records stay in browser storage unless you export them.
 - **Privacy-friendly:** no backend, no account, no upload path.
-- **Exportable:** JSON backup, CSV review, `.ics` calendar reminders, and Markdown evidence packs.
+- **Durable:** encrypted `.rwgbackup` files, JSON export, CSV review, `.ics` calendar reminders, and evidence packs stay under user control.
 
 ## Live Demo
 
@@ -26,7 +26,8 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 ## What It Does
 
 - Tracks return, refund, and warranty deadlines from one local dashboard.
-- Stores purchases in browser storage with JSON export/import.
+- Stores purchases in browser storage with JSON export/import and encrypted backup/merge-only restore.
+- Exports `return-warranty-guardian-backup.rwgbackup` using WebCrypto PBKDF2-SHA256 plus AES-GCM. The passphrase is never stored, and restore previews show record counts, attachment counts, skipped attachment issues, schema, created date, and duplicate candidates before merge.
 - Stores local receipt, PDF, manual, and warranty-card attachments locally, using OPFS Blob storage when the browser supports it and data URL fallback otherwise, with save/skipped status for over-size files.
 - Previews CSV purchase rows before import, supports built-in presets for card/order exports including Korean card statements, Korean shopping orders, and Amazon-style order history, plus saved user presets, manual column mapping, duplicate skipping, and invalid row reporting locally.
 - Shows a local CSV import review checklist, lets users exclude individual importable rows before confirm, filters staged import rows for review, validates CSV preset bundle compatibility, and exports/imports preset bundles with trust metadata for sharing column mappings without purchase rows.
@@ -76,7 +77,7 @@ npm run build
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, local attachment storage fallback, CSV import analysis, mapping presets, preset bundle export/validation/trust metadata, review checklist/filter generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback diagnostics, local OCR text result parsing, bundled PBM template OCR, scanned PDF embedded-bitmap OCR automation, local OCR engine planning, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim profile/export review, claim submission templates, self-hosted notification payload, provider fixture plans, scheduler recipes, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments including OPFS metadata when supported, local HTML/PDF receipt extraction, scanned PDF fallback, scanned PDF sidecar paste/file/auto-pair parsing, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, claim profile/export review, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
+`npm test` covers the deadline engine, receipt text parser, local attachment storage fallback, encrypted backup roundtrip/wrong-passphrase/schema/duplicate-merge behavior, CSV import analysis, mapping presets, preset bundle export/validation/trust metadata, review checklist/filter generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback diagnostics, local OCR text result parsing, bundled PBM template OCR, scanned PDF embedded-bitmap OCR automation, local OCR engine planning, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim profile/export review, claim submission templates, self-hosted notification payload, provider fixture plans, scheduler recipes, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` verifies static file references, PWA manifest basics, service worker cache entries, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, local attachments including OPFS metadata when supported, encrypted backup download/fresh-state restore/restored attachment and evidence export, local HTML/PDF receipt extraction, scanned PDF fallback, scanned PDF sidecar paste/file/auto-pair parsing, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, claim profile/export review, local alert status, self-hosted settings and dry-run export, exports, search, and mobile screenshots.
 
 To prepare a privacy-safe fixture from a local sample:
 
@@ -150,7 +151,7 @@ npm run notify:ops-report -- path/to/smoke-records tests/fixtures/notifications/
 
 ## Privacy Model
 
-Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use JSON export for backups.
+Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use encrypted `.rwgbackup` export for backups before clearing browser data or moving devices. Backup files include records, user CSV presets, self-hosted notification draft settings, snooze state, and hydrated local attachment payloads when available. Attachments over 5 MB or attachments that cannot be hydrated are recorded in the backup manifest instead of being silently dropped. The app never stores the passphrase; if it is lost, the backup cannot be decrypted.
 
 Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, HTML/email receipts, simple PDF text operators, scanned/compressed PDF fallback diagnostics, matching `.ocr.txt` sidecars selected together with scanned PDFs, bundled PBM template OCR, scanned PDF embedded-bitmap OCR fixtures, and image OCR through a local OCR adapter when the browser exposes `TextDetector`. If general image OCR is not available in the current browser and the file is outside the bundled PBM template format, the app keeps the flow local and asks the user to paste receipt text instead of calling a cloud OCR service.
 
@@ -171,7 +172,7 @@ This repository is the consolidation target for the overlapping `return-guardian
 2. Confirm product, merchant, purchase date, return window, refund window, and warranty duration.
 3. Watch the deadline queue for due-soon or expired items.
 4. Export an evidence pack before contacting the merchant.
-5. Export `.ics` reminders, CSV review files, or a JSON backup when needed.
+5. Export `.ics` reminders, CSV review files, or an encrypted `.rwgbackup` when needed.
 
 ## Repository Topics
 

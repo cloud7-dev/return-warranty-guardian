@@ -17,6 +17,7 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
   const sampleCoverage = sampleIntakeCoverageReport(sampleManifest, now);
   const notificationSmokeAudit = options.notificationSmokeAudit || null;
   const ocrEngineManifest = options.ocrEngineManifest || null;
+  const encryptedBackupAvailable = Boolean(options.encryptedBackupAvailable);
   const notificationSmokeReady =
     Boolean(notificationSmokeAudit?.ok) && Boolean(notificationSmokeAudit?.freshSuccessfulProviders?.includes("ntfy"));
   const ocrEngines = Array.isArray(ocrEngineManifest?.engines) ? ocrEngineManifest.engines : [];
@@ -62,6 +63,13 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
       status: "Ready for OSS review",
       evidence: "HTML/JSON/ZIP claim bundles include evidence pack, attachments, manifests, export review, profile, and submission templates.",
     },
+    {
+      area: "Encrypted backup and recovery",
+      status: encryptedBackupAvailable ? "Available" : "Missing",
+      evidence: encryptedBackupAvailable
+        ? "PBKDF2-SHA256 plus AES-GCM encrypted .rwgbackup export, passphrase-free envelope, restore preview, duplicate-aware merge, and attachment hydration are implemented."
+        : "Encrypted backup and merge-only restore are not available yet.",
+    },
   ];
 
   return {
@@ -76,6 +84,7 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
       ...(!notificationSmokeReady
         ? ["4. Actual recurring public/self-hosted endpoint smoke records operated by the maintainer environment."]
         : []),
+      ...(!encryptedBackupAvailable ? ["7. Encrypted backup and merge-only recovery for local data durability."] : []),
     ],
     recommendedCommands: [
       "node --check src/*.js scripts/*.mjs tests/*.mjs",
@@ -122,8 +131,14 @@ async function main() {
   const sampleManifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const policy = JSON.parse(await readFile("tests/fixtures/notifications/smoke-policy.json", "utf8"));
   const ocrEngineManifest = JSON.parse(await readFile("tests/fixtures/ocr/engine-manifest.json", "utf8"));
+  const backupSource = await readFile("src/backup.js", "utf8");
+  const encryptedBackupAvailable =
+    backupSource.includes("return-warranty-guardian.encrypted-backup.v1") &&
+    backupSource.includes("encryptedBackupEnvelope") &&
+    backupSource.includes("backupRestorePreview") &&
+    backupSource.includes("mergeBackupPurchases");
   const notificationSmokeAudit = await auditNotificationSmokeRecords("tests/fixtures/notifications/smoke-records", policy);
-  console.log(releaseReadinessMarkdown(releaseReadinessReport(sampleManifest, new Date(), { notificationSmokeAudit, ocrEngineManifest })));
+  console.log(releaseReadinessMarkdown(releaseReadinessReport(sampleManifest, new Date(), { notificationSmokeAudit, ocrEngineManifest, encryptedBackupAvailable })));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

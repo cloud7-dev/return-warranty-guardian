@@ -26,6 +26,13 @@ import {
   csvPresetBundle,
   validateCsvPresetBundle,
 } from "./importers.js";
+import {
+  backupPayloadFromState,
+  backupRestorePreview,
+  decryptBackupEnvelope,
+  encryptedBackupEnvelope,
+  mergeBackupPurchases,
+} from "./backup.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, languageMeta, languages, normalizeLanguage, translate } from "./i18n.js";
 import { textFromHtmlSource, textFromImageSource, textFromPdfSource, textFromScannedPdfWithBundledOcr, textFromScannedPdfWithLocalOcr } from "./local-extraction.js";
 import { localOcrEnvironment } from "./local-ocr-worker.js";
@@ -49,9 +56,12 @@ const state = {
   parsedReceipt: null,
   ocrStatus: "",
   importPreview: null,
+  restorePreview: null,
+  restorePayload: null,
   userCsvPresets: [],
   attachmentStatus: "",
   notificationStatus: "",
+  backupStatus: "",
   snoozedReminders: {},
   selfHostedAlerts: { enabled: false, provider: "ntfy", endpoint: "", topic: "" },
 };
@@ -271,6 +281,28 @@ function loadSelfHostedAlerts() {
 function saveSelfHostedAlerts(settings) {
   state.selfHostedAlerts = settings;
   localStorage.setItem(SELF_HOSTED_ALERTS_STORAGE_KEY, JSON.stringify(settings));
+}
+
+function mergeUserCsvPresets(incomingPresets = []) {
+  const existing = new Map(state.userCsvPresets.map((preset) => [preset.id, preset]));
+  for (const preset of incomingPresets) {
+    if (preset?.id && !existing.has(preset.id)) existing.set(preset.id, preset);
+  }
+  saveUserCsvPresets([...existing.values()]);
+}
+
+function mergeBackupSettings(payload) {
+  if (Array.isArray(payload.userCsvPresets)) mergeUserCsvPresets(payload.userCsvPresets);
+  if (payload.selfHostedAlerts && typeof payload.selfHostedAlerts === "object") {
+    saveSelfHostedAlerts({
+      ...state.selfHostedAlerts,
+      ...payload.selfHostedAlerts,
+    });
+  }
+  if (payload.snoozedReminders && typeof payload.snoozedReminders === "object") {
+    state.snoozedReminders = { ...state.snoozedReminders, ...payload.snoozedReminders };
+    saveSnoozedReminders();
+  }
 }
 
 async function normalizePurchase(formData) {
@@ -650,6 +682,42 @@ function renderImportPreview() {
               ${invalid
                 .slice(0, 3)
                 .map(({ rowNumber, issues }) => `<span>${h(t("rowIssues", { row: rowNumber, issues: issues.join(", ") }))}</span>`)
+                .join("")}
+            </div>`
+          : ""
+      }
+    </section>
+  `;
+}
+
+function renderRestorePreview() {
+  const preview = state.restorePreview;
+  if (!preview) return "";
+  return `
+    <section class="panel import-preview backup-preview" aria-live="polite">
+      <div class="panel-heading">
+        <div>
+          <h2>${t("restorePreviewTitle")}</h2>
+          <p>${h(t("restorePreviewSubtitle", { schema: preview.payloadSchema, createdAt: preview.backupCreatedAt || t("optional") }))}</p>
+        </div>
+        <div class="detail-actions">
+          <button class="secondary-action" id="confirm-restore-backup" type="button">${t("confirmRestoreBackup")}</button>
+          <button class="ghost-action" id="cancel-restore-backup" type="button">${t("cancelRestoreBackup")}</button>
+        </div>
+      </div>
+      <div class="import-stats">
+        <span>${t("restoreRecordCount", { count: preview.recordCount })}</span>
+        <span>${t("restoreAttachmentCount", { count: preview.attachmentCount })}</span>
+        <span>${t("restoreSkippedAttachmentCount", { count: preview.skippedAttachmentCount })}</span>
+        <span>${t("restoreDuplicateCount", { count: preview.duplicateCandidates.length })}</span>
+      </div>
+      <p class="empty-note">${t("restoreMergeHelp", { count: preview.importableCount })}</p>
+      ${
+        preview.duplicateCandidates.length
+          ? `<div class="import-issues">
+              ${preview.duplicateCandidates
+                .slice(0, 5)
+                .map((candidate) => `<span>${h(t("restoreDuplicateItem", candidate))}</span>`)
                 .join("")}
             </div>`
           : ""
@@ -1044,14 +1112,21 @@ function renderShell() {
             ${icons.import} ${t("import")}
             <input id="import-json" type="file" accept="application/json,text/csv,.json,.csv" />
           </label>
+          <button class="tool-button" id="export-encrypted-backup" type="button">${icons.export} ${t("createEncryptedBackup")}</button>
+          <label class="tool-button file-button">
+            ${icons.import} ${t("restoreEncryptedBackup")}
+            <input id="import-encrypted-backup" type="file" accept=".rwgbackup,application/json" />
+          </label>
           <button class="tool-button" id="enable-local-alerts" type="button">${icons.calendar} ${t("localAlerts")}</button>
           <button class="tool-button" id="export-ics" type="button">${icons.calendar} ${t("ics")}</button>
           ${state.notificationStatus ? `<span class="alert-status">${h(state.notificationStatus)}</span>` : ""}
+          ${state.backupStatus ? `<span class="alert-status">${h(state.backupStatus)}</span>` : ""}
         </div>
       </header>
       ${renderDashboard()}
       ${renderReminderGuide()}
       ${renderImportPreview()}
+      ${renderRestorePreview()}
       <section class="workbench">
         ${renderPurchaseForm()}
         ${renderParser()}
@@ -1209,6 +1284,90 @@ async function downloadAttachment(purchaseId, attachmentIndex) {
   link.click();
 }
 
+async function exportEncryptedBackup() {
+  const passphrase = prompt(t("backupPassphrasePrompt"));
+  if (!passphrase) {
+    state.backupStatus = t("backupFailed", { message: t("backupPassphraseRequired") });
+    render();
+    return;
+  }
+
+  try {
+    const payload = await backupPayloadFromState(
+      {
+        purchases: state.purchases,
+        userCsvPresets: state.userCsvPresets,
+        selfHostedAlerts: state.selfHostedAlerts,
+        snoozedReminders: state.snoozedReminders,
+        hydratePurchase: hydratePurchaseAttachments,
+        maxAttachmentBytes: MAX_ATTACHMENT_BYTES,
+      },
+      today(),
+    );
+    const envelope = await encryptedBackupEnvelope(payload, passphrase, today());
+    downloadText("return-warranty-guardian-backup.rwgbackup", "application/json", JSON.stringify(envelope, null, 2));
+    state.restorePreview = null;
+    state.restorePayload = null;
+    state.backupStatus = t("backupCreated", {
+      records: payload.backupManifest.purchaseCount,
+      attachments: payload.backupManifest.includedAttachmentCount,
+    });
+    render();
+  } catch (error) {
+    state.backupStatus = t("backupFailed", { message: error.message });
+    render();
+  }
+}
+
+async function stageEncryptedBackupRestore(file) {
+  const passphrase = prompt(t("restorePassphrasePrompt"));
+  if (!passphrase) {
+    state.backupStatus = t("restoreFailed", { message: t("backupPassphraseRequired") });
+    render();
+    return;
+  }
+
+  try {
+    const envelope = JSON.parse(await file.text());
+    const payload = await decryptBackupEnvelope(envelope, passphrase);
+    const preview = backupRestorePreview(payload, state.purchases);
+    state.restorePayload = payload;
+    state.restorePreview = preview;
+    state.backupStatus = t("restorePreviewReady", {
+      records: preview.recordCount,
+      attachments: preview.attachmentCount,
+      skipped: preview.skippedAttachmentCount,
+    });
+    render();
+  } catch (error) {
+    state.restorePayload = null;
+    state.restorePreview = null;
+    state.backupStatus = t("restoreFailed", { message: error.message });
+    render();
+  }
+}
+
+async function confirmEncryptedBackupRestore() {
+  if (!state.restorePayload) return;
+  try {
+    const result = mergeBackupPurchases(state.restorePayload, state.purchases);
+    state.purchases = result.purchases;
+    mergeBackupSettings(state.restorePayload);
+    state.selectedId = result.purchases[0]?.id || state.selectedId;
+    state.restorePayload = null;
+    state.restorePreview = null;
+    state.backupStatus = t("restoreComplete", {
+      added: result.addedCount,
+      duplicates: result.duplicateCount,
+      skipped: result.skippedAttachmentCount,
+    });
+    await persistAndRender();
+  } catch (error) {
+    state.backupStatus = t("restoreFailed", { message: error.message });
+    render();
+  }
+}
+
 app.addEventListener("submit", async (event) => {
   if (event.target.id === "self-hosted-alerts-form") {
     event.preventDefault();
@@ -1292,6 +1451,13 @@ app.addEventListener("change", async (event) => {
     else current.delete(rowNumber);
     state.importPreview = { ...state.importPreview, selectedRowNumbers: [...current].sort((a, b) => a - b) };
     render();
+    return;
+  }
+
+  if (event.target.id === "import-encrypted-backup") {
+    const [file] = event.target.files;
+    if (file) await stageEncryptedBackupRestore(file);
+    event.target.value = "";
     return;
   }
 
@@ -1486,6 +1652,24 @@ app.addEventListener("click", async (event) => {
 
   if (button.id === "clear-snoozes") {
     clearSnoozedReminders();
+    render();
+    return;
+  }
+
+  if (button.id === "export-encrypted-backup") {
+    await exportEncryptedBackup();
+    return;
+  }
+
+  if (button.id === "confirm-restore-backup") {
+    await confirmEncryptedBackupRestore();
+    return;
+  }
+
+  if (button.id === "cancel-restore-backup") {
+    state.restorePayload = null;
+    state.restorePreview = null;
+    state.backupStatus = t("restoreCancelled");
     render();
     return;
   }

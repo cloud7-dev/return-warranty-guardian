@@ -11,6 +11,14 @@ import {
   hydratePurchaseAttachments,
   localAttachmentStorageMode,
 } from "../src/attachment-storage.js";
+import {
+  BACKUP_PAYLOAD_SCHEMA,
+  backupPayloadFromState,
+  backupRestorePreview,
+  decryptBackupEnvelope,
+  encryptedBackupEnvelope,
+  mergeBackupPurchases,
+} from "../src/backup.js";
 import { sanitizeFixtureFilename, sanitizeFixtureReport, sanitizeFixtureText } from "../src/fixture-sanitizer.js";
 import { buildRunnerPlan, schedulerRecipes } from "../scripts/self-hosted-notification-runner.mjs";
 import { auditNotificationSmokeRecords } from "../scripts/audit-notification-smoke-records.mjs";
@@ -150,6 +158,79 @@ assert.match(fallbackAttachment.dataUrl, /^data:application\/pdf;base64,/);
 assert.equal(await attachmentToDataUrl(fallbackAttachment), fallbackAttachment.dataUrl);
 const hydratedFallbackPurchase = await hydratePurchaseAttachments({ ...purchase, attachments: [fallbackAttachment] });
 assert.equal(hydratedFallbackPurchase.attachments[0].dataUrl, fallbackAttachment.dataUrl);
+
+const opfsBackupPurchase = {
+  ...purchase,
+  id: "backup-opfs",
+  productName: "Backup Router",
+  merchant: "Backup Shop",
+  purchaseDate: "2026-06-01",
+  attachments: [{ name: "opfs-receipt.pdf", type: "application/pdf", size: 64, storage: "opfs", opfsPath: "backup/opfs-receipt.pdf" }],
+};
+const backupPayload = await backupPayloadFromState(
+  {
+    purchases: [opfsBackupPurchase],
+    userCsvPresets: [{ id: "user-backup", label: "Backup Preset", mapping: { productName: "item" } }],
+    selfHostedAlerts: { enabled: true, provider: "ntfy", endpoint: "https://alerts.example.test", topic: "returns" },
+    snoozedReminders: { "backup-opfs:return:2026-07-01": "2026-06-03T00:00:00.000Z" },
+    hydratePurchase: async (item) => ({
+      ...item,
+      attachments: item.attachments.map((attachment) => ({
+        ...attachment,
+        dataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
+      })),
+    }),
+  },
+  now,
+);
+assert.equal(backupPayload.schema, BACKUP_PAYLOAD_SCHEMA);
+assert.equal(backupPayload.backupManifest.purchaseCount, 1);
+assert.equal(backupPayload.backupManifest.includedAttachmentCount, 1);
+assert.match(backupPayload.purchases[0].attachments[0].dataUrl, /^data:application\/pdf;base64,/);
+const skippedBackupPayload = await backupPayloadFromState(
+  {
+    purchases: [
+      {
+        ...opfsBackupPurchase,
+        attachments: [
+          { name: "too-large.pdf", type: "application/pdf", size: 5 * 1024 * 1024 + 1, storage: "opfs", opfsPath: "backup/too-large.pdf" },
+          { name: "missing-opfs.pdf", type: "application/pdf", size: 128, storage: "opfs", opfsPath: "backup/missing-opfs.pdf" },
+        ],
+      },
+    ],
+    hydratePurchase: async (item) => item,
+  },
+  now,
+);
+assert.equal(skippedBackupPayload.backupManifest.skippedAttachmentCount, 2);
+assert.deepEqual(
+  skippedBackupPayload.backupManifest.skippedAttachments.map((item) => item.reason),
+  ["over-size-limit", "hydration-failed"],
+);
+const encryptedBackup = await encryptedBackupEnvelope(backupPayload, "correct horse battery staple", now);
+const encryptedBackupText = JSON.stringify(encryptedBackup);
+assert.match(encryptedBackupText, /return-warranty-guardian\.encrypted-backup\.v1/);
+assert.doesNotMatch(encryptedBackupText, /correct horse battery staple/);
+const decryptedBackup = await decryptBackupEnvelope(encryptedBackup, "correct horse battery staple");
+assert.equal(decryptedBackup.purchases[0].productName, "Backup Router");
+await assert.rejects(() => decryptBackupEnvelope(encryptedBackup, "wrong passphrase"), /Wrong passphrase or corrupted backup file/);
+await assert.rejects(() => decryptBackupEnvelope({ ...encryptedBackup, schema: "unknown" }, "correct horse battery staple"), /Unsupported encrypted backup schema/);
+await assert.rejects(() => decryptBackupEnvelope({ ...encryptedBackup, ciphertext: "not-valid-json" }, "correct horse battery staple"), /Wrong passphrase or corrupted backup file/);
+const restorePreview = backupRestorePreview(backupPayload, [opfsBackupPurchase]);
+assert.equal(restorePreview.recordCount, 1);
+assert.equal(restorePreview.attachmentCount, 1);
+assert.equal(restorePreview.duplicateCandidates.length, 1);
+const mergeResult = mergeBackupPurchases(
+  {
+    ...backupPayload,
+    purchases: [opfsBackupPurchase, { ...opfsBackupPurchase, id: "backup-new", productName: "Backup Monitor" }],
+  },
+  [opfsBackupPurchase],
+);
+assert.equal(mergeResult.addedCount, 1);
+assert.equal(mergeResult.duplicateCount, 1);
+assert.equal(mergeResult.purchases[0].productName, "Backup Monitor");
+assert.equal(mergeResult.purchases[1].productName, "Backup Router");
 
 const parsed = parseReceiptText(`Example Electronics
 Receipt 7142
@@ -796,7 +877,7 @@ const { stdout: requestPackStdout } = await execFileAsync(process.execPath, [
 ]);
 assert.match(requestPackStdout, /Sample Request Pack/);
 assert.match(requestPackStdout, /Maintainer Gate/);
-const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit, ocrEngineManifest });
+const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit, ocrEngineManifest, encryptedBackupAvailable: true });
 assert.equal(releaseReport.schema, "return-warranty-guardian.release-readiness-report.v1");
 assert.equal(releaseReport.remainingItems.length, 0);
 assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /Actual bundled cross-browser OCR engine/);
@@ -806,6 +887,8 @@ const releaseMarkdown = releaseReadinessMarkdown(releaseReport);
 assert.match(releaseMarkdown, /Release Readiness Report/);
 assert.match(releaseMarkdown, /Recurring public smoke configured/);
 assert.match(releaseMarkdown, /Bundled OCR automation available/);
+assert.match(releaseMarkdown, /Encrypted backup and recovery/);
+assert.match(releaseMarkdown, /Available/);
 assert.match(releaseMarkdown, /Community-ready/);
 assert.match(releaseMarkdown, /No numbered follow-up items remain/);
 const { stdout: releaseStdout } = await execFileAsync(process.execPath, [
@@ -815,6 +898,8 @@ const { stdout: releaseStdout } = await execFileAsync(process.execPath, [
 assert.match(releaseStdout, /Release Readiness Report/);
 assert.match(releaseStdout, /Recurring public smoke configured/);
 assert.match(releaseStdout, /Bundled OCR automation available/);
+assert.match(releaseStdout, /Encrypted backup and recovery/);
+assert.match(releaseStdout, /Available/);
 assert.match(releaseStdout, /No numbered follow-up items remain/);
 const { stdout: strictCoverageStdout } = await execFileAsync(process.execPath, [
   "scripts/sample-intake-coverage-report.mjs",

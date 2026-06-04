@@ -1,4 +1,4 @@
-const CACHE_NAME = "return-warranty-guardian-v13";
+const CACHE_NAME = "return-warranty-guardian-v14";
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const CORE_ASSETS = [
   "./manifest.webmanifest",
   "./src/app.js",
   "./src/attachment-storage.js",
+  "./src/backup.js",
   "./src/deadline-engine.js",
   "./src/exporters.js",
   "./src/i18n.js",

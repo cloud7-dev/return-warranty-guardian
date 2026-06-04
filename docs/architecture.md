@@ -17,6 +17,7 @@ Browser
     policy-templates.js
     storage.js
     exporters.js
+    backup.js
 IndexedDB or localStorage fallback
 ```
 
@@ -32,6 +33,7 @@ There is no API server and no account system. All purchase data remains in brows
 - `src/policy-templates.js`: user-confirmed return/refund/warranty policy helper templates.
 - `src/storage.js`: IndexedDB persistence with localStorage fallback.
 - `src/exporters.js`: Markdown evidence pack, printable claim packet HTML with attachment evidence and submission templates, claim bundle JSON/ZIP, CSV export, and `.ics` calendar export.
+- `src/backup.js`: encrypted `.rwgbackup` envelope creation, WebCrypto key derivation/encryption/decryption, backup payload construction, restore preview, and duplicate-aware merge.
 - `src/app.js`: UI composition, local state, event handling, import/export.
 - `src/i18n.js`: Korean-default multilingual UI dictionary.
 
@@ -78,6 +80,8 @@ There is no API server and no account system. All purchase data remains in brows
 Deadlines are derived, not stored. This keeps deadline math transparent and reproducible.
 
 Attachments are captured through `src/attachment-storage.js`. Browsers with Origin Private File System support store accepted attachment Blobs outside the purchase JSON and keep only local metadata plus `opfsPath`; browsers without OPFS fall back to the previous data URL record format. Claim exports and attachment downloads hydrate OPFS attachments back into data URLs only at export/download time, keeping the saved purchase record smaller while preserving the existing export surface.
+
+Encrypted backup is a separate export surface from plain JSON. `backupPayloadFromState` builds a payload with purchase records, user CSV presets, self-hosted notification draft settings, snooze state, and attachment payloads hydrated from OPFS/data URLs. Attachments over 5 MB or hydration failures are retained as metadata and recorded in `backupManifest.skippedAttachments`. `encryptedBackupEnvelope` encrypts the payload with PBKDF2-SHA256 plus AES-GCM and writes `return-warranty-guardian-backup.rwgbackup`; the passphrase is used only for key derivation and is not saved in app state or storage. Restore reads the envelope, prompts for the passphrase, decrypts locally, shows a preview, and merges only non-duplicate purchases. Duplicate candidates are detected by `productName + merchant + purchaseDate`; destructive overwrite is intentionally out of scope.
 
 CSV imports are staged in an in-memory preview before they are saved. The app imports selected valid rows, supports auto-detected, built-in preset, saved user preset, and manual field mapping, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file. Built-in presets cover generic card/order exports, Korean card statements, Korean shopping orders, Amazon-style order history, Shopify-style order exports, and Stripe-style receipt exports. User CSV presets and preset bundles are stored or imported through browser `localStorage` without purchase rows. `csvImportReviewChecklist` adds a local pre-import checklist for required mappings, duplicates, invalid rows, and missing proof markers. `csvImportReviewFilters` gives large imports a query/proof filter surface before confirmation. `validateCsvPresetBundle` rejects unsupported schema/version values and strips unsupported mapping fields with warnings; preset bundles carry trust model, signature status, source, review date, and fixture coverage metadata.
 

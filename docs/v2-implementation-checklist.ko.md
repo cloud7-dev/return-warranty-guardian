@@ -35,6 +35,7 @@
 - 출력용 클레임 HTML 생성, 로컬 첨부 링크/이미지 미리보기/PDF 저장 가이드/첨부 매니페스트 포함, 브라우저 인쇄 대화상자를 통한 PDF 저장 흐름
 - 클레임 제출 템플릿: 판매처 반품 요청, 보증 지원 요청, chargeback 증빙 요약, 수리 접수 메모
 - 클레임 번들 JSON/ZIP: 구매 레코드, 마감 계산, Markdown 증빙팩, claim HTML, 제출 템플릿, 로컬 첨부 data URL 및 첨부 파일 포함
+- 암호화 백업/복구: WebCrypto PBKDF2-SHA256 + AES-GCM `.rwgbackup`, passphrase 미저장, OPFS/data URL 첨부 hydration, 복구 미리보기, 중복 제외 merge-only 복구
 - `return-guardian`과 `home-memory-ledger`의 통합 방향 문서화
 
 ## V2 마일스톤별 남은 구현
@@ -45,7 +46,8 @@
    - 현재 구현: 영수증 이미지/PDF/매뉴얼 파일을 브라우저 로컬 구매 레코드에 저장하고 상세 화면에서 다운로드 가능
    - 현재 구현: 파일 크기 제한 안내, 5MB 초과 파일 제외 상태 표시, 상세 화면 첨부 체크리스트, claim HTML 이미지 미리보기, claim ZIP 첨부 파일과 첨부 매니페스트 포함
    - 현재 구현: 지원 브라우저에서는 OPFS Blob 분리 저장을 사용하고, 미지원 브라우저에서는 data URL 저장으로 폴백하며, 다운로드/claim export 직전에 OPFS 첨부를 data URL로 hydration
-   - 남은 구현: 첨부 전용 복구/마이그레이션 UX, encrypted export bundle과 연동한 장기 복구 흐름
+   - 현재 구현: 암호화 백업 생성 시 OPFS/data URL 첨부를 hydration해 `.rwgbackup` payload에 포함하고, 5MB 초과 또는 hydration 실패 첨부는 `backupManifest.skippedAttachments`에 기록
+   - 남은 구현: 첨부 전용 마이그레이션 UX, 대용량 첨부 분할 백업 여부 검토
 
 2. **CSV import**
    - 현재 구현: CSV 파일을 import preview에서 확인하고, 자동 감지/built-in preset/user preset/수동 컬럼 매핑으로 정상/중복/오류 행을 분리한 뒤 정상 행만 추가
@@ -107,7 +109,8 @@
 
 7. **클라우드 없는 크로스디바이스 연속성**
    - 현재 구현: JSON export/import
-   - 남은 구현: 암호화 백업, 로컬 네트워크 동기화, self-hosted sync 옵션
+   - 현재 구현: `return-warranty-guardian-backup.rwgbackup` 암호화 백업/복구, passphrase 미저장, 복구 미리보기, 제품명+구매처+구매일 기준 중복 후보 표시, 중복 제외 merge-only 복구
+   - 남은 구현: 로컬 네트워크 동기화, self-hosted sync 옵션, 대용량 첨부를 위한 분할/외부 파일 참조 백업 UX
 
 8. **가격보호/리콜/안전 노트**
    - 현재 구현: 없음
@@ -120,4 +123,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 3번은 순수 JS PBM template OCR worker와 스캔 PDF embedded bitmap OCR 자동화까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 자연 이미지 영수증 전체를 포괄하는 대형 로컬 OCR 모델은 별도 확장 후보입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration과 암호화 백업 복구 흐름까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 3번은 순수 JS PBM template OCR worker와 스캔 PDF embedded bitmap OCR 자동화까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 자연 이미지 영수증 전체를 포괄하는 대형 로컬 OCR 모델, 동기화, 가격보호/리콜, PWA 설치 QA는 별도 확장 후보입니다.

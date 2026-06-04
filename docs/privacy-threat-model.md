@@ -9,13 +9,16 @@ Purchase history can reveal sensitive information: household composition, income
 - No cloud upload.
 - No retailer login scraping.
 - Data stored in browser storage.
-- JSON export lets users move or back up their own data.
+- Encrypted `.rwgbackup` export lets users back up purchase data, local CSV presets, self-hosted notification draft settings, snooze state, and hydrated attachment payloads without a server.
+- Backup encryption uses WebCrypto PBKDF2-SHA256 plus AES-GCM. The passphrase is never stored by the app.
 
 ## Current Limits
 
-- Browser storage can be deleted when users clear site data.
+- Browser storage can be deleted when users clear site data. Encrypted backup reduces the loss risk only if users export and retain the `.rwgbackup` file.
 - Local device compromise can expose saved purchases.
-- Evidence pack and JSON exports are plain files unless users encrypt or store them securely.
+- Evidence pack, JSON, CSV, ICS, and claim exports are plain files unless users encrypt or store them securely.
+- If users lose an encrypted backup passphrase, the app cannot recover it.
+- Attachments over 5 MB or attachments that fail local hydration are recorded in the backup manifest as skipped attachment payloads. The purchase record remains present, but the file payload may need to be reattached after restore.
 - Pasted receipt parsing is deterministic and local, but it can make incorrect guesses.
 
 ## Design Rules
@@ -25,3 +28,4 @@ Purchase history can reveal sensitive information: household composition, income
 - Let users edit every parsed field before relying on it.
 - Keep AI/OCR optional and local-first where possible.
 - Treat merchant policy templates as hints, not guarantees.
+- Prefer merge-only restore. Do not overwrite or delete existing purchase records during backup recovery without a separate explicit destructive flow.

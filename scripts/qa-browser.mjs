@@ -400,11 +400,70 @@ const csvPath = `${root}/outputs/${csvDownload.suggestedFilename()}`;
 await csvDownload.saveAs(csvPath);
 stages.push("csv-download");
 
+page.once("dialog", (dialog) => dialog.accept("qa encrypted backup passphrase"));
+const encryptedBackupDownloadPromise = page.waitForEvent("download", { timeout: 10000 });
+await page.click("#export-encrypted-backup");
+const encryptedBackupDownload = await encryptedBackupDownloadPromise;
+const encryptedBackupPath = `${root}/outputs/${encryptedBackupDownload.suggestedFilename()}`;
+await encryptedBackupDownload.saveAs(encryptedBackupPath);
+await page.waitForSelector("text=암호화 백업을 만들었습니다");
+const encryptedBackupStatusVisible = await page.locator("text=암호화 백업을 만들었습니다").count();
+stages.push("encrypted-backup-download");
+
+await page.evaluate(async () => {
+  localStorage.clear();
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open("return-warranty-guardian", 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction("settings", "readwrite");
+    transaction.objectStore("settings").put([], "purchases");
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+  if (navigator.storage?.getDirectory) {
+    try {
+      const rootHandle = await navigator.storage.getDirectory();
+      await rootHandle.removeEntry("rwg-attachments", { recursive: true });
+    } catch {
+      // OPFS may be empty or unavailable in the current browser context.
+    }
+  }
+});
+await page.reload({ waitUntil: "networkidle" });
+await page.waitForSelector("text=반품기한과 보증기간을 다시는 놓치지 마세요.");
+const rowsAfterFreshState = await page.locator(".purchase-row").count();
+page.once("dialog", (dialog) => dialog.accept("qa encrypted backup passphrase"));
+await page.setInputFiles("#import-encrypted-backup", encryptedBackupPath);
+await page.waitForSelector("text=암호화 백업 복구 미리보기");
+const restorePreviewVisible = await page.locator("text=암호화 백업 복구 미리보기").count();
+await page.click("#confirm-restore-backup");
+await page.waitForSelector("text=암호화 백업에서");
+await page.waitForSelector("text=QA Attachment Purchase");
+const restoreCompleteVisible = await page.locator("text=암호화 백업에서").count();
+const restoredPurchaseVisible = await page.locator("text=QA Attachment Purchase").count();
+await page.locator("button.row-title", { hasText: "QA Attachment Purchase" }).click();
+const restoredAttachmentDownload = await Promise.all([
+  page.waitForEvent("download", { timeout: 10000 }),
+  page.locator(".detail-panel [data-attachment-purchase]").first().click(),
+]).then(([download]) => download);
+const restoredAttachmentDownloadName = restoredAttachmentDownload.suggestedFilename();
+const restoredEvidenceDownloadPromise = page.waitForEvent("download", { timeout: 10000 });
+await page.locator(".detail-panel [data-evidence]").first().click();
+const restoredEvidenceDownload = await restoredEvidenceDownloadPromise;
+const restoredEvidencePath = `${root}/outputs/restored-${restoredEvidenceDownload.suggestedFilename()}`;
+await restoredEvidenceDownload.saveAs(restoredEvidencePath);
+stages.push("encrypted-backup-restore");
+
 await page.setViewportSize({ width: 390, height: 900 });
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${root}/outputs/playwright-mobile.png`, fullPage: true });
 const mobileHasQueue = await page.locator("text=Deadline queue").count();
 const mobileHasKoreanQueue = await page.locator("text=마감 큐").count();
+const mobileBackupControlsVisible = await page.locator("text=암호화 백업").count();
 stages.push("mobile-screenshot");
 
 await browser.close();
@@ -420,6 +479,8 @@ const icsText = await readFile(icsPath, "utf8");
 const selfHostedText = await readFile(selfHostedPath, "utf8");
 const selfHostedDryRunText = await readFile(selfHostedDryRunPath, "utf8");
 const csvText = await readFile(csvPath, "utf8");
+const encryptedBackupText = await readFile(encryptedBackupPath, "utf8");
+const restoredEvidenceText = await readFile(restoredEvidencePath, "utf8");
 
 const result = {
   url: `http://127.0.0.1:${port}/`,
@@ -495,7 +556,19 @@ const result = {
   localAlertsVisible,
   csvPath,
   csvContainsHomeFields: csvText.includes("support_contact") && csvText.includes("documents"),
+  encryptedBackupPath,
+  encryptedBackupStatusVisible,
+  encryptedBackupContainsSchema: encryptedBackupText.includes("return-warranty-guardian.encrypted-backup.v1"),
+  encryptedBackupHidesPassphrase: !encryptedBackupText.includes("qa encrypted backup passphrase"),
+  rowsAfterFreshState,
+  restorePreviewVisible,
+  restoreCompleteVisible,
+  restoredPurchaseVisible,
+  restoredAttachmentDownloadName,
+  restoredEvidencePath,
+  restoredEvidenceContainsChecklist: restoredEvidenceText.includes("Claim Checklist"),
   mobileHasQueue: mobileHasKoreanQueue || mobileHasQueue,
+  mobileBackupControlsVisible,
   stages,
   consoleErrors,
   screenshots: [`${root}/outputs/playwright-desktop.png`, `${root}/outputs/playwright-mobile.png`],
@@ -563,7 +636,17 @@ const failures = [
   !result.selfHostedDryRunContainsReport && "Expected self-hosted dry-run report export",
   localAlertsVisible < 1 && "Expected open-app local alert status",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
+  encryptedBackupStatusVisible < 1 && "Expected encrypted backup success status",
+  !result.encryptedBackupContainsSchema && "Expected encrypted backup schema",
+  !result.encryptedBackupHidesPassphrase && "Expected encrypted backup envelope to omit raw passphrase",
+  rowsAfterFreshState < 3 && "Expected fresh local state to reseed baseline purchases",
+  restorePreviewVisible < 1 && "Expected encrypted restore preview",
+  restoreCompleteVisible < 1 && "Expected encrypted restore completion status",
+  restoredPurchaseVisible < 1 && "Expected restored purchase to appear",
+  restoredAttachmentDownloadName !== "qa-receipt.pdf" && "Expected restored attachment download to hydrate from encrypted backup",
+  !result.restoredEvidenceContainsChecklist && "Expected restored evidence pack export",
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",
+  mobileBackupControlsVisible < 1 && "Expected mobile layout to include encrypted backup controls",
   consoleErrors.length > 0 && `Console errors: ${consoleErrors.join(" | ")}`,
 ].filter(Boolean);
 
