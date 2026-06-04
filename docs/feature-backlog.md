@@ -32,6 +32,11 @@ This list separates high-leverage additions from features that could distract th
    - Users buy on mobile, search on desktop, and need the same records later.
    - JSON export and encrypted `.rwgbackup` restore are safe but manual. V2 still needs local network sync or self-hosted sync options if the product chooses a multi-device story.
 
+7. **Post-purchase price and safety blind spots**
+   - Users can lose money when a price drops inside a merchant price-protection window, and they can miss safety/recall signals unless those notes live near the receipt and warranty evidence.
+   - The app now supports manual price-protection windows, user-entered last seen price, price adjustment candidate flags, recall/safety reference URLs, safety notes, checked-at dates, and regions.
+   - Remaining pain: official recall-source templates and merchant-specific price-protection policy fixtures should expand without adding scraping, retailer login, or automatic external lookup.
+
 ## High-Leverage Next Features
 
 1. **Synthetic receipt fixture corpus**
@@ -81,12 +86,12 @@ This list separates high-leverage additions from features that could distract th
    - Remaining work: real-device install QA across iOS, Android, and desktop browsers, plus optional Lighthouse/axe audits.
 
 10. **Price-protection watcher**
-   - Manual or optional watch entries for price drops within refund/price-adjustment periods.
-   - Must avoid retailer scraping by default.
+   - Manual price-protection entries now flag price adjustment candidates inside the saved policy window.
+   - Remaining work: reusable merchant/country policy templates and re-check reminders. Retailer scraping stays out of scope by default.
 
 11. **Recall and safety notes**
-    - Optional product recall references by model/serial.
-    - Needs careful source attribution and country-specific disclaimers.
+    - Manual recall/safety reference URLs, region, checked-at date, safety note, evidence/claim export, and official-source disclaimer are implemented.
+    - Remaining work: official source templates by country/region and fixture coverage for safe public examples.
 
 ## Lower Priority
 

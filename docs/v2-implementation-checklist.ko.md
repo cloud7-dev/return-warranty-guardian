@@ -36,6 +36,7 @@
 - 클레임 제출 템플릿: 판매처 반품 요청, 보증 지원 요청, chargeback 증빙 요약, 수리 접수 메모
 - 클레임 번들 JSON/ZIP: 구매 레코드, 마감 계산, Markdown 증빙팩, claim HTML, 제출 템플릿, 로컬 첨부 data URL 및 첨부 파일 포함
 - 암호화 백업/복구: WebCrypto PBKDF2-SHA256 + AES-GCM `.rwgbackup`, passphrase 미저장, OPFS/data URL 첨부 hydration, 복구 미리보기, 중복 제외 merge-only 복구
+- 가격보호/리콜/안전 노트: 가격보호 마감 계산, 가격 조정 후보 표시, 안전 확인 필요 필터, 공식 출처 URL/지역/확인일/메모 저장, CSV/증빙팩/클레임 HTML/JSON/ZIP/암호화 백업 보존
 - `return-guardian`과 `home-memory-ledger`의 통합 방향 문서화
 
 ## V2 마일스톤별 남은 구현
@@ -113,8 +114,12 @@
    - 남은 구현: 로컬 네트워크 동기화, self-hosted sync 옵션, 대용량 첨부를 위한 분할/외부 파일 참조 백업 UX
 
 8. **가격보호/리콜/안전 노트**
-   - 현재 구현: 없음
-   - 남은 구현: 가격 조정 기간 추적, 제품 리콜 참고 링크, 국가별 출처/면책 문구
+   - 현재 구현: 구매 등록 폼에 가격보호 일수, 마지막 확인 가격, 가격 확인 URL, 가격 확인일, 가격보호 정책 메모 입력
+   - 현재 구현: 구매 상세/마감 큐에 `가격보호` deadline type과 가격 조정 후보 표시
+   - 현재 구현: 가격보호 기간 안에 사용자 입력 현재가가 구매가보다 낮으면 가격 조정 후보와 예상 절감액 표시
+   - 현재 구현: 구매 상세/필터에 `안전 확인 필요`, 리콜/안전 참고 URL, 안전 메모, 안전 확인일, 지역, 공식 출처 확인 면책 문구 표시
+   - 현재 구현: CSV export, Markdown evidence pack, claim HTML/JSON/ZIP bundle, encrypted backup roundtrip, browser QA에 새 필드 반영
+   - 남은 구현: 국가별 공식 리콜 출처 템플릿 fixture 확대, 판매처별 가격보호 정책 fixture 확대, 사용자 확인일 만료/재확인 UX
 
 9. **Polished PWA release**
    - 현재 구현: manifest와 service worker 기본 구조
@@ -124,4 +129,4 @@
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration과 암호화 백업 복구 흐름까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 3번은 순수 JS PBM template OCR worker와 스캔 PDF embedded bitmap OCR 자동화까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었고, 9번 PWA 릴리스 준비는 install manifest/offline app-shell/accessibility smoke/release screenshot gate까지 반영되었습니다. 자연 이미지 영수증 전체를 포괄하는 대형 로컬 OCR 모델, 동기화, 가격보호/리콜, 실제 디바이스 설치 수동 QA는 별도 확장 후보입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration과 암호화 백업 복구 흐름까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 3번은 순수 JS PBM template OCR worker와 스캔 PDF embedded bitmap OCR 자동화까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었고, 8번 가격보호/리콜/안전 노트는 수동 local-first 기록과 export/backup/QA까지 반영되었고, 9번 PWA 릴리스 준비는 install manifest/offline app-shell/accessibility smoke/release screenshot gate까지 반영되었습니다. 자연 이미지 영수증 전체를 포괄하는 대형 로컬 OCR 모델, 동기화, 실제 국가/판매처별 fixture 확대, 실제 디바이스 설치 수동 QA는 별도 확장 후보입니다.

@@ -26,6 +26,8 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 ## What It Does
 
 - Tracks return, refund, and warranty deadlines from one local dashboard.
+- Tracks manual price-protection windows and flags price adjustment candidates when the user-entered last seen price is lower than the purchase price before the price-protection deadline.
+- Stores user-confirmed recall/safety reference URLs, safety notes, checked-at dates, and regions without automatic recall lookup or retailer scraping.
 - Stores purchases in browser storage with JSON export/import and encrypted backup/merge-only restore.
 - Exports `return-warranty-guardian-backup.rwgbackup` using WebCrypto PBKDF2-SHA256 plus AES-GCM. The passphrase is never stored, and restore previews show record counts, attachment counts, skipped attachment issues, schema, created date, and duplicate candidates before merge.
 - Stores local receipt, PDF, manual, and warranty-card attachments locally, using OPFS Blob storage when the browser supports it and data URL fallback otherwise, with save/skipped status for over-size files.
@@ -38,7 +40,7 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Provides a local fixture anonymizer for turning private examples into privacy-safe test fixtures before contribution.
 - Parses pasted receipt or invoice text into candidate line items.
 - Splits one receipt into multiple tracked purchase records.
-- Exports claim-ready evidence packs as Markdown.
+- Exports claim-ready evidence packs as Markdown, including price-protection and recall/safety sections when recorded.
 - Exports printable HTML claim packets with local attachment links/previews, browser-specific PDF save guidance, claim profile notes, attachment export review, attachment manifests, and submission templates that can be saved as PDF from the browser print dialog.
 - Exports claim bundle JSON with the purchase record, deadline math, evidence pack Markdown, claim HTML, claim profile, attachment export review, submission templates, and local attachment data URLs.
 - Exports a ZIP claim bundle with HTML, Markdown, JSON, attachment review, submission template files, and attached local files.
@@ -46,7 +48,7 @@ https://cloud7-dev.github.io/return-warranty-guardian/
 - Supports browser notifications and 3-hour/tomorrow/7-day reminder snooze controls while the app is open, with `.ics` export as the no-server mobile/desktop fallback.
 - Stores optional self-hosted notification draft settings locally and exports payload/dry-run drafts for ntfy, Gotify, or Apprise without sending data from the app.
 - Includes a local self-hosted notification runner dry-run CLI for scheduler planning without storing tokens or sending requests.
-- Exports CSV records for spreadsheet review.
+- Exports CSV records for spreadsheet review, including price-protection and recall/safety fields.
 - Tracks category, room/location, support contact, document names, and service notes for warranty claims and home-history context.
 - Switches the interface between Korean, English, Japanese, Chinese, German, French, Italian, and Hindi.
 - Works as a static web app with a PWA manifest and service worker.
@@ -78,7 +80,7 @@ npm run pwa:readiness
 npm run qa:browser
 ```
 
-`npm test` covers the deadline engine, receipt text parser, local attachment storage fallback, encrypted backup roundtrip/wrong-passphrase/schema/duplicate-merge behavior, CSV import analysis, mapping presets, preset bundle export/validation/trust metadata, review checklist/filter generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback diagnostics, local OCR text result parsing, bundled PBM template OCR, scanned PDF embedded-bitmap OCR automation, local OCR engine planning, policy templates with source/version metadata, import reports, evidence pack export, claim packet HTML/JSON/ZIP bundle export, claim profile/export review, claim submission templates, self-hosted notification payload, provider fixture plans, scheduler recipes, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` and `npm run pwa:readiness` verify static file references, install manifest fields, service worker app-shell offline fallback, core module cache coverage, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, service worker control, offline reload from the cached app shell, accessibility smoke checks, local attachments including OPFS metadata when supported, encrypted backup download/fresh-state restore/restored attachment and evidence export, local HTML/PDF receipt extraction, scanned PDF fallback, scanned PDF sidecar paste/file/auto-pair parsing, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, claim profile/export review, local alert status, self-hosted settings and dry-run export, exports, search, mobile no-overlap checks, and release screenshots.
+`npm test` covers the deadline engine, price-protection candidate logic, safety-check flags, receipt text parser, local attachment storage fallback, encrypted backup roundtrip/wrong-passphrase/schema/duplicate-merge behavior with the new fields preserved, CSV import analysis, mapping presets, preset bundle export/validation/trust metadata, review checklist/filter generation, fixture corpus coverage, local HTML/PDF text extraction, scanned/compressed PDF fallback diagnostics, local OCR text result parsing, bundled PBM template OCR, scanned PDF embedded-bitmap OCR automation, local OCR engine planning, policy templates with source/version metadata, import reports, evidence pack export with price/safety sections, claim packet HTML/JSON/ZIP bundle export, claim profile/export review, claim submission templates, self-hosted notification payload, provider fixture plans, scheduler recipes, dry-run settings, and runner CLI output, CSV export, and calendar export with alarms. `npm run build` and `npm run pwa:readiness` verify static file references, install manifest fields, service worker app-shell offline fallback, core module cache coverage, responsive CSS, and required UI copy. `npm run qa:browser` runs browser interaction checks for language switching, service worker control, offline reload from the cached app shell, accessibility smoke checks, price-protection and safety filters, manual price/safety note entry, local attachments including OPFS metadata when supported, encrypted backup download/fresh-state restore/restored attachment and evidence export, local HTML/PDF receipt extraction, scanned PDF fallback, scanned PDF sidecar paste/file/auto-pair parsing, policy templates, calendar guide visibility, CSV preview/presets/manual mapping/deduplication/row selection/report/preset-bundle export and import, claim packet template/JSON/ZIP bundle download, claim profile/export review, local alert status, self-hosted settings and dry-run export, exports, search, mobile no-overlap checks, and release screenshots.
 
 To prepare a privacy-safe fixture from a local sample:
 
@@ -153,6 +155,8 @@ npm run notify:ops-report -- path/to/smoke-records tests/fixtures/notifications/
 ## Privacy Model
 
 Return & Warranty Guardian does not include a backend. Purchases are stored in browser storage on the current device. Clearing site data can delete purchases, so use encrypted `.rwgbackup` export for backups before clearing browser data or moving devices. Backup files include records, user CSV presets, self-hosted notification draft settings, snooze state, and hydrated local attachment payloads when available. Attachments over 5 MB or attachments that cannot be hydrated are recorded in the backup manifest instead of being silently dropped. The app never stores the passphrase; if it is lost, the backup cannot be decrypted.
+
+Price-protection and recall/safety notes are manual local records. The app does not scrape retailer prices, log in to stores, query recall databases, or guarantee official recall status. Users should verify merchant policies and official national/regional safety sources directly before submitting a price adjustment, return, warranty, or safety claim.
 
 Local OCR/text extraction is intentionally no-upload. The current implementation handles text, CSV, HTML/email receipts, simple PDF text operators, scanned/compressed PDF fallback diagnostics, matching `.ocr.txt` sidecars selected together with scanned PDFs, bundled PBM template OCR, scanned PDF embedded-bitmap OCR fixtures, and image OCR through a local OCR adapter when the browser exposes `TextDetector`. If general image OCR is not available in the current browser and the file is outside the bundled PBM template format, the app keeps the flow local and asks the user to paste receipt text instead of calling a cloud OCR service.
 

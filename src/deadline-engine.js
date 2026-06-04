@@ -51,6 +51,17 @@ export function computeDeadlines(purchase, now = new Date()) {
   const returnDeadline = addDays(purchase.purchaseDate, purchase.returnWindowDays);
   const refundDeadline = addDays(purchase.purchaseDate, purchase.refundWindowDays);
   const warrantyDeadline = addMonths(purchase.purchaseDate, purchase.warrantyMonths);
+  const priceProtectionDeadline = addDays(purchase.purchaseDate, purchase.priceProtectionDays);
+  const priceProtectionCandidate =
+    Boolean(priceProtectionDeadline) &&
+    Number(purchase.lastSeenPrice || 0) > 0 &&
+    Number(purchase.price || 0) > 0 &&
+    Number(purchase.lastSeenPrice) < Number(purchase.price) &&
+    statusFor(priceProtectionDeadline, now) !== "expired";
+  const priceProtectionSavings = priceProtectionCandidate
+    ? Number((Number(purchase.price) - Number(purchase.lastSeenPrice)).toFixed(2))
+    : 0;
+  const safetyCheckNeeded = Boolean(purchase.safetyNote || purchase.recallReferenceUrl) && !purchase.safetyCheckedAt;
   const deadlines = [
     {
       type: "return",
@@ -73,6 +84,13 @@ export function computeDeadlines(purchase, now = new Date()) {
       daysLeft: daysUntil(warrantyDeadline, now),
       status: statusFor(warrantyDeadline, now, 30),
     },
+    {
+      type: "price-protection",
+      label: "Price protection",
+      date: priceProtectionDeadline,
+      daysLeft: daysUntil(priceProtectionDeadline, now),
+      status: priceProtectionCandidate ? "due-soon" : statusFor(priceProtectionDeadline, now),
+    },
   ].filter((deadline) => deadline.date);
 
   const nextDeadline = deadlines
@@ -86,6 +104,10 @@ export function computeDeadlines(purchase, now = new Date()) {
     returnDeadline,
     refundDeadline,
     warrantyDeadline,
+    priceProtectionDeadline,
+    priceProtectionCandidate,
+    priceProtectionSavings,
+    safetyCheckNeeded,
   };
 }
 
@@ -102,6 +124,8 @@ export function summarizePurchases(purchases, now = new Date()) {
       purchase.deadlines.some((deadline) => deadline.status === "expired"),
     ).length,
     missingProof: open.filter((purchase) => !purchase.hasReceipt).length,
+    priceProtectionCandidates: open.filter((purchase) => purchase.priceProtectionCandidate).length,
+    safetyCheckNeeded: open.filter((purchase) => purchase.safetyCheckNeeded).length,
     returnValueAtRisk: open
       .filter((purchase) =>
         purchase.deadlines.some(

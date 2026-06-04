@@ -167,6 +167,8 @@ const filterKeys = {
   return: "filterReturn",
   refund: "filterRefund",
   warranty: "filterWarranty",
+  "price-protection": "filterPriceProtection",
+  "safety-check": "filterSafetyCheck",
   "missing-proof": "filterMissingProof",
   expired: "filterExpired",
   resolved: "filterResolved",
@@ -176,6 +178,7 @@ const deadlineLabelKeys = {
   return: "deadlineReturn",
   refund: "deadlineRefund",
   warranty: "deadlineWarranty",
+  "price-protection": "deadlinePriceProtection",
 };
 
 const statusLabelKeys = {
@@ -328,6 +331,15 @@ async function normalizePurchase(formData) {
     refundWindowDays: Number(formData.get("refundWindowDays") || 0),
     warrantyMonths: Number(formData.get("warrantyMonths") || 0),
     reminderLeadDays: Number(formData.get("reminderLeadDays") || 3),
+    priceProtectionDays: Number(formData.get("priceProtectionDays") || 0),
+    priceProtectionPolicyNote: String(formData.get("priceProtectionPolicyNote") || "").trim(),
+    lastSeenPrice: Number(formData.get("lastSeenPrice") || 0),
+    priceCheckUrl: String(formData.get("priceCheckUrl") || "").trim(),
+    priceCheckedAt: String(formData.get("priceCheckedAt") || "").trim(),
+    recallReferenceUrl: String(formData.get("recallReferenceUrl") || "").trim(),
+    safetyNote: String(formData.get("safetyNote") || "").trim(),
+    safetyCheckedAt: String(formData.get("safetyCheckedAt") || "").trim(),
+    safetyRegion: String(formData.get("safetyRegion") || "").trim(),
     model: String(formData.get("model") || "").trim(),
     serial: String(formData.get("serial") || "").trim(),
     category: String(formData.get("category") || "").trim(),
@@ -365,6 +377,11 @@ function getFilteredPurchases() {
         purchase.supportContact,
         purchase.notes,
         purchase.serviceNotes,
+        purchase.priceProtectionPolicyNote,
+        purchase.priceCheckUrl,
+        purchase.recallReferenceUrl,
+        purchase.safetyNote,
+        purchase.safetyRegion,
         ...(purchase.documents || []),
         ...purchaseAttachments(purchase).map((attachment) => attachment.name),
       ]
@@ -380,6 +397,8 @@ function getFilteredPurchases() {
       if (state.filter === "expired") {
         return purchase.deadlines.some((deadline) => deadline.status === "expired");
       }
+      if (state.filter === "price-protection") return purchase.priceProtectionCandidate;
+      if (state.filter === "safety-check") return purchase.safetyCheckNeeded;
       if (state.filter === "missing-proof") return !purchase.hasReceipt;
       if (state.filter === "resolved") return purchase.status === "resolved";
       return purchase.deadlines.some((deadline) => deadline.type === state.filter);
@@ -484,7 +503,7 @@ function renderDashboard() {
       ${summaryCard(t("dueSoon"), summary.dueSoon, t("dueSoonDetail"), "warning")}
       ${summaryCard(t("openItems"), summary.open, t("totalRecords", { count: summary.total }), "")}
       ${summaryCard(t("missingProof"), summary.missingProof, t("missingProofDetail"), "risk")}
-      ${summaryCard(t("returnValue"), money(summary.returnValueAtRisk), t("returnValueDetail"), "money")}
+      ${summaryCard(t("priceProtectionCandidates"), summary.priceProtectionCandidates, t("priceProtectionCandidatesDetail"), "money")}
     </section>
   `;
 }
@@ -769,6 +788,46 @@ function renderPurchaseForm() {
           ${t("reminderLeadDays")}
           <input name="reminderLeadDays" min="0" step="1" type="number" value="3" />
         </label>
+        <div class="form-section full">
+          <strong>${t("priceProtectionRecallSection")}</strong>
+          <span>${t("priceProtectionRecallHelp")}</span>
+        </div>
+        <label>
+          ${t("priceProtectionDays")}
+          <input name="priceProtectionDays" min="0" step="1" type="number" placeholder="30" />
+        </label>
+        <label>
+          ${t("lastSeenPrice")}
+          <input name="lastSeenPrice" min="0" step="0.01" type="number" placeholder="119.99" />
+        </label>
+        <label>
+          ${t("priceCheckedAt")}
+          <input name="priceCheckedAt" type="date" />
+        </label>
+        <label class="full">
+          ${t("priceCheckUrl")}
+          <input name="priceCheckUrl" type="url" placeholder="https://merchant.example.test/product" />
+        </label>
+        <label class="full">
+          ${t("priceProtectionPolicyNote")}
+          <textarea name="priceProtectionPolicyNote" rows="2" placeholder="${t("priceProtectionPolicyPlaceholder")}"></textarea>
+        </label>
+        <label>
+          ${t("safetyRegion")}
+          <input name="safetyRegion" placeholder="KR / US / EU" />
+        </label>
+        <label>
+          ${t("safetyCheckedAt")}
+          <input name="safetyCheckedAt" type="date" />
+        </label>
+        <label class="full">
+          ${t("recallReferenceUrl")}
+          <input name="recallReferenceUrl" type="url" placeholder="https://official-source.example.test/recall" />
+        </label>
+        <label class="full">
+          ${t("safetyNote")}
+          <textarea name="safetyNote" rows="2" placeholder="${t("safetyNotePlaceholder")}"></textarea>
+        </label>
         <label>
           ${t("policyTemplate")}
           <select name="policyTemplate" id="policy-template">
@@ -940,6 +999,8 @@ function renderPurchaseRows() {
                   <span>${purchase.serial || t("noSerial")}</span>
                   <span>${purchase.category || t("noCategory")}</span>
                   <span>${purchase.room || t("noRoom")}</span>
+                  ${purchase.priceProtectionCandidate ? `<span class="proof-ok">${t("priceProtectionCandidateShort")}</span>` : ""}
+                  ${purchase.safetyCheckNeeded ? `<span class="proof-missing">${t("safetyCheckNeededShort")}</span>` : ""}
                 </div>
               </div>
               <div class="deadline-stack">
@@ -967,7 +1028,7 @@ function renderQueue() {
           <p>${t("queueSubtitle")}</p>
         </div>
         <div class="filter-tabs" role="tablist" aria-label="${t("queueTitle")}">
-          ${["all", "due-soon", "return", "refund", "warranty", "missing-proof", "expired", "resolved"]
+          ${["all", "due-soon", "return", "refund", "warranty", "price-protection", "safety-check", "missing-proof", "expired", "resolved"]
             .map(
               (filter) =>
                 `<button class="${state.filter === filter ? "active" : ""}" data-filter="${filter}" type="button">${t(filterKeys[filter])}</button>`,
@@ -1036,6 +1097,18 @@ function renderDetail() {
         <p>${item.category || t("noCategory")} · ${item.room || t("noRoom")}</p>
         <p>${item.supportContact || t("optional")}</p>
         <p>${t("reminderLeadLabel", { count: Number(item.reminderLeadDays ?? 3) })}</p>
+      </div>
+      <div class="home-context">
+        <h3>${t("priceProtectionRecallTitle")}</h3>
+        <p>${item.priceProtectionCandidate ? t("priceProtectionCandidate", { savings: money(item.priceProtectionSavings) }) : t("priceProtectionNoCandidate")}</p>
+        <p>${t("priceProtectionDeadlineLabel")}: ${item.priceProtectionDeadline || t("optional")}</p>
+        <p>${t("lastSeenPrice")}: ${item.lastSeenPrice ? money(item.lastSeenPrice) : t("optional")} · ${t("priceCheckedAt")}: ${item.priceCheckedAt || t("optional")}</p>
+        <p>${item.priceCheckUrl ? `<a href="${h(item.priceCheckUrl)}" target="_blank" rel="noreferrer">${h(item.priceCheckUrl)}</a>` : t("priceCheckUrlMissing")}</p>
+        <p>${item.priceProtectionPolicyNote || t("priceProtectionPolicyMissing")}</p>
+        <p>${t("safetyRegion")}: ${item.safetyRegion || t("optional")} · ${t("safetyCheckedAt")}: ${item.safetyCheckedAt || t("optional")}</p>
+        <p>${item.recallReferenceUrl ? `<a href="${h(item.recallReferenceUrl)}" target="_blank" rel="noreferrer">${h(item.recallReferenceUrl)}</a>` : t("recallReferenceMissing")}</p>
+        <p>${item.safetyNote || t("safetyNoteMissing")}</p>
+        <p class="field-help">${t("safetyDisclaimer")}</p>
       </div>
       <div class="document-list">
         <h3>${t("localDocs")}</h3>

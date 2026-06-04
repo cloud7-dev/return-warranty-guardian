@@ -113,6 +113,15 @@ const purchase = {
   returnWindowDays: 30,
   refundWindowDays: 14,
   warrantyMonths: 12,
+  priceProtectionDays: 30,
+  priceProtectionPolicyNote: "30-day price adjustment candidate. Verify the current merchant policy before requesting support.",
+  lastSeenPrice: 119.99,
+  priceCheckUrl: "https://example-electronics.test/headset-hx-220",
+  priceCheckedAt: "2026-06-04",
+  recallReferenceUrl: "https://example-safety.test/official-recalls/hx-220",
+  safetyNote: "User must verify official recall and safety status before submitting a claim.",
+  safetyCheckedAt: "",
+  safetyRegion: "KR",
   reminderLeadDays: 5,
   hasReceipt: true,
   status: "active",
@@ -141,12 +150,25 @@ const enriched = computeDeadlines(purchase, now);
 assert.equal(enriched.returnDeadline, "2026-07-02");
 assert.equal(enriched.refundDeadline, "2026-06-16");
 assert.equal(enriched.warrantyDeadline, "2027-06-02");
+assert.equal(enriched.priceProtectionDeadline, "2026-07-02");
+assert.equal(enriched.priceProtectionCandidate, true);
+assert.equal(enriched.priceProtectionSavings, 10);
+assert.equal(enriched.safetyCheckNeeded, true);
 assert.equal(enriched.deadlines.find((deadline) => deadline.type === "refund").status, "due-soon");
+assert.equal(enriched.deadlines.find((deadline) => deadline.type === "price-protection").status, "due-soon");
+
+const noPriceProtectionWindow = computeDeadlines(
+  { ...purchase, priceProtectionDays: 0, lastSeenPrice: 99.99 },
+  now,
+);
+assert.equal(noPriceProtectionWindow.priceProtectionCandidate, false);
 
 const summary = summarizePurchases([purchase], now);
 assert.equal(summary.total, 1);
 assert.equal(summary.dueSoon, 1);
 assert.equal(summary.missingProof, 0);
+assert.equal(summary.priceProtectionCandidates, 1);
+assert.equal(summary.safetyCheckNeeded, 1);
 assert.equal(summary.returnValueAtRisk, 129.99);
 
 const fallbackAttachmentFile = new Blob(["%PDF-1.4\n% Local fallback attachment"], { type: "application/pdf" });
@@ -213,6 +235,9 @@ assert.match(encryptedBackupText, /return-warranty-guardian\.encrypted-backup\.v
 assert.doesNotMatch(encryptedBackupText, /correct horse battery staple/);
 const decryptedBackup = await decryptBackupEnvelope(encryptedBackup, "correct horse battery staple");
 assert.equal(decryptedBackup.purchases[0].productName, "Backup Router");
+assert.equal(decryptedBackup.purchases[0].priceProtectionDays, 30);
+assert.equal(decryptedBackup.purchases[0].lastSeenPrice, 119.99);
+assert.equal(decryptedBackup.purchases[0].safetyRegion, "KR");
 await assert.rejects(() => decryptBackupEnvelope(encryptedBackup, "wrong passphrase"), /Wrong passphrase or corrupted backup file/);
 await assert.rejects(() => decryptBackupEnvelope({ ...encryptedBackup, schema: "unknown" }, "correct horse battery staple"), /Unsupported encrypted backup schema/);
 await assert.rejects(() => decryptBackupEnvelope({ ...encryptedBackup, ciphertext: "not-valid-json" }, "correct horse battery staple"), /Wrong passphrase or corrupted backup file/);
@@ -253,6 +278,10 @@ const pack = evidencePackMarkdown(purchase, now);
 assert.match(pack, /Evidence Pack: Wireless Headset/);
 assert.match(pack, /2026-07-02/);
 assert.match(pack, /Claim Checklist/);
+assert.match(pack, /Price Protection/);
+assert.match(pack, /Price adjustment candidate: Yes/);
+assert.match(pack, /Recall and Safety Notes/);
+assert.match(pack, /Official recall or safety status must be verified directly/);
 assert.match(pack, /receipt\.pdf/);
 assert.match(pack, /warranty-card\.pdf/);
 assert.match(pack, /Home office/);
@@ -260,6 +289,12 @@ assert.match(pack, /Home office/);
 const csv = purchasesToCsv([purchase], now);
 assert.match(csv, /product_name/);
 assert.match(csv, /reminder_lead_days/);
+assert.match(csv, /price_protection_deadline/);
+assert.match(csv, /price_adjustment_candidate/);
+assert.match(csv, /recall_reference_url/);
+assert.match(csv, /safety_region/);
+assert.match(csv, /https:\/\/example-electronics\.test\/headset-hx-220/);
+assert.match(csv, /yes/);
 assert.match(csv, /Wireless Headset/);
 assert.match(csv, /manual\.pdf/);
 assert.match(csv, /warranty-card\.pdf/);
@@ -567,6 +602,9 @@ assert.match(claimPacket, /Chrome\/Chromium/);
 assert.match(claimPacket, /Claim Profile/);
 assert.match(claimPacket, /Attachment Export Review/);
 assert.match(claimPacket, /Attachment Manifest/);
+assert.match(claimPacket, /Price Protection/);
+assert.match(claimPacket, /Recall and Safety Notes/);
+assert.match(claimPacket, /Official recall or safety status must be verified directly/);
 assert.match(claimPacket, /warranty-card\.pdf/);
 assert.match(claimPacket, /data:image\/png/);
 assert.match(claimPacket, /Submission Note/);
@@ -579,6 +617,8 @@ assert.equal(templates.map((template) => template.id).join(","), "merchant-retur
 assert.match(templates[1].body, /support@example\.test/);
 assert.match(templates[1].body, /Claim profile/);
 assert.match(templates[3].body, /Home office/);
+assert.match(templates[0].body, /Price adjustment candidate/);
+assert.match(templates[2].body, /Safety\/recall note/);
 assert.equal(claimPacketProfile(purchase).templateProfile, "custom-user-reviewed");
 assert.match(browserPdfSaveGuide("Firefox"), /Firefox/);
 assert.equal(attachmentExportReview(purchase.attachments).largeFileCount, 0);
@@ -588,6 +628,10 @@ assert.equal(claimBundle.schema, "return-warranty-guardian.claim-bundle.v1");
 assert.match(claimBundle.claimPacketHtml, /Claim Packet: Wireless Headset/);
 assert.equal(claimBundle.submissionTemplates.length, 4);
 assert.equal(claimBundle.claimProfile.templateProfile, "custom-user-reviewed");
+assert.equal(claimBundle.priceProtection.priceProtectionCandidate, true);
+assert.equal(claimBundle.priceProtection.priceProtectionSavings, 10);
+assert.equal(claimBundle.safety.safetyCheckNeeded, true);
+assert.match(claimBundle.safety.disclaimer, /official source/);
 assert.equal(claimBundle.attachmentExportReview.totalFiles, 2);
 assert.equal(claimBundle.attachmentManifest.length, 2);
 assert.equal(claimBundle.attachmentManifest[0].exportPath, "attachments/01-warranty-card.pdf");
@@ -603,6 +647,7 @@ assert.match(new TextDecoder().decode(claimZip), /templates\/merchant-return\.tx
 const ics = purchasesToIcs([purchase], now);
 assert.match(ics, /BEGIN:VCALENDAR/);
 assert.match(ics, /SUMMARY:Return deadline: Wireless Headset/);
+assert.match(ics, /SUMMARY:Price protection deadline: Wireless Headset/);
 assert.match(ics, /DTSTART;VALUE=DATE:20260702/);
 assert.match(ics, /BEGIN:VALARM/);
 assert.match(ics, /TRIGGER:-P5D/);
@@ -621,7 +666,8 @@ assert.equal(selfHosted.schema, "return-warranty-guardian.self-hosted-notificati
 assert.match(selfHosted.privacyNote, /No data is sent/);
 assert.equal(selfHosted.settings.enabled, true);
 assert.equal(selfHosted.settings.tokenStored, false);
-assert.equal(selfHosted.reminders.length, 3);
+assert.equal(selfHosted.reminders.length, 4);
+assert.ok(selfHosted.reminders.some((reminder) => reminder.deadlineType === "price-protection"));
 assert.match(selfHosted.providers.ntfy.curl, /alerts\.example\.test\/returns/);
 assert.equal(selfHosted.dryRun.requiresExternalRunner, true);
 assert.equal(selfHosted.dryRun.appSendsNetworkRequests, false);
@@ -877,7 +923,13 @@ const { stdout: requestPackStdout } = await execFileAsync(process.execPath, [
 ]);
 assert.match(requestPackStdout, /Sample Request Pack/);
 assert.match(requestPackStdout, /Maintainer Gate/);
-const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit, ocrEngineManifest, encryptedBackupAvailable: true, pwaReleaseReady: true });
+const releaseReport = releaseReadinessReport(sampleManifest, now, {
+  notificationSmokeAudit: smokeRecordAudit,
+  ocrEngineManifest,
+  encryptedBackupAvailable: true,
+  pwaReleaseReady: true,
+  priceRecallReady: true,
+});
 assert.equal(releaseReport.schema, "return-warranty-guardian.release-readiness-report.v1");
 assert.equal(releaseReport.remainingItems.length, 0);
 assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /Actual bundled cross-browser OCR engine/);
@@ -891,6 +943,8 @@ assert.match(releaseMarkdown, /Encrypted backup and recovery/);
 assert.match(releaseMarkdown, /Available/);
 assert.match(releaseMarkdown, /Polished PWA release/);
 assert.match(releaseMarkdown, /Ready/);
+assert.match(releaseMarkdown, /Price protection and recall notes/);
+assert.match(releaseMarkdown, /Available/);
 assert.match(releaseMarkdown, /Community-ready/);
 assert.match(releaseMarkdown, /No numbered follow-up items remain/);
 const { stdout: releaseStdout } = await execFileAsync(process.execPath, [
@@ -904,6 +958,8 @@ assert.match(releaseStdout, /Encrypted backup and recovery/);
 assert.match(releaseStdout, /Available/);
 assert.match(releaseStdout, /Polished PWA release/);
 assert.match(releaseStdout, /Ready/);
+assert.match(releaseStdout, /Price protection and recall notes/);
+assert.match(releaseStdout, /Available/);
 assert.match(releaseStdout, /No numbered follow-up items remain/);
 const { stdout: strictCoverageStdout } = await execFileAsync(process.execPath, [
   "scripts/sample-intake-coverage-report.mjs",

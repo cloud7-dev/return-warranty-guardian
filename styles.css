@@ -682,6 +682,25 @@ svg {
   grid-column: 1 / -1;
 }
 
+.form-section {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--line);
+}
+
+.form-section strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.form-section span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
 .checkbox-row {
   grid-template-columns: auto 1fr !important;
   align-items: center;
@@ -979,6 +998,11 @@ svg {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.home-context a {
+  color: var(--teal-dark);
+  overflow-wrap: anywhere;
 }
 
 .document-list ul {

@@ -130,6 +130,15 @@ const initialSummary = await page.locator(".summary-card").count();
 const calendarGuideVisible = await page.locator("text=캘린더 알림").count();
 const reminderQueueVisible = await page.locator("text=앱이 열려 있을 때의 알림 큐").count();
 const snoozeButtonVisible = await page.locator('[data-snooze-reminder]').count();
+await page.click('[data-filter="price-protection"]');
+await page.waitForSelector("text=가격 조정 후보");
+const priceProtectionFilterRows = await page.locator(".purchase-row").count();
+const priceProtectionFilterVisible = await page.locator("text=가격 조정 후보").count();
+await page.click('[data-filter="safety-check"]');
+await page.waitForSelector("text=안전 확인 필요");
+const safetyFilterRows = await page.locator(".purchase-row").count();
+const safetyFilterVisible = await page.locator("text=안전 확인 필요").count();
+await page.click('[data-filter="all"]');
 await page.screenshot({ path: `${root}/outputs/playwright-desktop.png`, fullPage: true });
 stages.push("desktop-screenshot");
 
@@ -149,14 +158,26 @@ await writeFile(oversizedAttachmentPath, Buffer.alloc(5 * 1024 * 1024 + 1, "x"))
 await page.fill('input[name="productName"]', "QA Attachment Purchase");
 await page.fill('input[name="merchant"]', "QA Store");
 await page.fill('input[name="price"]', "42.50");
+await page.fill('input[name="priceProtectionDays"]', "30");
+await page.fill('input[name="lastSeenPrice"]', "35.00");
+await page.fill('input[name="priceCheckedAt"]', "2026-06-04");
+await page.fill('input[name="priceCheckUrl"]', "https://qa.example.test/current-price");
+await page.fill('textarea[name="priceProtectionPolicyNote"]', "QA price adjustment policy note.");
+await page.fill('input[name="safetyRegion"]', "KR");
+await page.fill('input[name="recallReferenceUrl"]', "https://qa.example.test/official-recall");
+await page.fill('textarea[name="safetyNote"]', "QA safety note for official source verification.");
 await page.setInputFiles('input[name="attachments"]', [attachmentFixturePath, oversizedAttachmentPath]);
 await page.click("#purchase-form .primary-action");
 await page.waitForFunction(() => document.querySelectorAll(".purchase-row").length >= 4);
 await page.waitForSelector("text=qa-receipt.pdf");
+await page.waitForSelector("text=가격 조정 후보");
+await page.waitForSelector("text=QA safety note for official source verification.");
 await page.waitForSelector("text=첨부 1개 저장됨, 5 MB 초과 1개 제외됨.");
 const rowsAfterManualSave = await page.locator(".purchase-row").count();
 const attachmentVisible = await page.locator("text=qa-receipt.pdf").count();
 const attachmentStatusVisible = await page.locator("text=첨부 1개 저장됨, 5 MB 초과 1개 제외됨.").count();
+const manualPriceCandidateVisible = await page.locator("text=가격 조정 후보").count();
+const manualSafetyNoteVisible = await page.locator("text=QA safety note for official source verification.").count();
 const opfsSupported = await page.evaluate(() => Boolean(navigator.storage?.getDirectory));
 const attachmentStorageRecord = await page.evaluate(async () => {
   const purchases = await new Promise((resolve, reject) => {
@@ -476,6 +497,9 @@ await page.waitForSelector("text=QA Attachment Purchase");
 const restoreCompleteVisible = await page.locator("text=암호화 백업에서").count();
 const restoredPurchaseVisible = await page.locator("text=QA Attachment Purchase").count();
 await page.locator("button.row-title", { hasText: "QA Attachment Purchase" }).click();
+await page.waitForSelector("text=QA safety note for official source verification.");
+const restoredPriceCandidateVisible = await page.locator("text=가격 조정 후보").count();
+const restoredSafetyNoteVisible = await page.locator("text=QA safety note for official source verification.").count();
 const restoredAttachmentDownload = await Promise.all([
   page.waitForEvent("download", { timeout: 10000 }),
   page.locator(".detail-panel [data-attachment-purchase]").first().click(),
@@ -533,6 +557,7 @@ await page.screenshot({ path: `${root}/outputs/playwright-mobile.png`, fullPage:
 const mobileHasQueue = await page.locator("text=Deadline queue").count();
 const mobileHasKoreanQueue = await page.locator("text=마감 큐").count();
 const mobileBackupControlsVisible = await page.locator("text=암호화 백업").count();
+const mobilePriceSafetyVisible = await page.locator("text=QA safety note for official source verification.").count();
 const mobileTopbarOverlapCount = await page.evaluate(() => {
   const visibleChildren = [...document.querySelectorAll(".topbar-tools > *")].filter((element) => {
     const style = getComputedStyle(element);
@@ -583,6 +608,10 @@ const result = {
   calendarGuideVisible,
   reminderQueueVisible,
   snoozeButtonVisible,
+  priceProtectionFilterRows,
+  priceProtectionFilterVisible,
+  safetyFilterRows,
+  safetyFilterVisible,
   snoozeStatusVisible,
   clearSnoozeVisible,
   rowsAfterManualSave,
@@ -591,6 +620,8 @@ const result = {
   opfsSupported,
   attachmentStorageRecord,
   attachmentDownloadName,
+  manualPriceCandidateVisible,
+  manualSafetyNoteVisible,
   policyReturnDays,
   policyNotesUpdated: policyNotes.includes("extended 60-day return"),
   policyReviewNoteVisible: policyNotes.includes("Policy review scope"),
@@ -621,16 +652,22 @@ const result = {
   filteredTextContainsCoffeeMaker: filteredText.includes("Coffee Maker"),
   evidencePath,
   evidenceContainsChecklist: evidenceText.includes("Claim Checklist"),
+  evidenceContainsPriceProtection: evidenceText.includes("Price Protection") && evidenceText.includes("Price adjustment candidate"),
+  evidenceContainsSafetyNotes: evidenceText.includes("Recall and Safety Notes") && evidenceText.includes("Official recall or safety status"),
   claimPath,
   claimContainsPrintPdf: claimText.includes("Print or save PDF") && claimText.includes("Claim Packet"),
   claimContainsPdfGuide: claimText.includes("PDF Save Guide") && claimText.includes("Attachment Manifest"),
   claimContainsProfile: claimText.includes("Claim Profile") && claimText.includes("Attachment Export Review"),
   claimContainsTemplates: claimText.includes("Submission Templates") && claimText.includes("Merchant Return Request"),
+  claimContainsPriceProtection: claimText.includes("Price Protection") && claimText.includes("Price adjustment candidate"),
+  claimContainsSafetyNotes: claimText.includes("Recall and Safety Notes") && claimText.includes("Official recall or safety status"),
   claimBundlePath,
   claimBundleContainsEvidence: claimBundleText.includes("return-warranty-guardian.claim-bundle.v1") && claimBundleText.includes("claimPacketHtml"),
   claimBundleContainsManifest: claimBundleText.includes("attachmentManifest"),
   claimBundleContainsProfile: claimBundleText.includes("claimProfile") && claimBundleText.includes("attachmentExportReview"),
   claimBundleContainsTemplates: claimBundleText.includes("submissionTemplates") && claimBundleText.includes("chargeback-summary"),
+  claimBundleContainsPriceProtection: claimBundleText.includes('"priceProtection"') && claimBundleText.includes("priceProtectionCandidate"),
+  claimBundleContainsSafety: claimBundleText.includes('"safety"') && claimBundleText.includes("safetyCheckNeeded"),
   claimZipPath,
   claimZipHasSignature: claimZipBytes[0] === 0x50 && claimZipBytes[1] === 0x4b && claimZipBytes.includes(0x50),
   claimZipHasTemplateFiles: Buffer.from(claimZipBytes).includes(Buffer.from("templates/merchant-return.txt")),
@@ -648,6 +685,11 @@ const result = {
   localAlertsVisible,
   csvPath,
   csvContainsHomeFields: csvText.includes("support_contact") && csvText.includes("documents"),
+  csvContainsPriceSafetyFields:
+    csvText.includes("price_protection_deadline") &&
+    csvText.includes("price_adjustment_candidate") &&
+    csvText.includes("recall_reference_url") &&
+    csvText.includes("safety_region"),
   encryptedBackupPath,
   encryptedBackupStatusVisible,
   encryptedBackupContainsSchema: encryptedBackupText.includes("return-warranty-guardian.encrypted-backup.v1"),
@@ -657,8 +699,12 @@ const result = {
   restoreCompleteVisible,
   restoredPurchaseVisible,
   restoredAttachmentDownloadName,
+  restoredPriceCandidateVisible,
+  restoredSafetyNoteVisible,
   restoredEvidencePath,
   restoredEvidenceContainsChecklist: restoredEvidenceText.includes("Claim Checklist"),
+  restoredEvidenceContainsPriceSafety:
+    restoredEvidenceText.includes("Price Protection") && restoredEvidenceText.includes("Recall and Safety Notes"),
   accessibilitySmoke,
   accessibilitySmokePassed:
     accessibilitySmoke.unnamedControls.length === 0 &&
@@ -670,6 +716,7 @@ const result = {
     accessibilitySmoke.hasH1,
   mobileHasQueue: mobileHasKoreanQueue || mobileHasQueue,
   mobileBackupControlsVisible,
+  mobilePriceSafetyVisible,
   mobileTopbarOverlapCount,
   stages,
   consoleErrors,
@@ -688,6 +735,10 @@ const failures = [
   calendarGuideVisible < 1 && "Expected calendar import guide",
   reminderQueueVisible < 1 && "Expected open-app reminder queue",
   snoozeButtonVisible < 1 && "Expected reminder snooze controls",
+  priceProtectionFilterRows < 1 && "Expected price protection filter to show candidate rows",
+  priceProtectionFilterVisible < 1 && "Expected price protection candidate copy to appear",
+  safetyFilterRows < 1 && "Expected safety-check filter to show rows",
+  safetyFilterVisible < 1 && "Expected safety-check copy to appear",
   snoozeStatusVisible < 1 && "Expected reminder snooze status",
   clearSnoozeVisible < 1 && "Expected clear snooze status",
   rowsAfterManualSave < 4 && "Expected manual purchase with attachment to be saved",
@@ -695,6 +746,8 @@ const failures = [
   attachmentStatusVisible < 1 && "Expected attachment save/skipped status",
   opfsSupported && attachmentStorageRecord !== "opfs" && "Expected OPFS attachment storage when browser supports it",
   attachmentDownloadName !== "qa-receipt.pdf" && "Expected local attachment download to hydrate from storage",
+  manualPriceCandidateVisible < 1 && "Expected manual purchase to show price adjustment candidate",
+  manualSafetyNoteVisible < 1 && "Expected manual purchase to show safety note",
   policyReturnDays !== "60" && "Expected policy template to set return days",
   !result.policyNotesUpdated && "Expected policy template to append a user-confirmed note",
   !result.policyReviewNoteVisible && "Expected policy template to append structured review note",
@@ -722,14 +775,20 @@ const failures = [
   filteredRows !== 1 && "Expected Coffee Maker search to return one row",
   !result.filteredTextContainsCoffeeMaker && "Expected filtered row to include Coffee Maker",
   !result.evidenceContainsChecklist && "Expected evidence pack checklist",
+  !result.evidenceContainsPriceProtection && "Expected evidence pack price protection section",
+  !result.evidenceContainsSafetyNotes && "Expected evidence pack recall and safety section",
   !result.claimContainsPrintPdf && "Expected printable claim packet HTML",
   !result.claimContainsPdfGuide && "Expected claim packet PDF save guide and attachment manifest",
   !result.claimContainsProfile && "Expected claim packet profile and attachment export review",
   !result.claimContainsTemplates && "Expected claim packet submission templates",
+  !result.claimContainsPriceProtection && "Expected claim packet price protection section",
+  !result.claimContainsSafetyNotes && "Expected claim packet recall and safety section",
   !result.claimBundleContainsEvidence && "Expected claim bundle JSON export",
   !result.claimBundleContainsManifest && "Expected claim bundle attachment manifest",
   !result.claimBundleContainsProfile && "Expected claim bundle profile and attachment export review",
   !result.claimBundleContainsTemplates && "Expected claim bundle templates",
+  !result.claimBundleContainsPriceProtection && "Expected claim bundle price protection payload",
+  !result.claimBundleContainsSafety && "Expected claim bundle safety payload",
   !result.claimZipHasSignature && "Expected claim ZIP bundle export",
   !result.claimZipHasTemplateFiles && "Expected claim ZIP template files",
   !result.claimZipHasAttachmentManifest && "Expected claim ZIP attachment manifest",
@@ -742,6 +801,7 @@ const failures = [
   !result.selfHostedDryRunContainsReport && "Expected self-hosted dry-run report export",
   localAlertsVisible < 1 && "Expected open-app local alert status",
   !result.csvContainsHomeFields && "Expected CSV export to include home memory fields",
+  !result.csvContainsPriceSafetyFields && "Expected CSV export to include price protection and safety fields",
   encryptedBackupStatusVisible < 1 && "Expected encrypted backup success status",
   !result.encryptedBackupContainsSchema && "Expected encrypted backup schema",
   !result.encryptedBackupHidesPassphrase && "Expected encrypted backup envelope to omit raw passphrase",
@@ -751,10 +811,14 @@ const failures = [
   restoredPurchaseVisible < 1 && "Expected restored purchase to appear",
   restoredAttachmentDownloadName !== "qa-receipt.pdf" && "Expected restored attachment download to hydrate from encrypted backup",
   !result.restoredEvidenceContainsChecklist && "Expected restored evidence pack export",
+  restoredPriceCandidateVisible < 1 && "Expected restored purchase to preserve price adjustment candidate",
+  restoredSafetyNoteVisible < 1 && "Expected restored purchase to preserve safety note",
+  !result.restoredEvidenceContainsPriceSafety && "Expected restored evidence pack to include price and safety sections",
   !result.accessibilitySmokePassed &&
     `Expected accessibility smoke checks to pass: ${JSON.stringify(accessibilitySmoke)}`,
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",
   mobileBackupControlsVisible < 1 && "Expected mobile layout to include encrypted backup controls",
+  mobilePriceSafetyVisible < 1 && "Expected mobile layout to include price/safety detail text",
   mobileTopbarOverlapCount !== 0 && "Expected mobile topbar controls not to overlap",
   consoleErrors.length > 0 && `Console errors: ${consoleErrors.join(" | ")}`,
 ].filter(Boolean);

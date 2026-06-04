@@ -49,6 +49,30 @@ function attachmentManifest(attachments) {
   }));
 }
 
+function priceProtectionSummary(item) {
+  return {
+    priceProtectionDeadline: item.priceProtectionDeadline || "",
+    priceProtectionDays: Number(item.priceProtectionDays || 0),
+    lastSeenPrice: Number(item.lastSeenPrice || 0),
+    priceProtectionCandidate: Boolean(item.priceProtectionCandidate),
+    priceProtectionSavings: Number(item.priceProtectionSavings || 0),
+    priceCheckedAt: item.priceCheckedAt || "",
+    priceCheckUrl: item.priceCheckUrl || "",
+    priceProtectionPolicyNote: item.priceProtectionPolicyNote || "",
+  };
+}
+
+function safetySummary(item) {
+  return {
+    recallReferenceUrl: item.recallReferenceUrl || "",
+    safetyNote: item.safetyNote || "",
+    safetyCheckedAt: item.safetyCheckedAt || "",
+    safetyRegion: item.safetyRegion || "",
+    safetyCheckNeeded: Boolean(item.safetyCheckNeeded),
+    disclaimer: "Official recall or safety status must be verified directly with the official source for the user's country or region.",
+  };
+}
+
 export function claimPacketProfile(purchase = {}) {
   const policyTemplateId = String(purchase.policyTemplateId || "custom");
   const jurisdiction =
@@ -102,11 +126,17 @@ export function claimSubmissionTemplates(purchase, now = new Date()) {
   const identity = `${item.productName} purchased from ${item.merchant} on ${item.purchaseDate}`;
   const documents = Array.isArray(item.documents) && item.documents.length ? item.documents.join(", ") : "No document names recorded";
   const support = item.supportContact || "Not recorded";
+  const priceProtectionLine = item.priceProtectionCandidate
+    ? `Price adjustment candidate: last seen ${Number(item.lastSeenPrice || 0).toFixed(2)}, estimated savings ${Number(item.priceProtectionSavings || 0).toFixed(2)}, deadline ${item.priceProtectionDeadline || "Not calculated"}`
+    : "Price adjustment candidate: no current candidate recorded";
+  const safetyLine = item.recallReferenceUrl || item.safetyNote
+    ? `Safety/recall note: ${item.safetyNote || "No note"} ${item.recallReferenceUrl || ""}`.trim()
+    : "Safety/recall note: not recorded";
   return [
     {
       id: "merchant-return",
       title: "Merchant Return Request",
-      body: `Hello,\n\nI would like to request return support for ${identity}.\n\nOrder/product details:\n- Product: ${item.productName}\n- Purchase date: ${item.purchaseDate}\n- Price: ${Number(item.price || 0).toFixed(2)}\n- Model/serial: ${item.model || "Not recorded"} / ${item.serial || "Not recorded"}\n- Deadline summary: ${deadlineSummary || "No deadlines recorded"}\n- Documents included: ${documents}\n- Claim profile: ${profile.templateProfile} / ${profile.jurisdiction}\n\nI have included the receipt/order proof and supporting documents in this packet. Please confirm the next return step, RMA number, or label instructions.\n\nThank you.`,
+      body: `Hello,\n\nI would like to request return support for ${identity}.\n\nOrder/product details:\n- Product: ${item.productName}\n- Purchase date: ${item.purchaseDate}\n- Price: ${Number(item.price || 0).toFixed(2)}\n- Model/serial: ${item.model || "Not recorded"} / ${item.serial || "Not recorded"}\n- Deadline summary: ${deadlineSummary || "No deadlines recorded"}\n- ${priceProtectionLine}\n- ${safetyLine}\n- Documents included: ${documents}\n- Claim profile: ${profile.templateProfile} / ${profile.jurisdiction}\n\nI have included the receipt/order proof and supporting documents in this packet. Please confirm the next return step, RMA number, price adjustment option, or label instructions.\n\nThank you.`,
     },
     {
       id: "warranty-support",
@@ -116,7 +146,7 @@ export function claimSubmissionTemplates(purchase, now = new Date()) {
     {
       id: "chargeback-summary",
       title: "Chargeback Evidence Summary",
-      body: `Transaction evidence summary:\n\n${identity}\nAmount: ${Number(item.price || 0).toFixed(2)}\nSupport/contact: ${support}\nDeadline summary: ${deadlineSummary || "No deadlines recorded"}\nDocuments included: ${documents}\n\nEvidence included:\n- Receipt or order confirmation\n- Deadline math\n- Local documents and attachments listed in this packet\n- Service or support notes when recorded\n\nReview merchant policy and dispute requirements before submitting this summary.`,
+      body: `Transaction evidence summary:\n\n${identity}\nAmount: ${Number(item.price || 0).toFixed(2)}\nSupport/contact: ${support}\nDeadline summary: ${deadlineSummary || "No deadlines recorded"}\n${priceProtectionLine}\n${safetyLine}\nDocuments included: ${documents}\n\nEvidence included:\n- Receipt or order confirmation\n- Deadline math\n- Price protection notes when recorded\n- Safety/recall notes when recorded\n- Local documents and attachments listed in this packet\n- Service or support notes when recorded\n\nReview merchant policy and dispute requirements before submitting this summary.`,
     },
     {
       id: "repair-intake",
@@ -154,6 +184,25 @@ Generated: ${now.toISOString()}
 - Support/contact: ${item.supportContact || "Not recorded"}
 - Receipt/proof attached: ${item.hasReceipt ? "Yes" : "No"}
 - Source: ${item.source || "manual"}
+
+## Price Protection
+
+- Deadline: ${item.priceProtectionDeadline || "Not recorded"}
+- Policy days: ${Number(item.priceProtectionDays || 0)}
+- Last seen price: ${Number(item.lastSeenPrice || 0).toFixed(2)}
+- Price adjustment candidate: ${item.priceProtectionCandidate ? "Yes" : "No"}
+- Estimated savings: ${Number(item.priceProtectionSavings || 0).toFixed(2)}
+- Price checked at: ${item.priceCheckedAt || "Not recorded"}
+- Price check URL: ${item.priceCheckUrl || "Not recorded"}
+- Policy note: ${item.priceProtectionPolicyNote || "Not recorded"}
+
+## Recall and Safety Notes
+
+- Region: ${item.safetyRegion || "Not recorded"}
+- Safety checked at: ${item.safetyCheckedAt || "Not recorded"}
+- Recall/reference URL: ${item.recallReferenceUrl || "Not recorded"}
+- Safety note: ${item.safetyNote || "Not recorded"}
+- Disclaimer: Official recall or safety status must be verified directly with the official source for the user's country or region.
 
 ## Local Documents
 
@@ -216,7 +265,19 @@ export function purchasesToCsv(purchases, now = new Date()) {
     "return_deadline",
     "refund_deadline",
     "warranty_deadline",
+    "price_protection_deadline",
     "reminder_lead_days",
+    "price_protection_days",
+    "last_seen_price",
+    "price_adjustment_candidate",
+    "price_protection_savings",
+    "price_checked_at",
+    "price_check_url",
+    "price_protection_policy_note",
+    "recall_reference_url",
+    "safety_note",
+    "safety_checked_at",
+    "safety_region",
     "category",
     "room",
     "model",
@@ -239,7 +300,19 @@ export function purchasesToCsv(purchases, now = new Date()) {
       item.returnDeadline,
       item.refundDeadline,
       item.warrantyDeadline,
+      item.priceProtectionDeadline,
       reminderLeadDays(item),
+      item.priceProtectionDays,
+      item.lastSeenPrice,
+      item.priceProtectionCandidate ? "yes" : "no",
+      item.priceProtectionSavings,
+      item.priceCheckedAt,
+      item.priceCheckUrl,
+      item.priceProtectionPolicyNote,
+      item.recallReferenceUrl,
+      item.safetyNote,
+      item.safetyCheckedAt,
+      item.safetyRegion,
       item.category,
       item.room,
       item.model,
@@ -317,6 +390,21 @@ export function claimPacketHtml(purchase, now = new Date(), options = {}) {
   </section>
   <h2>Deadline Math</h2>
   <table><thead><tr><th>Type</th><th>Date</th><th>Days left</th><th>Status</th></tr></thead><tbody>${deadlineRows}</tbody></table>
+  <h2>Price Protection</h2>
+  <div class="guide">
+    <p>Price protection deadline: ${escapeHtml(item.priceProtectionDeadline || "Not recorded")}</p>
+    <p>Last seen price: ${escapeHtml(item.lastSeenPrice ? Number(item.lastSeenPrice).toFixed(2) : "Not recorded")} · Candidate: ${item.priceProtectionCandidate ? "yes" : "no"} · Estimated savings: ${escapeHtml(Number(item.priceProtectionSavings || 0).toFixed(2))}</p>
+    <p>Price checked at: ${escapeHtml(item.priceCheckedAt || "Not recorded")}</p>
+    <p>${item.priceCheckUrl ? `<a href="${escapeHtml(item.priceCheckUrl)}">${escapeHtml(item.priceCheckUrl)}</a>` : "No price check URL recorded."}</p>
+    <p>${escapeHtml(item.priceProtectionPolicyNote || "No price protection policy note recorded.")}</p>
+  </div>
+  <h2>Recall and Safety Notes</h2>
+  <div class="guide">
+    <p>Region: ${escapeHtml(item.safetyRegion || "Not recorded")} · Checked at: ${escapeHtml(item.safetyCheckedAt || "Not recorded")}</p>
+    <p>${item.recallReferenceUrl ? `<a href="${escapeHtml(item.recallReferenceUrl)}">${escapeHtml(item.recallReferenceUrl)}</a>` : "No recall reference URL recorded."}</p>
+    <p>${escapeHtml(item.safetyNote || "No safety note recorded.")}</p>
+    <p>Official recall or safety status must be verified directly with the official source for the user's country or region.</p>
+  </div>
   <h2>PDF Save Guide</h2>
   <div class="guide">
     <p>Use the print button, choose Save as PDF in the browser print dialog, then review every local attachment before sending the packet.</p>
@@ -398,6 +486,8 @@ export function claimPacketBundleJson(purchase, now = new Date(), options = {}) 
       claimPacketHtml: claimPacketHtml(purchase, now, options),
       submissionTemplates: claimSubmissionTemplates(purchase, now),
       claimProfile: claimPacketProfile(item),
+      priceProtection: priceProtectionSummary(item),
+      safety: safetySummary(item),
       pdfSaveGuide: browserPdfSaveGuide(options.userAgent),
       attachmentManifest: attachmentManifest(attachments),
       attachmentExportReview: attachmentExportReview(attachments),
