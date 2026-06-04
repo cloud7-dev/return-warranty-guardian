@@ -8,6 +8,7 @@
     "dev": "python3 -m http.server 4180 --bind 127.0.0.1",
     "test": "node tests/run-tests.mjs",
     "build": "node scripts/check-static.mjs",
+    "pwa:readiness": "node scripts/check-static.mjs",
     "qa:browser": "/Users/jstudio/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/qa-browser.mjs",
     "fixture:anonymize": "node scripts/anonymize-fixture.mjs",
     "fixture:review": "node scripts/review-sample-intake.mjs",

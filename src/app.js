@@ -872,7 +872,7 @@ function renderParser() {
           <p>${t("parserSubtitle")}</p>
         </div>
       </div>
-      <textarea id="receipt-text" class="receipt-text" rows="9" spellcheck="false">Example Electronics
+      <textarea id="receipt-text" class="receipt-text" rows="9" spellcheck="false" aria-label="${t("parserTitle")}">Example Electronics
 Receipt 7142
 2026-06-02
 Wireless Headset 129.99
@@ -892,7 +892,7 @@ Total 166.99</textarea>
       <label class="ocr-sidecar">
         <span>${t("localOcrSidecar")}</span>
         <input id="ocr-sidecar-file" type="file" accept="text/plain,.txt,.ocr.txt" />
-        <textarea id="ocr-sidecar-text" rows="3" spellcheck="false" placeholder="${t("localOcrSidecarPlaceholder")}"></textarea>
+        <textarea id="ocr-sidecar-text" rows="3" spellcheck="false" aria-label="${t("localOcrSidecar")}" placeholder="${t("localOcrSidecarPlaceholder")}"></textarea>
       </label>
       ${state.ocrStatus ? `<p class="empty-note">${state.ocrStatus}</p>` : ""}
       ${preview}

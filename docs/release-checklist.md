@@ -7,14 +7,15 @@ Use this checklist before tagging or announcing a release.
 ```bash
 npm test
 npm run build
+npm run pwa:readiness
 npm run qa:browser
 ```
 
 Expected result:
 
 - Logic tests pass.
-- Static file and PWA checks pass.
-- Browser QA confirms default Korean language, eight language options, local attachment save/skipped status, OPFS metadata when supported, and download visibility, local HTML/PDF receipt extraction, scanned PDF fallback notice, scanned PDF local OCR sidecar paste/file/auto-pair parsing, user-confirmed policy templates with structured review notes, calendar import guide visibility, in-app 3-hour/tomorrow/7-day reminder snooze controls, self-hosted notification settings, payload export, and dry-run report export, CSV import preview with built-in/manual column mapping plus saved preset, duplicate/invalid row counts, selected-row import behavior, CSV review checklist, CSV import report export, CSV preset bundle export/import, receipt parsing, search, evidence pack export, claim packet HTML download with PDF save guidance, claim profile, attachment export review, attachment manifest, attachment evidence, and submission templates, claim bundle JSON/ZIP download, ICS export with repeated alarms, local alert status, CSV export, mobile layout, and no console errors.
+- Static file, install manifest, service worker app-shell offline fallback, core module cache, and PWA readiness checks pass.
+- Browser QA confirms default Korean language, eight language options, service worker control, offline reload from cached app shell, accessibility smoke checks, local attachment save/skipped status, OPFS metadata when supported, and download visibility, local HTML/PDF receipt extraction, scanned PDF fallback notice, scanned PDF local OCR sidecar paste/file/auto-pair parsing, user-confirmed policy templates with structured review notes, calendar import guide visibility, in-app 3-hour/tomorrow/7-day reminder snooze controls, self-hosted notification settings, payload export, and dry-run report export, CSV import preview with built-in/manual column mapping plus saved preset, duplicate/invalid row counts, selected-row import behavior, CSV review checklist, CSV import report export, CSV preset bundle export/import, receipt parsing, search, evidence pack export, claim packet HTML download with PDF save guidance, claim profile, attachment export review, attachment manifest, attachment evidence, and submission templates, claim bundle JSON/ZIP download, encrypted backup export/restore, ICS export with repeated alarms, local alert status, CSV export, mobile layout, no overlapping topbar controls, and no console errors.
 - Logic tests confirm `npm run notify:dry-run` runner planning output without sending network requests.
 - Logic tests confirm fixture validation, large CSV review filters, preset trust metadata, fingerprints, detached signature verification, review manifests, local OCR text result parsing, local OCR engine planning, provider payload fixture coverage, scheduler recipes, PDF fallback diagnostics, public smoke readiness reports, sanitized smoke records, smoke record audits, smoke operations reports, and self-hosted send guard behavior. `npm run notify:smoke` confirms loopback ntfy/Gotify send behavior; opt-in public endpoint smoke requires environment variables or the manual `Notification Smoke` workflow and is not part of default CI.
 - `npm run fixture:coverage -- tests/fixtures/intake/sample-intake.json` reports fixture coverage and whether reviewed community/public-open-license samples are still missing.
@@ -31,7 +32,10 @@ Screenshots should show:
 - Deadline queue.
 - Purchase form.
 - Evidence desk.
+- Encrypted backup controls.
 - No overlapping text on desktop or mobile.
+
+After running `npm run qa:browser`, copy the generated screenshots from `outputs/playwright-desktop.png` and `outputs/playwright-mobile.png` into `docs/assets/desktop.png` and `docs/assets/mobile.png` when the UI intentionally changes.
 
 ## Documentation
 

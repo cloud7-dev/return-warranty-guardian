@@ -11,8 +11,8 @@ This list separates high-leverage additions from features that could distract th
 
 2. **More durable local attachments**
    - Receipt images, PDFs, manuals, and warranty cards can now be stored in the browser record.
-   - Current flow stores local attachment Blobs in OPFS when supported, falls back to data URLs otherwise, shows save/skipped status for files over 5 MB, hydrates OPFS files for download/export, and includes attachments plus a manifest in claim bundles.
-   - Remaining pain: attachments still depend on browser site data. Encrypted export bundles, recovery UX, or a desktop wrapper are stronger V2 candidates than a hosted file vault.
+   - Current flow stores local attachment Blobs in OPFS when supported, falls back to data URLs otherwise, shows save/skipped status for files over 5 MB, hydrates OPFS files for download/export, includes attachments plus a manifest in claim bundles, and includes hydrated attachment payloads in encrypted `.rwgbackup` files when possible.
+   - Remaining pain: very large attachments still need a split-backup or external-file-reference UX. That remains a stronger V2 candidate than a hosted file vault.
 
 3. **Messy receipt and policy extraction**
    - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
@@ -30,7 +30,7 @@ This list separates high-leverage additions from features that could distract th
 
 6. **Cross-device continuity without cloud lock-in**
    - Users buy on mobile, search on desktop, and need the same records later.
-   - JSON export is safe but manual. V2 needs encrypted backup, local network sync, or self-hosted sync options.
+   - JSON export and encrypted `.rwgbackup` restore are safe but manual. V2 still needs local network sync or self-hosted sync options if the product chooses a multi-device story.
 
 ## High-Leverage Next Features
 
@@ -51,8 +51,8 @@ This list separates high-leverage additions from features that could distract th
    - Claim bundle exports now include evidence pack, attachment manifest, attachment export review, and attached local files.
 
 4. **Encrypted backup**
-   - User-chosen passphrase for JSON export.
-   - Keeps local-first story while reducing data-loss risk.
+   - Implemented as a user-chosen passphrase `.rwgbackup` export using local encryption, restore preview, and duplicate-aware merge.
+   - Remaining work: large attachment split-backup UX and clearer cross-device handoff instructions.
 
 5. **Importers**
    - CSV import now covers preview, duplicate detection, row-level error reporting, built-in/user preset mapping, user-editable field mapping, selected-row import, import report export, review checklist generation, large-import review filters, preset bundle export/import with compatibility validation, SHA-256 fingerprint-ready signing payloads, ECDSA P-256 detached signature verification, trust metadata, fixture validation, Korean card statements, Korean shopping orders, Amazon-style order history, Shopify-style order exports, and Stripe-style receipt exports.
@@ -76,11 +76,15 @@ This list separates high-leverage additions from features that could distract th
    - Printable HTML claim packet exists with attachment links, image previews, browser-specific PDF save guidance, claim profile/jurisdiction hints, attachment export review, attachment manifests, and starter submission templates, can be saved as PDF from the browser print dialog, and can be exported as claim bundle JSON/ZIP.
    - Remaining work: richer merchant/country templates and localized template text.
 
-9. **Price-protection watcher**
+9. **Polished PWA release**
+   - Install manifest, service worker app-shell offline fallback, core module cache coverage, browser service-worker/offline QA, accessibility smoke checks, and release screenshots are now gated locally.
+   - Remaining work: real-device install QA across iOS, Android, and desktop browsers, plus optional Lighthouse/axe audits.
+
+10. **Price-protection watcher**
    - Manual or optional watch entries for price drops within refund/price-adjustment periods.
    - Must avoid retailer scraping by default.
 
-10. **Recall and safety notes**
+11. **Recall and safety notes**
     - Optional product recall references by model/serial.
     - Needs careful source attribution and country-specific disclaimers.
 

@@ -877,7 +877,7 @@ const { stdout: requestPackStdout } = await execFileAsync(process.execPath, [
 ]);
 assert.match(requestPackStdout, /Sample Request Pack/);
 assert.match(requestPackStdout, /Maintainer Gate/);
-const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit, ocrEngineManifest, encryptedBackupAvailable: true });
+const releaseReport = releaseReadinessReport(sampleManifest, now, { notificationSmokeAudit: smokeRecordAudit, ocrEngineManifest, encryptedBackupAvailable: true, pwaReleaseReady: true });
 assert.equal(releaseReport.schema, "return-warranty-guardian.release-readiness-report.v1");
 assert.equal(releaseReport.remainingItems.length, 0);
 assert.doesNotMatch(releaseReport.remainingItems.join("\n"), /Actual bundled cross-browser OCR engine/);
@@ -889,6 +889,8 @@ assert.match(releaseMarkdown, /Recurring public smoke configured/);
 assert.match(releaseMarkdown, /Bundled OCR automation available/);
 assert.match(releaseMarkdown, /Encrypted backup and recovery/);
 assert.match(releaseMarkdown, /Available/);
+assert.match(releaseMarkdown, /Polished PWA release/);
+assert.match(releaseMarkdown, /Ready/);
 assert.match(releaseMarkdown, /Community-ready/);
 assert.match(releaseMarkdown, /No numbered follow-up items remain/);
 const { stdout: releaseStdout } = await execFileAsync(process.execPath, [
@@ -900,6 +902,8 @@ assert.match(releaseStdout, /Recurring public smoke configured/);
 assert.match(releaseStdout, /Bundled OCR automation available/);
 assert.match(releaseStdout, /Encrypted backup and recovery/);
 assert.match(releaseStdout, /Available/);
+assert.match(releaseStdout, /Polished PWA release/);
+assert.match(releaseStdout, /Ready/);
 assert.match(releaseStdout, /No numbered follow-up items remain/);
 const { stdout: strictCoverageStdout } = await execFileAsync(process.execPath, [
   "scripts/sample-intake-coverage-report.mjs",

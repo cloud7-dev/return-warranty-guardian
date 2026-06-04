@@ -119,8 +119,9 @@
 9. **Polished PWA release**
    - 현재 구현: manifest와 service worker 기본 구조
    - 현재 구현: `npm run release:readiness`로 OSS 릴리스 준비 상태와 남은 번호 항목을 Markdown으로 요약
-   - 남은 구현: install QA, offline fallback UX, release screenshots, accessibility pass
+   - 현재 구현: install manifest 엄격 검증, service worker app-shell offline fallback, core module cache coverage 검증, service worker control/offline reload 브라우저 QA, 접근성 smoke check, release screenshot 갱신 기준
+   - 남은 구현: 실제 iOS/Android/desktop 설치 수동 QA, Lighthouse/axe 같은 외부 도구 기반 심화 감사
 
 ## 결론
 
-V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration과 암호화 백업 복구 흐름까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 3번은 순수 JS PBM template OCR worker와 스캔 PDF embedded bitmap OCR 자동화까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었습니다. 자연 이미지 영수증 전체를 포괄하는 대형 로컬 OCR 모델, 동기화, 가격보호/리콜, PWA 설치 QA는 별도 확장 후보입니다.
+V2의 미해결 불편사항은 제품/문서/데이터 방향에 반영되었고, 1번 실제 첨부 파일 저장은 OPFS Blob 분리 저장/폴백/hydration과 암호화 백업 복구 흐름까지 보강되었으며, 2번은 최소 public-open-license OCR fixture 수락까지 반영되었고, 3번은 순수 JS PBM template OCR worker와 스캔 PDF embedded bitmap OCR 자동화까지 반영되었고, 4번 알림 smoke는 실제 ntfy public endpoint record와 GitHub weekly workflow 변수 설정까지 반영되었고, 5번 클레임 패킷 HTML/PDF는 브라우저별 PDF 저장 가이드/클레임 프로필/첨부 export review까지 보강되었고, 9번 PWA 릴리스 준비는 install manifest/offline app-shell/accessibility smoke/release screenshot gate까지 반영되었습니다. 자연 이미지 영수증 전체를 포괄하는 대형 로컬 OCR 모델, 동기화, 가격보호/리콜, 실제 디바이스 설치 수동 QA는 별도 확장 후보입니다.

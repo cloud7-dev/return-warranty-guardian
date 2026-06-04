@@ -1,10 +1,12 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 const requiredFiles = [
   "index.html",
   "offline.html",
   "styles.css",
   "manifest.webmanifest",
+  "package.json",
   "sw.js",
   "src/app.js",
   "src/attachment-storage.js",
@@ -56,6 +58,8 @@ const requiredFiles = [
   "docs/sample-intake.md",
   "docs/release-checklist.md",
   "docs/v2-implementation-checklist.ko.md",
+  "docs/assets/desktop.png",
+  "docs/assets/mobile.png",
   "LICENSE",
 ];
 
@@ -78,16 +82,88 @@ for (const ref of htmlRefs) {
   await readFile(ref.replace(/^\.\//, ""), "utf8");
 }
 
-if (manifest.display !== "standalone") {
-  throw new Error("manifest display must be standalone");
+function requireManifestField(condition, message) {
+  if (!condition) throw new Error(message);
 }
 
-if (!manifest.id || !manifest.scope || !manifest.start_url) {
-  throw new Error("manifest must include id, scope, and start_url");
+requireManifestField(manifest.name === "Return & Warranty Guardian", "manifest name must match app name");
+requireManifestField(manifest.short_name === "Warranty Guardian", "manifest short_name must remain install-friendly");
+requireManifestField(manifest.description?.includes("Never miss a return window"), "manifest description must state product value");
+requireManifestField(manifest.id === "/return-warranty-guardian/", "manifest id must match GitHub Pages app path");
+requireManifestField(manifest.start_url === "./", "manifest start_url must be ./ for Pages and local previews");
+requireManifestField(manifest.scope === "./", "manifest scope must be ./ for Pages and local previews");
+requireManifestField(manifest.lang === "ko", "manifest lang must reflect Korean default UI");
+requireManifestField(manifest.display === "standalone", "manifest display must be standalone");
+requireManifestField(manifest.orientation === "portrait-primary", "manifest orientation must prefer mobile install flow");
+requireManifestField(/^#[0-9a-f]{6}$/i.test(manifest.background_color), "manifest background_color must be a hex color");
+requireManifestField(/^#[0-9a-f]{6}$/i.test(manifest.theme_color), "manifest theme_color must be a hex color");
+requireManifestField(manifest.categories?.includes("productivity") && manifest.categories?.includes("utilities"), "manifest categories must include productivity and utilities");
+requireManifestField(Array.isArray(manifest.icons) && manifest.icons.length > 0, "manifest must include install icons");
+
+for (const icon of manifest.icons) {
+  requireManifestField(icon.src && icon.sizes && icon.type, "manifest icons must include src, sizes, and type");
+  requireManifestField(String(icon.purpose || "").includes("maskable"), "manifest icon purpose must include maskable");
+  await readFile(icon.src, "utf8");
 }
 
-for (const cached of [...sw.matchAll(/"(\.\/[^"]+)"/g)].map((match) => match[1].replace(/^\.\//, ""))) {
+if (!sw.includes("self.skipWaiting()") || !sw.includes("self.clients.claim()")) {
+  throw new Error("service worker must take control after install/activate");
+}
+
+if (!sw.includes('caches.match("./index.html").then((cached) => cached || caches.match("./offline.html"))')) {
+  throw new Error("service worker navigation fallback must prefer cached app shell before offline page");
+}
+
+const cachedAssets = [...sw.matchAll(/"(\.\/[^"]+)"/g)].map((match) => match[1].replace(/^\.\//, ""));
+const cachedAssetSet = new Set(cachedAssets);
+
+for (const cached of cachedAssets) {
   await readFile(cached || "index.html", "utf8");
+}
+
+function localImportSpecifiers(source) {
+  return [
+    ...source.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?["'](\.[^"']+)["']/g),
+    ...source.matchAll(/import\(\s*["'](\.[^"']+)["']\s*\)/g),
+  ].map((match) => match[1]);
+}
+
+async function moduleGraph(entryFile) {
+  const visited = new Set();
+  const queue = [entryFile];
+  while (queue.length) {
+    const file = queue.shift();
+    const normalized = file.replaceAll(path.sep, "/");
+    if (visited.has(normalized)) continue;
+    visited.add(normalized);
+    const source = await readFile(normalized, "utf8");
+    const dirname = path.posix.dirname(normalized);
+    for (const specifier of localImportSpecifiers(source)) {
+      const resolved = path.posix.normalize(path.posix.join(dirname, specifier));
+      if (resolved.endsWith(".js")) queue.push(resolved);
+    }
+  }
+  return visited;
+}
+
+const moduleEntryRefs = htmlRefs.filter((ref) => ref.endsWith(".js")).map((ref) => ref.replace(/^\.\//, ""));
+const appModuleGraph = new Set();
+for (const entry of moduleEntryRefs) {
+  for (const moduleFile of await moduleGraph(entry)) {
+    appModuleGraph.add(moduleFile);
+  }
+}
+
+for (const moduleFile of appModuleGraph) {
+  if (!cachedAssetSet.has(moduleFile)) {
+    throw new Error(`Service worker core cache is missing module: ${moduleFile}`);
+  }
+}
+
+for (const requiredCached of ["index.html", "offline.html", "styles.css", "manifest.webmanifest", "assets/icon.svg"]) {
+  if (!cachedAssetSet.has(requiredCached)) {
+    throw new Error(`Service worker core cache is missing required asset: ${requiredCached}`);
+  }
 }
 
 const requiredUiCopy = [

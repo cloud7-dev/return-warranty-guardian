@@ -18,6 +18,7 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
   const notificationSmokeAudit = options.notificationSmokeAudit || null;
   const ocrEngineManifest = options.ocrEngineManifest || null;
   const encryptedBackupAvailable = Boolean(options.encryptedBackupAvailable);
+  const pwaReleaseReady = Boolean(options.pwaReleaseReady);
   const notificationSmokeReady =
     Boolean(notificationSmokeAudit?.ok) && Boolean(notificationSmokeAudit?.freshSuccessfulProviders?.includes("ntfy"));
   const ocrEngines = Array.isArray(ocrEngineManifest?.engines) ? ocrEngineManifest.engines : [];
@@ -70,6 +71,13 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
         ? "PBKDF2-SHA256 plus AES-GCM encrypted .rwgbackup export, passphrase-free envelope, restore preview, duplicate-aware merge, and attachment hydration are implemented."
         : "Encrypted backup and merge-only restore are not available yet.",
     },
+    {
+      area: "Polished PWA release",
+      status: pwaReleaseReady ? "Ready" : "Partial",
+      evidence: pwaReleaseReady
+        ? "Install manifest, service worker app-shell offline fallback, core module cache coverage, accessibility smoke checks, and desktop/mobile release screenshots are covered by static and browser QA."
+        : "PWA install, offline, accessibility, and release screenshot evidence are not fully gated yet.",
+    },
   ];
 
   return {
@@ -85,6 +93,7 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
         ? ["4. Actual recurring public/self-hosted endpoint smoke records operated by the maintainer environment."]
         : []),
       ...(!encryptedBackupAvailable ? ["7. Encrypted backup and merge-only recovery for local data durability."] : []),
+      ...(!pwaReleaseReady ? ["9. Polished PWA release with install QA, offline fallback, release screenshots, and accessibility pass."] : []),
     ],
     recommendedCommands: [
       "node --check src/*.js scripts/*.mjs tests/*.mjs",
@@ -132,13 +141,28 @@ async function main() {
   const policy = JSON.parse(await readFile("tests/fixtures/notifications/smoke-policy.json", "utf8"));
   const ocrEngineManifest = JSON.parse(await readFile("tests/fixtures/ocr/engine-manifest.json", "utf8"));
   const backupSource = await readFile("src/backup.js", "utf8");
+  const manifest = JSON.parse(await readFile("manifest.webmanifest", "utf8"));
+  const sw = await readFile("sw.js", "utf8");
+  await readFile("offline.html", "utf8");
+  await readFile("docs/assets/desktop.png");
+  await readFile("docs/assets/mobile.png");
   const encryptedBackupAvailable =
     backupSource.includes("return-warranty-guardian.encrypted-backup.v1") &&
     backupSource.includes("encryptedBackupEnvelope") &&
     backupSource.includes("backupRestorePreview") &&
     backupSource.includes("mergeBackupPurchases");
+  const pwaReleaseReady =
+    manifest.id === "/return-warranty-guardian/" &&
+    manifest.start_url === "./" &&
+    manifest.scope === "./" &&
+    manifest.display === "standalone" &&
+    manifest.lang === "ko" &&
+    sw.includes('caches.match("./index.html").then((cached) => cached || caches.match("./offline.html"))') &&
+    sw.includes("./src/backup.js") &&
+    sw.includes("self.skipWaiting()") &&
+    sw.includes("self.clients.claim()");
   const notificationSmokeAudit = await auditNotificationSmokeRecords("tests/fixtures/notifications/smoke-records", policy);
-  console.log(releaseReadinessMarkdown(releaseReadinessReport(sampleManifest, new Date(), { notificationSmokeAudit, ocrEngineManifest, encryptedBackupAvailable })));
+  console.log(releaseReadinessMarkdown(releaseReadinessReport(sampleManifest, new Date(), { notificationSmokeAudit, ocrEngineManifest, encryptedBackupAvailable, pwaReleaseReady })));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

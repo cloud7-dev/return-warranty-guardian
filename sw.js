@@ -1,4 +1,4 @@
-const CACHE_NAME = "return-warranty-guardian-v14";
+const CACHE_NAME = "return-warranty-guardian-v15";
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -39,7 +39,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (event.request.mode === "navigate") {
-    event.respondWith(fetch(event.request).catch(() => caches.match("./offline.html").then((cached) => cached || caches.match("./index.html"))));
+    event.respondWith(fetch(event.request).catch(() => caches.match("./index.html").then((cached) => cached || caches.match("./offline.html"))));
     return;
   }
   event.respondWith(
