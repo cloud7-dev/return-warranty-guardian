@@ -76,6 +76,15 @@ There is no API server and no account system. All purchase data remains in brows
       "createdAt": "2026-06-02T00:00:00.000Z"
     }
   ],
+  "attachmentReferences": [
+    {
+      "name": "large-manual.pdf",
+      "size": 6291456,
+      "reason": "skipped-large",
+      "note": "Reattach it or verify separate storage before submitting evidence.",
+      "createdAt": "2026-06-02T00:00:00.000Z"
+    }
+  ],
   "serviceNotes": "No repairs yet.",
   "policyTemplateId": "standard-30-day-return",
   "source": "manual",
@@ -90,9 +99,9 @@ Deadlines are derived, not stored. This keeps deadline math transparent and repr
 
 Recall and safety fields are manual notes, not an external lookup result. The app stores user-confirmed URLs, regions, notes, and checked-at dates so evidence exports can preserve what the user verified. It does not scrape retailer pages, sign in to accounts, or query recall databases.
 
-Attachments are captured through `src/attachment-storage.js`. Browsers with Origin Private File System support store accepted attachment Blobs outside the purchase JSON and keep only local metadata plus `opfsPath`; browsers without OPFS fall back to the previous data URL record format. Claim exports and attachment downloads hydrate OPFS attachments back into data URLs only at export/download time, keeping the saved purchase record smaller while preserving the existing export surface.
+Attachments are captured through `src/attachment-storage.js`. Browsers with Origin Private File System support store accepted attachment Blobs outside the purchase JSON and keep only local metadata plus `opfsPath`; browsers without OPFS fall back to the previous data URL record format. Claim exports and attachment downloads hydrate OPFS attachments back into data URLs only at export/download time, keeping the saved purchase record smaller while preserving the existing export surface. Attachments that are too large for the current 5 MB backup payload limit, cannot be hydrated, or are restored without payload are represented as optional `attachmentReferences` with `skipped-large`, `hydration-failed`, or `needs-reattach` reasons.
 
-Encrypted backup is a separate export surface from plain JSON. `backupPayloadFromState` builds a payload with purchase records, user CSV presets, self-hosted notification draft settings, snooze state, and attachment payloads hydrated from OPFS/data URLs. Attachments over 5 MB or hydration failures are retained as metadata and recorded in `backupManifest.skippedAttachments`. `encryptedBackupEnvelope` encrypts the payload with PBKDF2-SHA256 plus AES-GCM and writes `return-warranty-guardian-backup.rwgbackup`; the passphrase is used only for key derivation and is not saved in app state or storage. Restore reads the envelope, prompts for the passphrase, decrypts locally, shows a preview, and merges only non-duplicate purchases. Duplicate candidates are detected by `productName + merchant + purchaseDate`; destructive overwrite is intentionally out of scope.
+Encrypted backup is a separate export surface from plain JSON. `backupPayloadFromState` builds a payload with purchase records, user CSV presets, self-hosted notification draft settings, snooze state, and attachment payloads hydrated from OPFS/data URLs. Attachments over 5 MB, existing attachment references, or hydration failures are retained as metadata and recorded in `backupManifest.skippedAttachments`. `encryptedBackupEnvelope` encrypts the payload with PBKDF2-SHA256 plus AES-GCM and writes `return-warranty-guardian-backup.rwgbackup`; the passphrase is used only for key derivation and is not saved in app state or storage. Restore reads the envelope, prompts for the passphrase, decrypts locally, shows a skipped attachment preview, and merges only non-duplicate purchases. Duplicate candidates are detected by `productName + merchant + purchaseDate`; destructive overwrite is intentionally out of scope.
 
 CSV imports are staged in an in-memory preview before they are saved. The app imports selected valid rows, supports auto-detected, built-in preset, saved user preset, and manual field mapping, skips duplicates based on product name, merchant, and purchase date, and reports required-field errors without uploading the source file. Built-in presets cover generic card/order exports, Korean card statements, Korean shopping orders, Amazon-style order history, Shopify-style order exports, and Stripe-style receipt exports. User CSV presets and preset bundles are stored or imported through browser `localStorage` without purchase rows. `csvImportReviewChecklist` adds a local pre-import checklist for required mappings, duplicates, invalid rows, and missing proof markers. `csvImportReviewFilters` gives large imports a query/proof filter surface before confirmation. `validateCsvPresetBundle` rejects unsupported schema/version values and strips unsupported mapping fields with warnings; preset bundles carry trust model, signature status, source, review date, and fixture coverage metadata.
 
@@ -102,7 +111,7 @@ Notification behavior stays serverless. Each purchase can store `reminderLeadDay
 
 Self-hosted notification support is export-only in the web app. Optional provider/endpoint/topic settings are stored locally under `rwg:self-hosted-alerts`; `selfHostedNotificationPayload` creates reviewed JSON/curl drafts for ntfy, Gotify, and Apprise, and `selfHostedDryRunReport` checks local settings and external-runner requirements. `scripts/self-hosted-notification-runner.mjs` can read the payload and print scheduler-ready dry-run commands plus macOS/Linux/Windows scheduler recipes. Its send mode is opt-in only, requiring `--send --yes` plus `RWG_NOTIFY_SEND=1`; provider tokens stay outside the app in runner environment variables. Provider fixture payloads under `tests/fixtures/notifications` verify ntfy, Gotify, and Apprise endpoint plans without sending purchase data.
 
-Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include browser-specific PDF save guidance, claim profile and jurisdiction hints, attachment export review, attachment manifests, price-protection details, recall/safety notes with official-source disclaimers, starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
+Claim packet exports are generated locally from the selected purchase record. The HTML packet, JSON bundle, and ZIP bundle include browser-specific PDF save guidance, claim profile and jurisdiction hints, attachment export review, attachment manifests, attachment recovery status, price-protection details, recall/safety notes with official-source disclaimers, starter submission templates for merchant returns, warranty support, chargeback evidence summaries, and repair intake notes.
 
 Tests use `tests/fixtures` as a synthetic corpus for CSV presets, HTML receipt extraction, PDF text-operator extraction, scanned/compressed PDF fallback behavior, self-hosted notification runner payloads, and user-confirmed policy template defaults. `scripts/validate-fixtures.mjs` checks fixture importability, PDF fallback coverage, provider endpoint plans, source/license metadata, and common private-data patterns. Private receipts or real card statements should not be committed.
 

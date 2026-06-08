@@ -20,6 +20,7 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
   const encryptedBackupAvailable = Boolean(options.encryptedBackupAvailable);
   const pwaReleaseReady = Boolean(options.pwaReleaseReady);
   const priceRecallReady = Boolean(options.priceRecallReady);
+  const durableAttachmentRecoveryReady = Boolean(options.durableAttachmentRecoveryReady);
   const notificationSmokeReady =
     Boolean(notificationSmokeAudit?.ok) && Boolean(notificationSmokeAudit?.freshSuccessfulProviders?.includes("ntfy"));
   const ocrEngines = Array.isArray(ocrEngineManifest?.engines) ? ocrEngineManifest.engines : [];
@@ -73,6 +74,13 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
         : "Encrypted backup and merge-only restore are not available yet.",
     },
     {
+      area: "Durable attachment recovery UX",
+      status: durableAttachmentRecoveryReady ? "Ready" : "Missing",
+      evidence: durableAttachmentRecoveryReady
+        ? "Restore preview exposes skipped attachment payloads, restored records preserve attachmentReferences, detail/checklist/export surfaces show reattach-needed status, and claim bundles include attachmentRecovery."
+        : "Attachment recovery status, skipped attachment preview, reattach-needed references, and claim recovery export are not fully gated yet.",
+    },
+    {
       area: "Polished PWA release",
       status: pwaReleaseReady ? "Ready" : "Partial",
       evidence: pwaReleaseReady
@@ -101,6 +109,7 @@ export function releaseReadinessReport(sampleManifest, now = new Date(), options
         ? ["4. Actual recurring public/self-hosted endpoint smoke records operated by the maintainer environment."]
         : []),
       ...(!encryptedBackupAvailable ? ["7. Encrypted backup and merge-only recovery for local data durability."] : []),
+      ...(!durableAttachmentRecoveryReady ? ["8. Durable attachment recovery UX for skipped, missing, and reattach-needed local files."] : []),
       ...(!pwaReleaseReady ? ["9. Polished PWA release with install QA, offline fallback, release screenshots, and accessibility pass."] : []),
       ...(!priceRecallReady ? ["10. Price protection and recall/safety notes across deadlines, filters, exports, backup, and QA."] : []),
     ],
@@ -185,6 +194,14 @@ async function main() {
     exporterSource.includes("price_protection_deadline") &&
     i18nSource.includes("가격보호") &&
     i18nSource.includes("공식 리콜 또는 안전 여부");
+  const durableAttachmentRecoveryReady =
+    backupSource.includes("attachmentReferences") &&
+    backupSource.includes("skippedAttachments") &&
+    appSource.includes("restoreSkippedAttachmentListTitle") &&
+    appSource.includes("checklistReattach") &&
+    exporterSource.includes("Attachment Recovery") &&
+    exporterSource.includes("attachmentRecovery") &&
+    i18nSource.includes("첨부 재연결 필요");
   const notificationSmokeAudit = await auditNotificationSmokeRecords("tests/fixtures/notifications/smoke-records", policy);
   console.log(
     releaseReadinessMarkdown(
@@ -194,6 +211,7 @@ async function main() {
         encryptedBackupAvailable,
         pwaReleaseReady,
         priceRecallReady,
+        durableAttachmentRecoveryReady,
       }),
     ),
   );

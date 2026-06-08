@@ -119,28 +119,58 @@ function attachmentBytes(attachment) {
   return base64 ? Math.ceil((base64.length * 3) / 4) : 0;
 }
 
-function sanitizeAttachmentForBackup(attachment, purchase, manifest, maxAttachmentBytes) {
-  const size = attachmentBytes(attachment);
-  const dataUrl = String(attachment?.dataUrl || "");
-  const skippedBase = {
+function attachmentReferenceFromSkipped(skipped, now = new Date()) {
+  return {
+    name: skipped?.attachmentName || skipped?.name || "",
+    size: Number(skipped?.size || 0),
+    reason: skipped?.reason === "over-size-limit" ? "skipped-large" : skipped?.reason || "needs-reattach",
+    note: skipped?.note || "Attachment payload was not included in the encrypted backup. Reattach it or verify separate storage before submitting evidence.",
+    createdAt: skipped?.createdAt || now.toISOString(),
+  };
+}
+
+function skippedAttachmentRecord(attachment, purchase, reason, size, now = new Date()) {
+  return {
     purchaseId: purchase?.id || "",
     productName: purchase?.productName || "",
     attachmentName: attachment?.name || "",
     size,
+    reason,
+    note: reason === "skipped-large"
+      ? "Attachment was over the encrypted backup payload limit and must be kept separately."
+      : "Attachment payload could not be hydrated from local browser storage during backup.",
+    createdAt: attachment?.createdAt || now.toISOString(),
   };
+}
+
+function normalizeAttachmentReferences(purchase, now = new Date()) {
+  return (Array.isArray(purchase?.attachmentReferences) ? purchase.attachmentReferences : [])
+    .filter((reference) => reference?.name)
+    .map((reference) => ({
+      name: reference.name,
+      size: Number(reference.size || 0),
+      reason: reference.reason || "needs-reattach",
+      note: reference.note || "Attachment must be reattached or verified in separate storage.",
+      createdAt: reference.createdAt || now.toISOString(),
+    }));
+}
+
+function sanitizeAttachmentForBackup(attachment, purchase, manifest, maxAttachmentBytes, now = new Date()) {
+  const size = attachmentBytes(attachment);
+  const dataUrl = String(attachment?.dataUrl || "");
 
   if (size > maxAttachmentBytes) {
-    manifest.skippedAttachments.push({ ...skippedBase, reason: "over-size-limit" });
-    return { ...attachment, dataUrl: "" };
+    manifest.skippedAttachments.push(skippedAttachmentRecord(attachment, purchase, "skipped-large", size, now));
+    return { ...attachment, dataUrl: "", opfsPath: "", storage: "backup-reference", backupStatus: "skipped-large" };
   }
 
   if (!dataUrl && (attachment?.opfsPath || attachment?.storage === "data-url")) {
-    manifest.skippedAttachments.push({ ...skippedBase, reason: "hydration-failed" });
-    return { ...attachment, dataUrl: "" };
+    manifest.skippedAttachments.push(skippedAttachmentRecord(attachment, purchase, "hydration-failed", size, now));
+    return { ...attachment, dataUrl: "", opfsPath: "", storage: "backup-reference", backupStatus: "hydration-failed" };
   }
 
   if (dataUrl) manifest.includedAttachmentCount += 1;
-  return { ...attachment, dataUrl };
+  return { ...attachment, dataUrl, backupStatus: dataUrl ? "backup-included" : attachment?.backupStatus || "" };
 }
 
 export async function backupPayloadFromState(
@@ -166,12 +196,25 @@ export async function backupPayloadFromState(
   for (const purchase of purchases) {
     const hydrated = await hydratePurchase(purchase);
     const attachments = Array.isArray(hydrated?.attachments) ? hydrated.attachments : [];
+    const existingReferences = normalizeAttachmentReferences(hydrated, now);
     backupManifest.attachmentCount += attachments.length;
+    for (const reference of existingReferences) {
+      backupManifest.skippedAttachments.push({
+        purchaseId: hydrated?.id || "",
+        productName: hydrated?.productName || "",
+        attachmentName: reference.name,
+        size: reference.size,
+        reason: reference.reason,
+        note: reference.note,
+        createdAt: reference.createdAt,
+      });
+    }
     hydratedPurchases.push({
       ...hydrated,
       attachments: attachments.map((attachment) =>
-        sanitizeAttachmentForBackup(attachment, hydrated, backupManifest, maxAttachmentBytes),
+        sanitizeAttachmentForBackup(attachment, hydrated, backupManifest, maxAttachmentBytes, now),
       ),
+      attachmentReferences: existingReferences,
     });
   }
   backupManifest.skippedAttachmentCount = backupManifest.skippedAttachments.length;
@@ -207,6 +250,16 @@ export function backupRestorePreview(payload, existingPurchases = []) {
     0,
   );
   const skippedAttachmentCount = Number(payload.backupManifest?.skippedAttachmentCount || payload.backupManifest?.skippedAttachments?.length || 0);
+  const skippedAttachments = (Array.isArray(payload.backupManifest?.skippedAttachments) ? payload.backupManifest.skippedAttachments : [])
+    .map((item) => ({
+      purchaseId: item.purchaseId || "",
+      productName: item.productName || "",
+      attachmentName: item.attachmentName || item.name || "",
+      size: Number(item.size || 0),
+      reason: item.reason === "over-size-limit" ? "skipped-large" : item.reason || "needs-reattach",
+      note: item.note || "",
+      createdAt: item.createdAt || "",
+    }));
 
   return {
     schema: RESTORE_PREVIEW_SCHEMA,
@@ -215,16 +268,45 @@ export function backupRestorePreview(payload, existingPurchases = []) {
     recordCount: purchases.length,
     attachmentCount,
     skippedAttachmentCount,
+    skippedAttachments,
     duplicateCandidates,
     importableCount: Math.max(0, purchases.length - duplicateCandidates.length),
   };
+}
+
+function skippedReferencesForPurchase(payload, purchase) {
+  const skippedAttachments = Array.isArray(payload?.backupManifest?.skippedAttachments) ? payload.backupManifest.skippedAttachments : [];
+  const purchaseId = purchase?.id || "";
+  const productName = purchase?.productName || "";
+  const fromManifest = skippedAttachments
+    .filter((item) => (purchaseId && item.purchaseId === purchaseId) || (!item.purchaseId && item.productName === productName))
+    .map((item) => attachmentReferenceFromSkipped(item));
+  const existing = normalizeAttachmentReferences(purchase);
+  const seen = new Set();
+  return [...existing, ...fromManifest].filter((reference) => {
+    const key = `${reference.name}|${reference.reason}|${reference.size}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function normalizeRestoredPurchase(payload, purchase) {
+  const references = skippedReferencesForPurchase(payload, purchase);
+  const attachments = (Array.isArray(purchase?.attachments) ? purchase.attachments : []).map((attachment) => {
+    if (attachment?.dataUrl) return { ...attachment, backupStatus: attachment.backupStatus || "backup-included" };
+    return { ...attachment, dataUrl: "", opfsPath: "", storage: "backup-reference", backupStatus: attachment.backupStatus || "needs-reattach" };
+  });
+  return { ...purchase, attachments, attachmentReferences: references };
 }
 
 export function mergeBackupPurchases(payload, existingPurchases = []) {
   const preview = backupRestorePreview(payload, existingPurchases);
   const duplicateKeys = new Set(preview.duplicateCandidates.map((candidate) => candidate.key));
   const incoming = Array.isArray(payload.purchases) ? payload.purchases : [];
-  const additions = incoming.filter((purchase) => !duplicateKeys.has(backupDuplicateKey(purchase)));
+  const additions = incoming
+    .filter((purchase) => !duplicateKeys.has(backupDuplicateKey(purchase)))
+    .map((purchase) => normalizeRestoredPurchase(payload, purchase));
   return {
     purchases: [...additions, ...existingPurchases],
     addedCount: additions.length,

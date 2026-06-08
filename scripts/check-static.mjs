@@ -182,6 +182,8 @@ const requiredUiCopy = [
   "스캔 PDF용 로컬 OCR 텍스트",
   "암호화 백업 만들기",
   "암호화 백업 복구",
+  "백업 payload에 포함되지 않은 첨부",
+  "첨부 재연결 필요",
   "가격보호",
   "가격 조정 후보",
   "안전 확인 필요",
@@ -199,7 +201,9 @@ const requiredUiCopy = [
   "supportContact",
 ];
 
-const uiBundle = `${html}\n${app}\n${i18n}`;
+const exporters = await readFile("src/exporters.js", "utf8");
+const backup = await readFile("src/backup.js", "utf8");
+const uiBundle = `${html}\n${app}\n${i18n}\n${exporters}\n${backup}`;
 
 for (const copy of requiredUiCopy) {
   if (!uiBundle.includes(copy)) {

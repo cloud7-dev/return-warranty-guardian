@@ -48,7 +48,8 @@
    - 현재 구현: 파일 크기 제한 안내, 5MB 초과 파일 제외 상태 표시, 상세 화면 첨부 체크리스트, claim HTML 이미지 미리보기, claim ZIP 첨부 파일과 첨부 매니페스트 포함
    - 현재 구현: 지원 브라우저에서는 OPFS Blob 분리 저장을 사용하고, 미지원 브라우저에서는 data URL 저장으로 폴백하며, 다운로드/claim export 직전에 OPFS 첨부를 data URL로 hydration
    - 현재 구현: 암호화 백업 생성 시 OPFS/data URL 첨부를 hydration해 `.rwgbackup` payload에 포함하고, 5MB 초과 또는 hydration 실패 첨부는 `backupManifest.skippedAttachments`에 기록
-   - 남은 구현: 첨부 전용 마이그레이션 UX, 대용량 첨부 분할 백업 여부 검토
+   - 현재 구현: 5MB 초과/읽기 실패/복구 후 payload 누락 첨부를 `attachmentReferences`로 보존하고, restore preview/상세 화면/증빙팩/claim HTML/JSON/ZIP에 첨부 재연결 필요 상태 표시
+   - 남은 구현: 첨부 전용 마이그레이션 UX, 대용량 첨부 분할 백업 여부 검토, 사용자 관리 외부 파일 위치 안내 고도화
 
 2. **CSV import**
    - 현재 구현: CSV 파일을 import preview에서 확인하고, 자동 감지/built-in preset/user preset/수동 컬럼 매핑으로 정상/중복/오류 행을 분리한 뒤 정상 행만 추가

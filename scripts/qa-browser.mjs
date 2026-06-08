@@ -172,10 +172,13 @@ await page.waitForFunction(() => document.querySelectorAll(".purchase-row").leng
 await page.waitForSelector("text=qa-receipt.pdf");
 await page.waitForSelector("text=가격 조정 후보");
 await page.waitForSelector("text=QA safety note for official source verification.");
+await page.waitForSelector("text=첨부 재연결 필요");
 await page.waitForSelector("text=첨부 1개 저장됨, 5 MB 초과 1개 제외됨.");
 const rowsAfterManualSave = await page.locator(".purchase-row").count();
 const attachmentVisible = await page.locator("text=qa-receipt.pdf").count();
 const attachmentStatusVisible = await page.locator("text=첨부 1개 저장됨, 5 MB 초과 1개 제외됨.").count();
+const reattachNeededVisible = await page.locator("text=첨부 재연결 필요").count();
+const oversizedReferenceVisible = await page.locator("text=qa-too-large.pdf").count();
 const manualPriceCandidateVisible = await page.locator("text=가격 조정 후보").count();
 const manualSafetyNoteVisible = await page.locator("text=QA safety note for official source verification.").count();
 const opfsSupported = await page.evaluate(() => Boolean(navigator.storage?.getDirectory));
@@ -490,7 +493,11 @@ const rowsAfterFreshState = await page.locator(".purchase-row").count();
 page.once("dialog", (dialog) => dialog.accept("qa encrypted backup passphrase"));
 await page.setInputFiles("#import-encrypted-backup", encryptedBackupPath);
 await page.waitForSelector("text=암호화 백업 복구 미리보기");
+await page.waitForSelector("text=백업 payload에 포함되지 않은 첨부");
+await page.waitForSelector("text=qa-too-large.pdf");
 const restorePreviewVisible = await page.locator("text=암호화 백업 복구 미리보기").count();
+const restoreSkippedListVisible = await page.locator("text=백업 payload에 포함되지 않은 첨부").count();
+const restoreSkippedAttachmentVisible = await page.locator("text=qa-too-large.pdf").count();
 await page.click("#confirm-restore-backup");
 await page.waitForSelector("text=암호화 백업에서");
 await page.waitForSelector("text=QA Attachment Purchase");
@@ -498,8 +505,10 @@ const restoreCompleteVisible = await page.locator("text=암호화 백업에서")
 const restoredPurchaseVisible = await page.locator("text=QA Attachment Purchase").count();
 await page.locator("button.row-title", { hasText: "QA Attachment Purchase" }).click();
 await page.waitForSelector("text=QA safety note for official source verification.");
+await page.waitForSelector("text=첨부 재연결 필요");
 const restoredPriceCandidateVisible = await page.locator("text=가격 조정 후보").count();
 const restoredSafetyNoteVisible = await page.locator("text=QA safety note for official source verification.").count();
+const restoredReattachVisible = await page.locator("text=첨부 재연결 필요").count();
 const restoredAttachmentDownload = await Promise.all([
   page.waitForEvent("download", { timeout: 10000 }),
   page.locator(".detail-panel [data-attachment-purchase]").first().click(),
@@ -617,6 +626,8 @@ const result = {
   rowsAfterManualSave,
   attachmentVisible,
   attachmentStatusVisible,
+  reattachNeededVisible,
+  oversizedReferenceVisible,
   opfsSupported,
   attachmentStorageRecord,
   attachmentDownloadName,
@@ -696,15 +707,20 @@ const result = {
   encryptedBackupHidesPassphrase: !encryptedBackupText.includes("qa encrypted backup passphrase"),
   rowsAfterFreshState,
   restorePreviewVisible,
+  restoreSkippedListVisible,
+  restoreSkippedAttachmentVisible,
   restoreCompleteVisible,
   restoredPurchaseVisible,
   restoredAttachmentDownloadName,
   restoredPriceCandidateVisible,
   restoredSafetyNoteVisible,
+  restoredReattachVisible,
   restoredEvidencePath,
   restoredEvidenceContainsChecklist: restoredEvidenceText.includes("Claim Checklist"),
   restoredEvidenceContainsPriceSafety:
     restoredEvidenceText.includes("Price Protection") && restoredEvidenceText.includes("Recall and Safety Notes"),
+  restoredEvidenceContainsAttachmentRecovery:
+    restoredEvidenceText.includes("Attachment Recovery") && restoredEvidenceText.includes("qa-too-large.pdf"),
   accessibilitySmoke,
   accessibilitySmokePassed:
     accessibilitySmoke.unnamedControls.length === 0 &&
@@ -744,6 +760,8 @@ const failures = [
   rowsAfterManualSave < 4 && "Expected manual purchase with attachment to be saved",
   attachmentVisible < 1 && "Expected saved local attachment name to be visible",
   attachmentStatusVisible < 1 && "Expected attachment save/skipped status",
+  reattachNeededVisible < 1 && "Expected oversized attachment to create a reattach-needed reference",
+  oversizedReferenceVisible < 1 && "Expected oversized attachment reference file name to be visible",
   opfsSupported && attachmentStorageRecord !== "opfs" && "Expected OPFS attachment storage when browser supports it",
   attachmentDownloadName !== "qa-receipt.pdf" && "Expected local attachment download to hydrate from storage",
   manualPriceCandidateVisible < 1 && "Expected manual purchase to show price adjustment candidate",
@@ -807,13 +825,17 @@ const failures = [
   !result.encryptedBackupHidesPassphrase && "Expected encrypted backup envelope to omit raw passphrase",
   rowsAfterFreshState < 3 && "Expected fresh local state to reseed baseline purchases",
   restorePreviewVisible < 1 && "Expected encrypted restore preview",
+  restoreSkippedListVisible < 1 && "Expected restore preview skipped attachment list",
+  restoreSkippedAttachmentVisible < 1 && "Expected restore preview skipped attachment file name",
   restoreCompleteVisible < 1 && "Expected encrypted restore completion status",
   restoredPurchaseVisible < 1 && "Expected restored purchase to appear",
   restoredAttachmentDownloadName !== "qa-receipt.pdf" && "Expected restored attachment download to hydrate from encrypted backup",
   !result.restoredEvidenceContainsChecklist && "Expected restored evidence pack export",
   restoredPriceCandidateVisible < 1 && "Expected restored purchase to preserve price adjustment candidate",
   restoredSafetyNoteVisible < 1 && "Expected restored purchase to preserve safety note",
+  restoredReattachVisible < 1 && "Expected restored purchase to preserve reattach-needed attachment reference",
   !result.restoredEvidenceContainsPriceSafety && "Expected restored evidence pack to include price and safety sections",
+  !result.restoredEvidenceContainsAttachmentRecovery && "Expected restored evidence pack to include attachment recovery section",
   !result.accessibilitySmokePassed &&
     `Expected accessibility smoke checks to pass: ${JSON.stringify(accessibilitySmoke)}`,
   mobileHasKoreanQueue < 1 && "Expected mobile layout to include Korean deadline queue",

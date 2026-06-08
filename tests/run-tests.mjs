@@ -227,8 +227,26 @@ const skippedBackupPayload = await backupPayloadFromState(
 assert.equal(skippedBackupPayload.backupManifest.skippedAttachmentCount, 2);
 assert.deepEqual(
   skippedBackupPayload.backupManifest.skippedAttachments.map((item) => item.reason),
-  ["over-size-limit", "hydration-failed"],
+  ["skipped-large", "hydration-failed"],
 );
+assert.equal(skippedBackupPayload.backupManifest.skippedAttachments[0].attachmentName, "too-large.pdf");
+assert.equal(skippedBackupPayload.purchases[0].attachments[0].storage, "backup-reference");
+assert.equal(skippedBackupPayload.purchases[0].attachments[0].opfsPath, "");
+const referencedBackupPayload = await backupPayloadFromState(
+  {
+    purchases: [
+      {
+        ...opfsBackupPurchase,
+        attachments: [],
+        attachmentReferences: [{ name: "external-manual.pdf", size: 6 * 1024 * 1024, reason: "skipped-large", note: "Kept on external drive.", createdAt: "2026-06-02T00:00:00.000Z" }],
+      },
+    ],
+    hydratePurchase: async (item) => item,
+  },
+  now,
+);
+assert.equal(referencedBackupPayload.backupManifest.skippedAttachmentCount, 1);
+assert.equal(referencedBackupPayload.backupManifest.skippedAttachments[0].attachmentName, "external-manual.pdf");
 const encryptedBackup = await encryptedBackupEnvelope(backupPayload, "correct horse battery staple", now);
 const encryptedBackupText = JSON.stringify(encryptedBackup);
 assert.match(encryptedBackupText, /return-warranty-guardian\.encrypted-backup\.v1/);
@@ -245,6 +263,10 @@ const restorePreview = backupRestorePreview(backupPayload, [opfsBackupPurchase])
 assert.equal(restorePreview.recordCount, 1);
 assert.equal(restorePreview.attachmentCount, 1);
 assert.equal(restorePreview.duplicateCandidates.length, 1);
+const skippedRestorePreview = backupRestorePreview(skippedBackupPayload, []);
+assert.equal(skippedRestorePreview.skippedAttachmentCount, 2);
+assert.equal(skippedRestorePreview.skippedAttachments[0].reason, "skipped-large");
+assert.equal(skippedRestorePreview.skippedAttachments[1].reason, "hydration-failed");
 const mergeResult = mergeBackupPurchases(
   {
     ...backupPayload,
@@ -256,6 +278,18 @@ assert.equal(mergeResult.addedCount, 1);
 assert.equal(mergeResult.duplicateCount, 1);
 assert.equal(mergeResult.purchases[0].productName, "Backup Monitor");
 assert.equal(mergeResult.purchases[1].productName, "Backup Router");
+const skippedMergeResult = mergeBackupPurchases(skippedBackupPayload, []);
+assert.equal(skippedMergeResult.purchases[0].attachmentReferences.length, 2);
+assert.equal(skippedMergeResult.purchases[0].attachmentReferences[0].reason, "skipped-large");
+assert.equal(skippedMergeResult.purchases[0].attachments[0].storage, "backup-reference");
+const legacyPayload = {
+  schema: BACKUP_PAYLOAD_SCHEMA,
+  createdAt: now.toISOString(),
+  purchases: [{ ...opfsBackupPurchase, attachments: [] }],
+  backupManifest: { purchaseCount: 1, attachmentCount: 0, includedAttachmentCount: 0, skippedAttachmentCount: 0, skippedAttachments: [] },
+};
+assert.equal(backupRestorePreview(legacyPayload, []).skippedAttachments.length, 0);
+assert.equal(mergeBackupPurchases(legacyPayload, []).purchases[0].attachmentReferences.length, 0);
 
 const parsed = parseReceiptText(`Example Electronics
 Receipt 7142
@@ -278,6 +312,8 @@ const pack = evidencePackMarkdown(purchase, now);
 assert.match(pack, /Evidence Pack: Wireless Headset/);
 assert.match(pack, /2026-07-02/);
 assert.match(pack, /Claim Checklist/);
+assert.match(pack, /Attachment Recovery/);
+assert.match(pack, /Attachment payloads available to this export are included/);
 assert.match(pack, /Price Protection/);
 assert.match(pack, /Price adjustment candidate: Yes/);
 assert.match(pack, /Recall and Safety Notes/);
@@ -602,6 +638,7 @@ assert.match(claimPacket, /Chrome\/Chromium/);
 assert.match(claimPacket, /Claim Profile/);
 assert.match(claimPacket, /Attachment Export Review/);
 assert.match(claimPacket, /Attachment Manifest/);
+assert.match(claimPacket, /Attachment Recovery/);
 assert.match(claimPacket, /Price Protection/);
 assert.match(claimPacket, /Recall and Safety Notes/);
 assert.match(claimPacket, /Official recall or safety status must be verified directly/);
@@ -633,6 +670,8 @@ assert.equal(claimBundle.priceProtection.priceProtectionSavings, 10);
 assert.equal(claimBundle.safety.safetyCheckNeeded, true);
 assert.match(claimBundle.safety.disclaimer, /official source/);
 assert.equal(claimBundle.attachmentExportReview.totalFiles, 2);
+assert.equal(claimBundle.attachmentRecovery.included.length, 2);
+assert.equal(claimBundle.attachmentRecovery.needsReattachCount, 0);
 assert.equal(claimBundle.attachmentManifest.length, 2);
 assert.equal(claimBundle.attachmentManifest[0].exportPath, "attachments/01-warranty-card.pdf");
 assert.equal(claimBundle.attachments.length, 2);
@@ -642,6 +681,7 @@ assert.match(new TextDecoder().decode(claimZip), /claim-packet\.html/);
 assert.match(new TextDecoder().decode(claimZip), /claim-bundle\.json/);
 assert.match(new TextDecoder().decode(claimZip), /attachment-manifest\.json/);
 assert.match(new TextDecoder().decode(claimZip), /attachment-export-review\.json/);
+assert.match(new TextDecoder().decode(claimZip), /attachment-recovery\.json/);
 assert.match(new TextDecoder().decode(claimZip), /templates\/merchant-return\.txt/);
 
 const ics = purchasesToIcs([purchase], now);
@@ -929,6 +969,7 @@ const releaseReport = releaseReadinessReport(sampleManifest, now, {
   encryptedBackupAvailable: true,
   pwaReleaseReady: true,
   priceRecallReady: true,
+  durableAttachmentRecoveryReady: true,
 });
 assert.equal(releaseReport.schema, "return-warranty-guardian.release-readiness-report.v1");
 assert.equal(releaseReport.remainingItems.length, 0);
@@ -941,6 +982,8 @@ assert.match(releaseMarkdown, /Recurring public smoke configured/);
 assert.match(releaseMarkdown, /Bundled OCR automation available/);
 assert.match(releaseMarkdown, /Encrypted backup and recovery/);
 assert.match(releaseMarkdown, /Available/);
+assert.match(releaseMarkdown, /Durable attachment recovery UX/);
+assert.match(releaseMarkdown, /Ready/);
 assert.match(releaseMarkdown, /Polished PWA release/);
 assert.match(releaseMarkdown, /Ready/);
 assert.match(releaseMarkdown, /Price protection and recall notes/);
@@ -956,6 +999,8 @@ assert.match(releaseStdout, /Recurring public smoke configured/);
 assert.match(releaseStdout, /Bundled OCR automation available/);
 assert.match(releaseStdout, /Encrypted backup and recovery/);
 assert.match(releaseStdout, /Available/);
+assert.match(releaseStdout, /Durable attachment recovery UX/);
+assert.match(releaseStdout, /Ready/);
 assert.match(releaseStdout, /Polished PWA release/);
 assert.match(releaseStdout, /Ready/);
 assert.match(releaseStdout, /Price protection and recall notes/);

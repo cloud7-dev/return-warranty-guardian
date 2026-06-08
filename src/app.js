@@ -156,6 +156,31 @@ function purchaseAttachments(purchase) {
   return Array.isArray(purchase.attachments) ? purchase.attachments.filter((item) => item?.name && (item?.dataUrl || item?.opfsPath)) : [];
 }
 
+function attachmentReferences(purchase) {
+  return Array.isArray(purchase.attachmentReferences)
+    ? purchase.attachmentReferences.filter((item) => item?.name)
+    : [];
+}
+
+function attachmentReferenceFromFile(file) {
+  return {
+    name: file.name,
+    size: Number(file.size || 0),
+    reason: "skipped-large",
+    note: t("attachmentReferenceLargeNote"),
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function attachmentReasonLabel(reason) {
+  return t(`attachmentReason${String(reason || "needs-reattach").replace(/(^|-)([a-z])/g, (_, __, letter) => letter.toUpperCase())}`);
+}
+
+function attachmentStatusLabel(attachment) {
+  if (attachment?.backupStatus === "backup-included") return t("attachmentStatusBackupIncluded");
+  return t("attachmentStatusAvailable");
+}
+
 function reminderLeadDays(purchase) {
   const value = Number(purchase.reminderLeadDays ?? 3);
   return Number.isFinite(value) && value >= 0 ? value : 3;
@@ -347,6 +372,7 @@ async function normalizePurchase(formData) {
     supportContact: String(formData.get("supportContact") || "").trim(),
     documents: linesFromText(formData.get("documents")),
     attachments: attachmentResult.attachments,
+    attachmentReferences: attachmentResult.rejected.map(attachmentReferenceFromFile),
     policyTemplateId: template?.id || "",
     serviceNotes,
     source: String(formData.get("source") || "manual"),
@@ -732,6 +758,30 @@ function renderRestorePreview() {
       </div>
       <p class="empty-note">${t("restoreMergeHelp", { count: preview.importableCount })}</p>
       ${
+        preview.skippedAttachments?.length
+          ? `<div class="import-issues attachment-restore-list">
+              <strong>${t("restoreSkippedAttachmentListTitle")}</strong>
+              ${preview.skippedAttachments
+                .slice(0, 8)
+                .map(
+                  (item) =>
+                    `<span>${h(t("restoreSkippedAttachmentItem", {
+                      product: item.productName || t("optional"),
+                      attachment: item.attachmentName || t("optional"),
+                      size: fileSizeLabel(item.size),
+                      reason: attachmentReasonLabel(item.reason),
+                    }))}</span>`,
+                )
+                .join("")}
+              ${
+                preview.skippedAttachments.length > 8
+                  ? `<span>${h(t("restoreSkippedAttachmentMore", { count: preview.skippedAttachments.length - 8 }))}</span>`
+                  : ""
+              }
+            </div>`
+          : ""
+      }
+      ${
         preview.duplicateCandidates.length
           ? `<div class="import-issues">
               ${preview.duplicateCandidates
@@ -1054,7 +1104,8 @@ function renderDetail() {
   const item = computeDeadlines(selected, today());
   const documents = Array.isArray(item.documents) ? item.documents : [];
   const attachments = purchaseAttachments(item);
-  const hasLocalDocs = documents.length || attachments.length;
+  const references = attachmentReferences(item);
+  const hasLocalDocs = documents.length || attachments.length || references.length;
   return `
     <section class="panel detail-panel">
       <div class="panel-heading">
@@ -1090,6 +1141,7 @@ function renderDetail() {
         <label><input type="checkbox" disabled /> ${t("checklistRma")}</label>
         <label><input type="checkbox" ${hasLocalDocs ? "checked" : ""} disabled /> ${t("checklistManuals")}</label>
         <label><input type="checkbox" ${attachments.length ? "checked" : ""} disabled /> ${t("checklistAttachments")}</label>
+        <label><input type="checkbox" ${references.length ? "checked" : ""} disabled /> ${t("checklistReattach")}</label>
         <label><input type="checkbox" ${item.serviceNotes ? "checked" : ""} disabled /> ${t("checklistServiceHistory")}</label>
       </div>
       <div class="home-context">
@@ -1120,8 +1172,18 @@ function renderDetail() {
                   .map(
                     (attachment, index) => `
                       <li class="attachment-item">
-                        <span>${attachment.name} · ${fileSizeLabel(attachment.size)}</span>
+                        <span>${attachment.name} · ${fileSizeLabel(attachment.size)} · ${attachmentStatusLabel(attachment)}</span>
                         <button class="inline-action" data-attachment-purchase="${item.id}" data-attachment-index="${index}" type="button">${t("downloadAttachment")}</button>
+                      </li>
+                    `,
+                  )
+                  .join("")}
+                ${references
+                  .map(
+                    (reference) => `
+                      <li class="attachment-item reattach-needed">
+                        <span>${reference.name} · ${fileSizeLabel(reference.size)} · ${attachmentReasonLabel(reference.reason)}</span>
+                        <em>${reference.note || t("attachmentReferenceDefaultNote")}</em>
                       </li>
                     `,
                   )

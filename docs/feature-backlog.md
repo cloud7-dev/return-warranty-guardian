@@ -11,8 +11,8 @@ This list separates high-leverage additions from features that could distract th
 
 2. **More durable local attachments**
    - Receipt images, PDFs, manuals, and warranty cards can now be stored in the browser record.
-   - Current flow stores local attachment Blobs in OPFS when supported, falls back to data URLs otherwise, shows save/skipped status for files over 5 MB, hydrates OPFS files for download/export, includes attachments plus a manifest in claim bundles, and includes hydrated attachment payloads in encrypted `.rwgbackup` files when possible.
-   - Remaining pain: very large attachments still need a split-backup or external-file-reference UX. That remains a stronger V2 candidate than a hosted file vault.
+   - Current flow stores local attachment Blobs in OPFS when supported, falls back to data URLs otherwise, shows save/skipped status for files over 5 MB, hydrates OPFS files for download/export, includes attachments plus a manifest and recovery status in claim bundles, includes hydrated attachment payloads in encrypted `.rwgbackup` files when possible, and preserves skipped files as reattach-needed references.
+   - Remaining pain: very large attachments still need split-backup or user-managed external-file handoff guidance. That remains a stronger V2 candidate than a hosted file vault.
 
 3. **Messy receipt and policy extraction**
    - Real receipts arrive as screenshots, email HTML, PDFs, Kakao/DM screenshots, and retailer order pages.
@@ -53,10 +53,11 @@ This list separates high-leverage additions from features that could distract th
 
 3. **Attachment handling**
    - Receipt image/PDF storage, manuals, warranty cards, image compression, and warning for large files.
-   - Claim bundle exports now include evidence pack, attachment manifest, attachment export review, and attached local files.
+   - Claim bundle exports now include evidence pack, attachment manifest, attachment export review, attachment recovery status, and attached local files.
 
 4. **Encrypted backup**
    - Implemented as a user-chosen passphrase `.rwgbackup` export using local encryption, restore preview, and duplicate-aware merge.
+   - Restore preview now exposes skipped attachment payloads and restored records preserve `attachmentReferences`.
    - Remaining work: large attachment split-backup UX and clearer cross-device handoff instructions.
 
 5. **Importers**

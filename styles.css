@@ -582,6 +582,20 @@ svg {
   border-top: 1px solid var(--line);
 }
 
+.attachment-restore-list {
+  display: grid;
+  gap: 7px;
+}
+
+.attachment-restore-list strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.attachment-restore-list span {
+  overflow-wrap: anywhere;
+}
+
 .workbench {
   display: grid;
   grid-template-columns: minmax(440px, 0.95fr) minmax(360px, 1.05fr);
@@ -1015,6 +1029,24 @@ svg {
 
 .attachment-item {
   margin-top: 6px;
+}
+
+.attachment-item.reattach-needed {
+  display: grid;
+  gap: 3px;
+}
+
+.attachment-item.reattach-needed span {
+  color: var(--orange);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.attachment-item.reattach-needed em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  overflow-wrap: anywhere;
 }
 
 .inline-action {

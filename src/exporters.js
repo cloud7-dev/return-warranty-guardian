@@ -37,6 +37,12 @@ function attachmentEvidenceHtml(attachment) {
   return `<li>${name} (${type}, ${escapeHtml(sizeLabel)})</li>`;
 }
 
+function exportableAttachments(purchase = {}) {
+  return Array.isArray(purchase.attachments)
+    ? purchase.attachments.filter((attachment) => attachment?.name && (attachment?.dataUrl || attachment?.opfsPath))
+    : [];
+}
+
 function attachmentManifest(attachments) {
   return attachments.map((attachment, index) => ({
     index: index + 1,
@@ -47,6 +53,86 @@ function attachmentManifest(attachments) {
     storage: attachment.storage || (attachment.dataUrl ? "data-url" : "local-reference"),
     exportPath: `attachments/${String(index + 1).padStart(2, "0")}-${safePathSegment(attachment.name)}`,
   }));
+}
+
+function attachmentReferences(purchase) {
+  return Array.isArray(purchase?.attachmentReferences)
+    ? purchase.attachmentReferences.filter((reference) => reference?.name)
+    : [];
+}
+
+function recoveryReasonLabel(reason) {
+  if (reason === "skipped-large") return "skipped-large";
+  if (reason === "hydration-failed") return "hydration-failed";
+  return "needs-reattach";
+}
+
+function attachmentRecoverySummary(purchase = {}) {
+  const attachments = Array.isArray(purchase.attachments) ? purchase.attachments.filter((attachment) => attachment?.name) : [];
+  const references = attachmentReferences(purchase).map((reference) => ({
+    name: reference.name,
+    size: Number(reference.size || 0),
+    reason: recoveryReasonLabel(reference.reason),
+    note: reference.note || "Attachment must be reattached or verified in separate storage.",
+    createdAt: reference.createdAt || "",
+  }));
+  const referenceKeys = new Set(references.map((reference) => `${reference.name}|${reference.size}`));
+  const included = attachments
+    .filter((attachment) => attachment?.dataUrl)
+    .map((attachment) => ({
+      name: attachment.name,
+      size: Number(attachment.size || 0),
+      status: attachment.backupStatus === "backup-included" ? "backup-included" : "available",
+    }));
+  const localOnly = attachments
+    .filter((attachment) => !attachment?.dataUrl && !referenceKeys.has(`${attachment.name}|${Number(attachment.size || 0)}`))
+    .map((attachment) => ({
+      name: attachment.name,
+      size: Number(attachment.size || 0),
+      status: attachment.backupStatus || "needs-reattach",
+    }));
+  return {
+    included,
+    localOnly,
+    references,
+    needsReattachCount: references.length + localOnly.filter((attachment) => attachment.status !== "available").length,
+    guidance:
+      references.length || localOnly.length
+        ? "Some attachment payloads were not included in the encrypted backup. Reattach them or verify separate storage before submitting evidence."
+        : "Attachment payloads available to this export are included.",
+  };
+}
+
+function attachmentRecoveryMarkdown(purchase = {}) {
+  const recovery = attachmentRecoverySummary(purchase);
+  const rows = [
+    ...recovery.included.map((item) => `- ${item.name} (${item.size} bytes): ${item.status}`),
+    ...recovery.localOnly.map((item) => `- ${item.name} (${item.size} bytes): ${item.status}`),
+    ...recovery.references.map((item) => `- ${item.name} (${item.size} bytes): ${item.reason}. ${item.note}`),
+  ];
+  return `${rows.length ? rows.join("\n") : "- No attachment recovery issues recorded."}\n\n${recovery.guidance}`;
+}
+
+function attachmentRecoveryHtml(purchase = {}) {
+  const recovery = attachmentRecoverySummary(purchase);
+  const rows = [
+    ...recovery.included.map((item) => ({ name: item.name, size: item.size, status: item.status, note: "Payload available in this export." })),
+    ...recovery.localOnly.map((item) => ({ name: item.name, size: item.size, status: item.status, note: "Local attachment payload is not embedded." })),
+    ...recovery.references.map((item) => ({ name: item.name, size: item.size, status: item.reason, note: item.note })),
+  ];
+  return `
+    <p>${escapeHtml(recovery.guidance)}</p>
+    ${
+      rows.length
+        ? `<table><thead><tr><th>Name</th><th>Size</th><th>Status</th><th>Note</th></tr></thead><tbody>${rows
+            .map(
+              (item) =>
+                `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(String(item.size))}</td><td>${escapeHtml(item.status)}</td><td>${escapeHtml(item.note)}</td></tr>`,
+            )
+            .join("")}</tbody></table>`
+        : "<p>No attachment recovery issues recorded.</p>"
+    }
+  `;
 }
 
 function priceProtectionSummary(item) {
@@ -159,7 +245,7 @@ export function claimSubmissionTemplates(purchase, now = new Date()) {
 export function evidencePackMarkdown(purchase, now = new Date()) {
   const item = computeDeadlines(purchase, now);
   const documents = Array.isArray(item.documents) ? item.documents : [];
-  const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
+  const attachments = exportableAttachments(item);
   const deadlineRows = item.deadlines
     .map(
       (deadline) =>
@@ -211,6 +297,10 @@ ${documents.length ? documents.map((name) => `- ${name}`).join("\n") : "- No doc
 ## Local Attachments
 
 ${attachments.length ? attachments.map((attachment) => `- ${attachment.name} (${attachment.type || "file"}, ${attachment.size || 0} bytes)`).join("\n") : "- No local files attached."}
+
+## Attachment Recovery
+
+${attachmentRecoveryMarkdown(item)}
 
 ## Service History
 
@@ -291,7 +381,7 @@ export function purchasesToCsv(purchases, now = new Date()) {
   ];
   const rows = purchases.map((purchase) => {
     const item = computeDeadlines(purchase, now);
-    const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
+    const attachments = exportableAttachments(item);
     return [
       item.productName,
       item.merchant,
@@ -331,7 +421,7 @@ export function purchasesToCsv(purchases, now = new Date()) {
 export function claimPacketHtml(purchase, now = new Date(), options = {}) {
   const item = computeDeadlines(purchase, now);
   const documents = Array.isArray(item.documents) ? item.documents : [];
-  const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
+  const attachments = exportableAttachments(item);
   const deadlineRows = item.deadlines
     .map(
       (deadline) => `
@@ -441,6 +531,10 @@ export function claimPacketHtml(purchase, now = new Date(), options = {}) {
     <p>${escapeHtml(String(attachmentReview.totalFiles))} file(s), ${escapeHtml(String(attachmentReview.totalBytes))} bytes, ${escapeHtml(String(attachmentReview.largeFileCount))} large file(s).</p>
     <p>${escapeHtml(attachmentReview.guidance)}</p>
   </div>
+  <h2>Attachment Recovery</h2>
+  <div class="guide">
+    ${attachmentRecoveryHtml(item)}
+  </div>
   <h2>Service History</h2>
   <p>${escapeHtml(item.serviceNotes || "No service history recorded.")}</p>
   <h2>Notes</h2>
@@ -473,7 +567,7 @@ export function claimPacketHtml(purchase, now = new Date(), options = {}) {
 
 export function claimPacketBundleJson(purchase, now = new Date(), options = {}) {
   const item = computeDeadlines(purchase, now);
-  const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
+  const attachments = exportableAttachments(item);
   return JSON.stringify(
     {
       schema: "return-warranty-guardian.claim-bundle.v1",
@@ -491,6 +585,7 @@ export function claimPacketBundleJson(purchase, now = new Date(), options = {}) 
       pdfSaveGuide: browserPdfSaveGuide(options.userAgent),
       attachmentManifest: attachmentManifest(attachments),
       attachmentExportReview: attachmentExportReview(attachments),
+      attachmentRecovery: attachmentRecoverySummary(item),
       attachments: attachments.map((attachment) => ({
         name: attachment.name,
         type: attachment.type || "application/octet-stream",
@@ -763,13 +858,14 @@ export function zipFiles(files, now = new Date()) {
 export function claimPacketZipBytes(purchase, now = new Date(), options = {}) {
   const item = computeDeadlines(purchase, now);
   const root = safePathSegment(item.productName || "claim");
-  const attachments = Array.isArray(item.attachments) ? item.attachments.filter((attachment) => attachment?.name) : [];
+  const attachments = exportableAttachments(item);
   const files = [
     { name: `${root}/claim-packet.html`, content: claimPacketHtml(purchase, now, options) },
     { name: `${root}/evidence-pack.md`, content: evidencePackMarkdown(purchase, now) },
     { name: `${root}/claim-bundle.json`, content: claimPacketBundleJson(purchase, now, options) },
     { name: `${root}/attachment-manifest.json`, content: JSON.stringify(attachmentManifest(attachments), null, 2) },
     { name: `${root}/attachment-export-review.json`, content: JSON.stringify(attachmentExportReview(attachments), null, 2) },
+    { name: `${root}/attachment-recovery.json`, content: JSON.stringify(attachmentRecoverySummary(item), null, 2) },
     ...claimSubmissionTemplates(purchase, now).map((template) => ({
       name: `${root}/templates/${safePathSegment(template.id)}.txt`,
       content: template.body,
